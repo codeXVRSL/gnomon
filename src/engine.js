@@ -30,7 +30,8 @@ function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun mo
 let CLOUDS = []; // hour ranges when a cloud covers the sun (set per level)
 const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
 let ECLIPSE = null; // [start, end] hours: the moon covers the sun and the two worlds trade places
-const eclipsed = t => !!ECLIPSE && t > ECLIPSE[0] && t < ECLIPSE[1];
+let ECL_DAY = 0, CUR_DAY = 1; // eclipseDay: the eclipse only comes on that day
+const eclipsed = t => !!ECLIPSE && (!ECL_DAY || CUR_DAY === ECL_DAY) && t > ECLIPSE[0] && t < ECLIPSE[1];
 const isGone = t => t < DUSK && !eclipsed(t) && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
@@ -118,7 +119,7 @@ function warpPlayer(L, st, x) {
 }
 
 function init(L) {
-  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null;
+  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null; ECL_DAY = L.def.eclipseDay || 0; CUR_DAY = 1;
   const t = L.def.startHour ?? 1;
   const st = {
     t, day: 1, frame: 0, sleeping: t >= DUSK, won: false, deaths: 0, events: [], hours: 0, grav: 1,
@@ -141,7 +142,7 @@ function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, wor
 // input: {l, r, up, down, jump (edge), jumpHeld, wait, pin (held), flip (edge), view (edge)}
 function update(L, st, inp) {
   st.events = [];
-  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null;
+  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null; ECL_DAY = L.def.eclipseDay || 0; CUR_DAY = st.day;
   if (st.won) return;
   st.frame++;
   const p = st.p, s = st.s;
@@ -265,7 +266,7 @@ function update(L, st, inp) {
     if (s.gone && !isGone(st.t)) { s.gone = false; s.h = shadowHeight(st.t); spawnShadow(L, st, p.x + castDx(st.t)); st.events.push('resync'); checkpoint(st); }
     if (st.t >= DUSK) { st.sleeping = true; s.gone = false; st.events.push('nightfall'); fitShadow(L, st, NIGHT_H); checkpoint(st); }
   } else if (st.t >= DAY_TOTAL) {
-    st.t -= DAY_TOTAL; st.day++; st.sleeping = false;
+    st.t -= DAY_TOTAL; st.day++; CUR_DAY = st.day; st.sleeping = false;
     warpPlayer(L, st, s.x); s.gone = isGone(st.t); if (!s.gone) spawnShadow(L, st, p.x + castDx(st.t)); fitShadow(L, st, shadowHeight(st.t));
     st.events.push('dawn'); checkpoint(st);
   }
