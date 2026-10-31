@@ -341,6 +341,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
+    if (ev === 'needshadow') { toast('WAIT FOR YOUR SHADOW TO REACH ITS DIAL'); beep(523, .12, 'sine', .04, .8); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
@@ -442,6 +443,7 @@ function how() {
       <li><span>☾</span><span><b>At night</b> you sleep and steer your shadow alone. <b>At dawn</b> you wake where it stands.</span></li>
       <li><span>☠</span><span><b>Lantern-bearers</b> and <b>shade hounds</b> walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it.</span></li>
       <li><span>◎</span><span><b>2.5D</b> in the top bar tilts the camera to show depth; the sun lights the blocks from its side of the sky.</span></li>
+      <li><span>◐</span><span>Some stages have a <b>violet dial for your shadow</b>. You and your shadow must stand on your dials at the same moment.</span></li>
       <li><span>☁</span><span><b>Clouds</b> crossing the sun make your shadow fade; it is reborn beneath you when the sun comes out. Their hours show grey on the clock.</span></li>
       <li><span>◆</span><span><b>Sunstones</b> cast a slab of shade below that slides west through the day. Your shadow can ride it.</span></li>
       <li><span>≈</span><span><b>Water</b> slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
@@ -584,6 +586,13 @@ function render(now) {
       const bounce = Math.abs(Math.sin(now / 90)) * 1;
       g.fillStyle = topW ? '#6e6280' : '#4a3d78'; g.fillRect(px + 2, topW ? py + 9 : py, 8, 3);
       g.fillStyle = topW ? '#e9806e' : '#c7b4ff'; g.fillRect(px + 3, topW ? py + 6 - bounce : py + 3 + bounce, 6, 2); g.fillRect(px + 4, topW ? py + 3 - bounce : py + 6 + bounce, 4, 2);
+    } else if (c === 'g' && !topW) {
+      // the shadow's own dial: violet, hanging upside-down from the shadow world's floor
+      const pulse = (Math.sin(now / 280 + 1) + 1) / 2, ok = st.atShadowG;
+      g.fillStyle = `rgba(157,124,255,${.15 + pulse * .25 + (ok ? .2 : 0)})`; g.fillRect(px + 4, py, 4, 14); g.fillRect(px - 1, py + 2, 14, 4);
+      g.fillStyle = '#4a3b74'; g.fillRect(px, py, 12, 4); g.fillStyle = '#9d86ff'; g.fillRect(px + 1, py + 2, 10, 3);
+      g.fillStyle = '#2a2047'; g.fillRect(px + 5, py + 3, 2, 1); g.fillRect(px + 2, py + 3, 1, 1); g.fillRect(px + 9, py + 3, 1, 1);
+      g.fillStyle = ok ? '#ffffff' : '#c7b4ff'; g.fillRect(px + 5, py + 7 - Math.round(pulse * 2), 2, 4);
     } else if (c === 'G') {
       const pulse = (Math.sin(now / 280) + 1) / 2;
       g.fillStyle = `rgba(246,200,95,${.18 + pulse * .3})`; g.fillRect(px + 4, py - 3, 4, 14); g.fillRect(px - 1, py + 6, 14, 4);
@@ -615,6 +624,13 @@ function render(now) {
   }
   g.fillStyle = night ? 'rgba(199,180,255,.5)' : 'rgba(255,236,180,.55)'; g.fillRect(0, HZ, L.PX, 1);
 
+  // ---- when you stand on your dial, a faint beam points to where your shadow must stand ----
+  if (st.atG && L.shadowGoal && !st.won) {
+    for (let y = HALF; y < ROWS; y++) for (let x = 0; x < L.W; x++) if (L.grid[y][x] === 'g') {
+      const k = (now / 400) % 1; g.fillStyle = 'rgba(199,180,255,.5)';
+      for (let i = 0; i < 6; i++) { const yy = HZ + ((i / 6 + k) % 1) * (y * TS - HZ); g.fillRect(x * TS + 5, yy, 2, 2); }
+    }
+  }
   // ---- tether between you and your shadow ----
   const p = st.p, s = st.s, moving = (keys.l || keys.r) && !night;
   if (!s.gone) {

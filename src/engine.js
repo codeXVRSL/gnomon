@@ -23,7 +23,7 @@ function parse(def) {
     if ((c === 'h' || c === 'H') && y >= HALF) { enemies.push({ kind: 'hound', world: 'bot', x: x * TS + 2, y: y * TS, dir: c === 'H' ? 1 : -1 }); grid[y][x] = '.'; }
     if ((c === 'l' || c === 'L') && y < HALF) { enemies.push({ kind: 'lantern', world: 'top', x: x * TS + 2, y: y * TS + TS - EH, dir: c === 'L' ? 1 : -1 }); grid[y][x] = '.'; }
   }
-  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
+  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, shadowGoal: rows.slice(HALF).some(r => r.includes('g')), lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
 }
 
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
@@ -316,7 +316,13 @@ function update(L, st, inp) {
   }
   if (die) { restore(st); st.events.push(die); return; }
   if (st.pendingCheck && safeToCheckpoint(L, st)) { st.pendingCheck = false; st.check = snapshot(st); st.events.push('checkpoint'); }
-  if (forTiles(p.x, p.y, PW, PH, (tx, ty) => ty < HALF && tileAt(L, tx, ty) === 'G')) { st.won = true; st.events.push('win'); }
+  // finish: you on your dial; if the stage has a shadow dial (g), your shadow must stand on it at the same moment
+  const onG = forTiles(p.x, p.y, PW, PH, (tx, ty) => ty < HALF && tileAt(L, tx, ty) === 'G');
+  const onShadowG = !s.gone && forTiles(s.x + 1, s.y, SW - 2, s.h, (tx, ty) => ty >= HALF && tileAt(L, tx, ty) === 'g');
+  st.shadowGoal = L.shadowGoal; st.atG = onG; st.atShadowG = onShadowG;
+  if (onG && (!L.shadowGoal || onShadowG)) { st.won = true; st.events.push('win'); }
+  else if (onG && L.shadowGoal && !st.waitedG) { st.waitedG = true; st.events.push('needshadow'); }
+  else if (!onG) st.waitedG = false;
 }
 function spikeHangs(L, world, tx, ty) {
   // 'hang' = spikes attached to the tile above (pointing down the screen)
