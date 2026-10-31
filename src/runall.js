@@ -4,6 +4,7 @@ const S = {
  'The Hour Hand': [['W',s=>s.s.x<=46],['R',600]],
  'High Noon': [['R',s=>s.p.x>=104],['W',s=>!s.s.gone&&s.t>3.6],['R',600]],
  'Passing Cloud': [['R',s=>s.p.x>=136],['W',s=>!s.s.gone&&s.t>1.9],['R',600]],
+ 'Meet at Dusk': [['R',s=>s.atG],['W',800]],
  'Two Worlds': [['R',1500]],
  'Mirror Steps': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=130],['RJ',30],['R',600]],
  'Hold Still': [['R',s=>s.s.x>=46],['RP',900]],
