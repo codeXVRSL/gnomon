@@ -173,7 +173,7 @@ const LEVELS = [
       '..........#.........',
       '..........#.........'] },
   { name: 'Eclipse', startHour: 0.5, eclipse: [2.0, 2.6],
-    hint: 'A wall you cannot climb. Your shadow can slip past it below. At two o\'clock the moon covers the sun, the world turns over, and you trade places with your shadow. Be sure it stands on the far side when the dark comes.',
+    hint: 'A wall you cannot climb. Your shadow can slip past it below. At two o\'clock the moon covers the sun, the whole world spins around, and you trade places with your shadow. Be sure it stands on the far side when the dark comes.',
     map: [
       '.......#............',
       '.......#............',
