@@ -27,7 +27,9 @@ function parse(def) {
 }
 
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
-const isGone = t => t < DUSK && Math.abs(t - NOON) < NOON_GAP;
+let CLOUDS = []; // hour ranges when a cloud covers the sun (set per level)
+const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
+const isGone = t => t < DUSK && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
 const morningSolid = t => t < NOON;           // 'm'
@@ -114,6 +116,7 @@ function warpPlayer(L, st, x) {
 }
 
 function init(L) {
+  CLOUDS = L.def.clouds || [];
   const t = L.def.startHour ?? 1;
   const st = {
     t, day: 1, frame: 0, sleeping: t >= DUSK, won: false, deaths: 0, events: [], hours: 0, grav: 1,
@@ -136,6 +139,7 @@ function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, wor
 // input: {l, r, up, down, jump (edge), jumpHeld, wait, pin (held), flip (edge), view (edge)}
 function update(L, st, inp) {
   st.events = [];
+  CLOUDS = L.def.clouds || [];
   if (st.won) return;
   st.frame++;
   const p = st.p, s = st.s;
@@ -255,7 +259,7 @@ function update(L, st, inp) {
 
   // ---- phase transitions ----
   if (!st.sleeping) {
-    if (!s.gone && isGone(st.t) && !isGone(t0)) { s.gone = true; st.events.push('noon'); }
+    if (!s.gone && isGone(st.t) && !isGone(t0)) { s.gone = true; st.events.push(overcast(st.t) ? 'cloud' : 'noon'); }
     if (s.gone && !isGone(st.t)) { s.gone = false; s.h = shadowHeight(st.t); spawnShadow(L, st, p.x + castDx(st.t)); st.events.push('resync'); checkpoint(st); }
     if (st.t >= DUSK) { st.sleeping = true; s.gone = false; st.events.push('nightfall'); fitShadow(L, st, NIGHT_H); checkpoint(st); }
   } else if (st.t >= DAY_TOTAL) {
@@ -357,4 +361,4 @@ function fitShadow(L, st, want) {
 }
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
-if (typeof module !== 'undefined') module.exports = { SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
+if (typeof module !== 'undefined') module.exports = { overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };

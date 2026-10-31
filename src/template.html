@@ -282,6 +282,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'chime') beep(1320, .25, 'sine', .04, .98);
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
+    if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
@@ -382,6 +383,7 @@ function how() {
       <li><span>☾</span><span><b>At night</b> you sleep and steer your shadow alone. <b>At dawn</b> you wake where it stands.</span></li>
       <li><span>☠</span><span><b>Lantern-bearers</b> and <b>shade hounds</b> walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it.</span></li>
       <li><span>◎</span><span><b>2.5D</b> in the top bar tilts the camera to show depth; the sun lights the blocks from its side of the sky.</span></li>
+      <li><span>☁</span><span><b>Clouds</b> crossing the sun make your shadow fade; it is reborn beneath you when the sun comes out. Their hours show grey on the clock.</span></li>
       <li><span>◆</span><span><b>Sunstones</b> cast a slab of shade below that slides west through the day. Your shadow can ride it.</span></li>
       <li><span>≈</span><span><b>Water</b> slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
       <li><span>!</span><span>Shade presses violet plates, your feet press brass ones. Chime spikes rise late in every hour. Cracked stones crumble. Pale stones hold before noon, dark ones after.</span></li>
@@ -419,8 +421,19 @@ function render(now) {
     g.fillStyle = 'rgba(255,240,180,.35)'; g.fillRect(sx - 8, sy - 6, 16, 12); g.fillRect(sx - 6, sy - 8, 12, 16);
     g.fillStyle = '#fff2b0'; g.fillRect(sx - 5, sy - 4, 10, 8); g.fillRect(sx - 4, sy - 5, 8, 10);
     g.fillStyle = '#ffd25e'; g.fillRect(sx - 3, sy - 3, 6, 6);
+    // clouds slide across the sun as the hours pass (they move with the clock, so they rewind too)
+    for (const [a, b] of (LEVELS[li].clouds || [])) {
+      const mid = (a + b) / 2, cw = (b - a) * 70 + 18, cx = sx + (mid - t) * 70;
+      if (cx < -cw || cx > W + cw) continue;
+      const cover = overcast(t);
+      g.fillStyle = cover ? 'rgba(120,128,150,.95)' : 'rgba(150,160,180,.9)';
+      g.fillRect(cx - cw / 2, sy - 5, cw, 9); g.fillRect(cx - cw / 2 + 4, sy - 9, cw - 12, 5); g.fillRect(cx - cw / 2 + 10, sy - 12, cw - 26, 4);
+      g.fillStyle = 'rgba(230,236,245,.9)'; g.fillRect(cx - cw / 2 + 5, sy - 9, cw - 14, 1); g.fillRect(cx - cw / 2 + 1, sy - 5, 6, 1);
+      g.fillStyle = 'rgba(80,86,110,.6)'; g.fillRect(cx - cw / 2 + 2, sy + 3, cw - 4, 1);
+    }
   }
   drawBackdrop(now, t, night, top, low);
+  if (!night && overcast(t)) { g.fillStyle = 'rgba(70,80,110,.22)'; g.fillRect(0, 0, W, HZ); }
   for (let y = HZ; y < H; y += 6) { const k = (y - HZ) / (H - HZ); g.fillStyle = mix(night ? '#3b2b6e' : '#2c2350', '#140f26', k); g.fillRect(-4, y, W + 8, 6); }
   // camera follows whoever is awake
   const tgt = (night ? st.s.x : st.p.x) + 4 - W / 2;
@@ -703,6 +716,7 @@ function drawDial() {
   dg.fillStyle = '#26214a'; dg.fillRect(dayW, 0, w - dayW, h);
   const nx0 = dayW * (NOON - .25) / DUSK, nx1 = dayW * (NOON + .25) / DUSK;
   dg.fillStyle = '#5a4b3a'; dg.fillRect(nx0, 0, nx1 - nx0, h);
+  for (const [a, b] of (LEVELS[li].clouds || [])) { dg.fillStyle = 'rgba(170,180,200,.55)'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); }
   // chime bands each hour
   for (let hr = 0; hr < DUSK; hr++) { const a = dayW * (hr + .6) / DUSK, b = dayW * (hr + .75) / DUSK, c = dayW * (hr + 1) / DUSK; dg.fillStyle = 'rgba(240,184,78,.35)'; dg.fillRect(a, h - 3, b - a, 3); dg.fillStyle = 'rgba(255,107,90,.6)'; dg.fillRect(b, h - 3, c - b, 3); }
   // the shadow's sideways offset through the day: a line that crosses the centre at noon
