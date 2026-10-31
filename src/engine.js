@@ -29,6 +29,8 @@ function parse(def) {
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
 let CLOUDS = []; // hour ranges when a cloud covers the sun (set per level)
 const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
+let ECLIPSE = null; // [start, end] hours: the moon covers the sun and the two worlds trade places
+const eclipsed = t => !!ECLIPSE && t > ECLIPSE[0] && t < ECLIPSE[1];
 const isGone = t => t < DUSK && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
@@ -116,7 +118,7 @@ function warpPlayer(L, st, x) {
 }
 
 function init(L) {
-  CLOUDS = L.def.clouds || [];
+  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null;
   const t = L.def.startHour ?? 1;
   const st = {
     t, day: 1, frame: 0, sleeping: t >= DUSK, won: false, deaths: 0, events: [], hours: 0, grav: 1,
@@ -139,7 +141,7 @@ function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, wor
 // input: {l, r, up, down, jump (edge), jumpHeld, wait, pin (held), flip (edge), view (edge)}
 function update(L, st, inp) {
   st.events = [];
-  CLOUDS = L.def.clouds || [];
+  CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null;
   if (st.won) return;
   st.frame++;
   const p = st.p, s = st.s;
@@ -243,7 +245,7 @@ function update(L, st, inp) {
   const tdir = (!st.sleeping && st.grav < 0) ? -1 : 1;
   st.t = Math.max(0, st.t + dt * tdir); st.hours += dt;
   // ---- the sun moves, so the shadow slides west (pinned, sleeping or vanished shadows stay) ----
-  if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK) { const d = castDx(st.t) - castDx(t0); if (d) tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); }
+  if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK && !eclipsed(st.t) && !eclipsed(t0)) { const d = castDx(st.t) - castDx(t0); if (d) tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); }
   // ---- enemies walk only as the hours pass (SUPERHOT rule) ----
   const edt = dt; // flips and view costs do not teleport enemies
   if (edt > 0) for (const e of st.enemies) {
@@ -266,6 +268,12 @@ function update(L, st, inp) {
     st.t -= DAY_TOTAL; st.day++; st.sleeping = false;
     warpPlayer(L, st, s.x); s.gone = isGone(st.t); if (!s.gone) spawnShadow(L, st, p.x + castDx(st.t)); fitShadow(L, st, shadowHeight(st.t));
     st.events.push('dawn'); checkpoint(st);
+  }
+  if (!st.sleeping && !s.gone && eclipsed(st.t) && !eclipsed(t0)) {
+    // totality: you and your shadow trade places
+    const bx = p.x, sx = s.x;
+    warpPlayer(L, st, sx); spawnShadow(L, st, bx);
+    st.events.push('eclipse'); checkpoint(st);
   }
   if (!s.gone && !st.sleeping) fitShadow(L, st, shadowHeight(st.t));
   if (Math.floor(st.t) !== Math.floor(t0) && st.t < DUSK) st.events.push('hour');
@@ -367,4 +375,4 @@ function fitShadow(L, st, want) {
 }
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
-if (typeof module !== 'undefined') module.exports = { overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
+if (typeof module !== 'undefined') module.exports = { eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };

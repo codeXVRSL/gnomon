@@ -33,7 +33,9 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .clock-txt{font-family:var(--display);font-size:11px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums;line-height:1.3;white-space:nowrap}
 .clock-txt b{color:var(--brass);font-weight:400}
 #stage{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;position:relative}
-#game{image-rendering:pixelated;image-rendering:crisp-edges;display:block;touch-action:none}
+#game{image-rendering:pixelated;image-rendering:crisp-edges;display:block;touch-action:none;transition:transform .7s cubic-bezier(.6,-.2,.3,1.2)}
+#stage{perspective:600px}
+#game.eclipse{transform:rotateX(180deg)}
 #toast{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-family:var(--display);font-size:12px;background:rgba(25,21,41,.9);color:var(--brass);padding:6px 10px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
 #toast.show{opacity:1}
 .meta{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;color:var(--mute)}
@@ -340,6 +342,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'hour') hourChime();
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
+    if (ev === 'eclipse') { toast('ECLIPSE · YOU TRADE PLACES WITH YOUR SHADOW'); beep(196, .5, 'triangle', .06, .5); beep(147, .8, 'sine', .05, .6); shake = 5; flash = .5; burst(st.p.x + 4, st.p.y + 6, '#fff6d0', 16, 1.6); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff', 16, 1.6); if (navigator.vibrate) try { navigator.vibrate([30, 60, 30]); } catch (e) {} }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'needshadow') { toast('WAIT FOR YOUR SHADOW TO REACH ITS DIAL'); beep(523, .12, 'sine', .04, .8); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
@@ -444,6 +447,7 @@ function how() {
       <li><span>☠</span><span><b>Lantern-bearers</b> and <b>shade hounds</b> walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it.</span></li>
       <li><span>◎</span><span><b>2.5D</b> in the top bar tilts the camera to show depth; the sun lights the blocks from its side of the sky.</span></li>
       <li><span>◐</span><span>Some stages have a <b>violet dial for your shadow</b>. You and your shadow must stand on your dials at the same moment.</span></li>
+      <li><span>●</span><span><b>Eclipse</b>: when the moon covers the sun the world turns over and <b>you trade places with your shadow</b>. Its hours show black on the clock.</span></li>
       <li><span>☁</span><span><b>Clouds</b> crossing the sun make your shadow fade; it is reborn beneath you when the sun comes out. Their hours show grey on the clock.</span></li>
       <li><span>◆</span><span><b>Sunstones</b> cast a slab of shade below that slides west through the day. Your shadow can ride it.</span></li>
       <li><span>≈</span><span><b>Water</b> slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
@@ -469,6 +473,8 @@ function drawBody(img, x, y, w, h, sq, anchorBottom) {
 
 function render(now) {
   const t = st.t, night = st.sleeping, flipped = st.grav < 0, v25 = save.view25;
+  const ecl = !night && !!LEVELS[li].eclipse && eclipsed(t);
+  if (ecl !== cv.classList.contains('eclipse')) cv.classList.toggle('eclipse', ecl);
   g.setTransform(1, 0, 0, 1, Math.round(shakeX), Math.round(shakeY));
   g.clearRect(-4, -4, W + 8, H + 8);
   const [top, low] = skyAt(t);
@@ -482,6 +488,16 @@ function render(now) {
     g.fillStyle = 'rgba(255,240,180,.35)'; g.fillRect(sx - 8, sy - 6, 16, 12); g.fillRect(sx - 6, sy - 8, 12, 16);
     g.fillStyle = '#fff2b0'; g.fillRect(sx - 5, sy - 4, 10, 8); g.fillRect(sx - 4, sy - 5, 8, 10);
     g.fillStyle = '#ffd25e'; g.fillRect(sx - 3, sy - 3, 6, 6);
+    // eclipse: the moon slides across the sun with the hours, then covers it
+    const EC = LEVELS[li].eclipse;
+    if (EC) {
+      const mid = (EC[0] + EC[1]) / 2, mxx = sx + (mid - t) * 26;
+      if (Math.abs(mxx - sx) < 40) {
+        if (eclipsed(t)) { g.fillStyle = 'rgba(255,244,200,.55)'; g.fillRect(sx - 9, sy - 1, 18, 2); g.fillRect(sx - 1, sy - 9, 2, 18); g.fillRect(sx - 7, sy - 7, 14, 14); }
+        g.fillStyle = '#1a1530'; g.fillRect(mxx - 4, sy - 4, 8, 8); g.fillRect(mxx - 5, sy - 3, 10, 6); g.fillRect(mxx - 3, sy - 5, 6, 10);
+        if (eclipsed(t)) { g.fillStyle = '#fff6d0'; g.fillRect(mxx - 3, sy - 6, 6, 1); g.fillRect(mxx - 3, sy + 5, 6, 1); g.fillRect(mxx - 6, sy - 3, 1, 6); g.fillRect(mxx + 5, sy - 3, 1, 6); }
+      }
+    }
     // clouds slide across the sun as the hours pass (they move with the clock, so they rewind too)
     for (const [a, b] of (LEVELS[li].clouds || [])) {
       const mid = (a + b) / 2, cw = (b - a) * 70 + 18, cx = sx + (mid - t) * 70;
@@ -494,6 +510,7 @@ function render(now) {
     }
   }
   drawBackdrop(now, t, night, top, low);
+  if (!night && eclipsed(t)) { g.fillStyle = 'rgba(20,14,48,.55)'; g.fillRect(0, 0, W, HZ); for (let i = 0; i < 14; i++) { const x = hash(i, 7) * W | 0, y = hash(i, 5) * 50 | 0; g.fillStyle = '#e8e0ff'; g.fillRect(x, y, 1, 1); } }
   if (!night && overcast(t)) { g.fillStyle = 'rgba(70,80,110,.22)'; g.fillRect(0, 0, W, HZ); }
   for (let y = HZ; y < H; y += 6) { const k = (y - HZ) / (H - HZ); g.fillStyle = mix(night ? '#3b2b6e' : '#2c2350', '#140f26', k); g.fillRect(-4, y, W + 8, 6); }
   // camera follows whoever is awake
@@ -791,6 +808,7 @@ function drawDial() {
   dg.fillStyle = '#26214a'; dg.fillRect(dayW, 0, w - dayW, h);
   const nx0 = dayW * (NOON - .25) / DUSK, nx1 = dayW * (NOON + .25) / DUSK;
   dg.fillStyle = '#5a4b3a'; dg.fillRect(nx0, 0, nx1 - nx0, h);
+  if (LEVELS[li].eclipse) { const [a, b] = LEVELS[li].eclipse; dg.fillStyle = '#120d26'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); dg.fillStyle = '#fff6d0'; dg.fillRect(dayW * (a + b) / 2 / DUSK - 1, h / 2 - 1, 3, 3); }
   for (const [a, b] of (LEVELS[li].clouds || [])) { dg.fillStyle = 'rgba(170,180,200,.55)'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); }
   // chime bands each hour
   for (let hr = 0; hr < DUSK; hr++) { const a = dayW * (hr + .6) / DUSK, b = dayW * (hr + .75) / DUSK, c = dayW * (hr + 1) / DUSK; dg.fillStyle = 'rgba(240,184,78,.35)'; dg.fillRect(a, h - 3, b - a, 3); dg.fillStyle = 'rgba(255,107,90,.6)'; dg.fillRect(b, h - 3, c - b, 3); }
@@ -880,7 +898,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily, MUSIC };
+if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily, MUSIC, load, hideCard };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
