@@ -7,13 +7,15 @@ const PW = 8, PH = 11, SW = 8, SH = 11, NIGHT_H = 11;
 const CAST_K = 18; // px the sun slides a shadow per hour (±63 px over the day)
 const ENEMY_SPEED = 60, EW = 8, EH = 8, LANTERN_R = 10; // enemies move per hour of game time // px of slab drift per hour
 const PIN_MAX = 140, PIN_DRAIN = 1, PIN_REFILL = 0.4;
+const STAFF_W = 4, STAFF_H = 22; // the gnomon staff you plant: its shadow is a post in the world below
+const MARK_K = 12; // px per hour the shadow's hour mark slides east
 const CRUMBLE_SHAKE = 22, CRUMBLE_GONE = 130;
 const CHIME_WARN = 0.6, CHIME_ON = 0.75; // fraction of the hour
 
 function parse(def) {
   const rows = def.map, W = Math.max(...rows.map(r => r.length));
   const grid = rows.map(r => r.padEnd(W, '.').split(''));
-  let start = null; const lamps = [], shards = [], stones = [], enemies = [];
+  let start = null; const lamps = [], shards = [], stones = [], enemies = [], casters = [], marks = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < W; x++) {
     const c = grid[y][x];
     if (c === 'S') { start = [x, y]; grid[y][x] = '.'; }
@@ -21,9 +23,12 @@ function parse(def) {
     if (c === 'o') { shards.push([x, y]); grid[y][x] = '.'; }
     if (c === '=' && y < HALF) stones.push([x, y]);
     if ((c === 'h' || c === 'H') && y >= HALF) { enemies.push({ kind: 'hound', world: 'bot', x: x * TS + 2, y: y * TS, dir: c === 'H' ? 1 : -1 }); grid[y][x] = '.'; }
+    if ((c === 'y' || c === 'Y') && y < HALF) { enemies.push({ kind: 'bird', world: 'top', x: x * TS + 2, y: y * TS + 2, dir: c === 'Y' ? 1 : -1 }); grid[y][x] = '.'; }
+    if (c === 'k' && y >= HALF) { marks.push([x, y]); grid[y][x] = '.'; }
+    if (c === '#' && def.cast && y < HALF - 1) casters.push([x, y]);
     if ((c === 'l' || c === 'L') && y < HALF) { enemies.push({ kind: 'lantern', world: 'top', x: x * TS + 2, y: y * TS + TS - EH, dir: c === 'L' ? 1 : -1 }); grid[y][x] = '.'; }
   }
-  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, shadowGoal: rows.slice(HALF).some(r => r.includes('g')), lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
+  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, casters, marks, shadowGoal: rows.slice(HALF).some(r => r.includes('g') || r.includes('k')), lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
 }
 
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
@@ -32,6 +37,8 @@ const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
 let ECLIPSE = null; // [start, end] hours: the moon covers the sun and the two worlds trade places
 let ECL_DAY = 0, CUR_DAY = 1; // eclipseDay: the eclipse only comes on that day
 const eclipsed = t => !!ECLIPSE && (!ECL_DAY || CUR_DAY === ECL_DAY) && t > ECLIPSE[0] && t < ECLIPSE[1];
+let PARTIAL = null; // [a, b]: a crescent sun casts two thin shadows
+const crescent = t => !!PARTIAL && t > PARTIAL[0] && t < PARTIAL[1];
 const isGone = t => t < DUSK && !eclipsed(t) && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
@@ -39,10 +46,29 @@ const morningSolid = t => t < NOON;           // 'm'
 const eveningSolid = t => t >= NOON;          // 'e' (incl. night)
 
 const castDx = t => (NOON - t) * CAST_K;
+// everything the sun casts into the world below: sunstones, (in cast stages) every block above the ground, and your planted staff
 function slabs(L, st, t = st.t) {
-  if (t >= DUSK || isGone(t) || !L.stones.length) return [];
-  const dx = castDx(t);
-  return L.stones.map(([tx, ty]) => ({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS }));
+  if (t >= DUSK || isGone(t) || eclipsed(t)) return [];
+  if (!L.stones.length && !L.casters.length && !st.staff) return [];
+  const dx = castDx(t), out = [];
+  for (const [tx, ty] of L.stones) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'stone' });
+  for (const [tx, ty] of L.casters) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'cast' });
+  if (st.staff) out.push({ x: st.staff.x + dx, y: ROWS * TS - st.staff.base, w: STAFF_W, h: STAFF_H, kind: 'staff' });
+  return out;
+}
+// the shadow's hour mark slides east through the day, like the numbers on a sundial face
+function markRects(L, t) { const tt = Math.min(t, DUSK); return L.marks.map(([tx, ty]) => ({ x: tx * TS + (tt - NOON) * MARK_K, y: ty * TS, w: TS, h: TS })); }
+// a second, fainter shadow cast the other way: by sunlight bouncing off water, or by a crescent sun
+function echoOf(L, st) {
+  const p = st.p, t = st.t;
+  if (st.sleeping || t >= DUSK || isGone(t) || eclipsed(t) || st.grav < 0) return null;
+  let kind = null;
+  if (crescent(t)) kind = 'crescent';
+  else { const under = forTiles(p.x + 1, p.y + PH, PW - 2, TS, (tx, ty) => ty < HALF && tileAt(L, tx, ty) === '~'); if (under || inWater(L, 'top', p, PW, PH)) kind = 'water'; }
+  if (!kind) return null;
+  const x = Math.max(0, Math.min(L.PX - SW, p.x - castDx(t))), pr = new Set();
+  for (let y = HZ; y <= ROWS * TS - SH; y += 2) if (!overlap(L, st, 'bot', x, y, SW, SH, pr, true)) return { x, y, kind };
+  return null;
 }
 function rectHit(r, x, y, w, h) { return x < r.x + r.w && x + w > r.x && y < r.y + r.h && y + h > r.y; }
 function tileAt(L, tx, ty) { if (tx < 0 || tx >= L.W) return '#'; if (ty < 0 || ty >= ROWS) return '#'; return L.grid[ty][tx]; }
@@ -56,10 +82,13 @@ function pressedSet(L, st) {
   const set = new Set(); const s = st.s, p = st.p;
   forTiles(p.x, p.y, PW, PH, (tx, ty) => { const c = tileAt(L, tx, ty); if (c >= 'a' && c <= 'd' && ty < HALF) set.add(c.toUpperCase()); });
   if (!s.gone) forTiles(s.x, s.y, SW, s.h, (tx, ty) => { const c = tileAt(L, tx, ty); if (c >= 'a' && c <= 'd' && ty >= HALF) set.add(c.toUpperCase()); });
+  const shade = (x, y, w, h) => forTiles(x + 1, y + 1, w - 2, h - 2, (tx, ty) => { const c = tileAt(L, tx, ty); if (c >= 'a' && c <= 'd' && ty >= HALF) set.add(c.toUpperCase()); });
+  for (const r of slabs(L, st)) shade(r.x, r.y, r.w, r.h);
+  if (st.echo) shade(st.echo.x, st.echo.y, SW, SH);
   return set;
 }
 function overlapsShadowTile(st, tx, ty) {
-  const s = st.s; if (s.gone) return false; return s.x < (tx + 1) * TS && s.x + SW > tx * TS && s.y < (ty + 1) * TS && s.y + s.h > ty * TS;
+  const s = st.s; if (s.gone) return false; return s.x + 0.01 < (tx + 1) * TS && s.x + SW - 0.01 > tx * TS && s.y + 0.01 < (ty + 1) * TS && s.y + s.h - 0.01 > ty * TS;
 }
 function inWater(L, world, b, w, h) {
   const cx = b.x + w / 2, cy = b.y + h / 2; const tx = Math.floor(cx / TS), ty = Math.floor(cy / TS);
@@ -67,7 +96,7 @@ function inWater(L, world, b, w, h) {
   return tileAt(L, tx, ty) === '~';
 }
 function overlapsPlayerTile(st, tx, ty) {
-  const p = st.p; return p.x < (tx + 1) * TS && p.x + PW > tx * TS && p.y < (ty + 1) * TS && p.y + PH > ty * TS;
+  const p = st.p; return p.x + 0.01 < (tx + 1) * TS && p.x + PW - 0.01 > tx * TS && p.y + 0.01 < (ty + 1) * TS && p.y + PH - 0.01 > ty * TS;
 }
 function crumbleGone(st, tx, ty) { const c = st.crumble[tx + ',' + ty]; return c && c.gone > 0; }
 function solid(L, st, world, tx, ty, pr) {
@@ -82,7 +111,7 @@ function solid(L, st, world, tx, ty, pr) {
   return false;
 }
 function overlap(L, st, world, x, y, w, h, pr) {
-  if (world === 'bot' && L.stones.length) for (const r of slabs(L, st)) if (rectHit(r, x, y, w, h)) return true;
+  if (world === 'bot') for (const r of slabs(L, st)) if (r.kind !== 'staff' && rectHit(r, x, y, w, h)) return true; // the staff's thin shadow presses plates but does not block
   return forTiles(x, y, w, h, (tx, ty) => solid(L, st, world, tx, ty, pr));
 }
 function tryMove(L, st, world, b, w, h, dx, dy, pr) {
@@ -119,6 +148,7 @@ function warpPlayer(L, st, x) {
 }
 
 function init(L) {
+  PARTIAL = L.def.partial || null;
   CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null; ECL_DAY = L.def.eclipseDay || 0; CUR_DAY = 1;
   const t = L.def.startHour ?? 1;
   const st = {
@@ -126,7 +156,7 @@ function init(L) {
     pin: PIN_MAX, pinned: false, flipLock: 0, crumble: {}, got: L.shards.map(() => false), shardsGot: 0,
     p: { x: L.start[0] * TS + 2, y: L.start[1] * TS + TS - PH, vx: 0, vy: 0, ground: false, coyote: 0, land: 0 },
     s: { x: 0, y: HZ + TS, vy: 0, ground: false, coyote: 0, h: shadowHeight(t), gone: isGone(t), land: 0 },
-    jumpBuf: 0, face: 1, swimCd: 0, enemies: L.enemies.map(e => ({ ...e })),
+    jumpBuf: 0, face: 1, swimCd: 0, enemies: L.enemies.map(e => ({ ...e })), staff: null, pinPrev: false, echo: null,
   };
   spawnShadow(L, st, st.p.x + castDx(t));
   st.check = snapshot(st);
@@ -142,6 +172,7 @@ function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, wor
 // input: {l, r, up, down, jump (edge), jumpHeld, wait, pin (held), flip (edge), view (edge)}
 function update(L, st, inp) {
   st.events = [];
+  PARTIAL = L.def.partial || null;
   CLOUDS = L.def.clouds || []; ECLIPSE = L.def.eclipse || null; ECL_DAY = L.def.eclipseDay || 0; CUR_DAY = st.day;
   if (st.won) return;
   st.frame++;
@@ -167,9 +198,17 @@ function update(L, st, inp) {
   const pgn = st.grav, sgn = -st.grav;
 
   // ---- pin ----
-  const wantPin = inp.pin && !st.sleeping && !s.gone;
-  st.pinned = wantPin && st.pin > 0;
-  if (st.pinned) st.pin = Math.max(0, st.pin - PIN_DRAIN); else if (!inp.pin) st.pin = Math.min(PIN_MAX, st.pin + PIN_REFILL);
+  // ---- gnomon staff: tap to plant it where you stand, tap again to pull it back ----
+  st.pinned = false;
+  if (inp.pin && !st.pinPrev) {
+    if (st.staff) { st.staff = null; st.events.push('staffup'); }
+    else if (!st.sleeping && p.ground && st.grav > 0) {
+      const sx = Math.round(st.face > 0 ? p.x + PW + 1 : p.x - STAFF_W - 1), base = Math.round(p.y + PH); // planted just in front of you
+      const cast = { x: sx + castDx(st.t), y: ROWS * TS - base, w: STAFF_W, h: STAFF_H };
+      { st.staff = { x: sx, base }; st.events.push('staff'); }
+    } else st.events.push('noplant');
+  }
+  st.pinPrev = !!inp.pin;
 
   // ---- crumble tick ----
   for (const k in st.crumble) { const c = st.crumble[k]; if (c.shake > 0) { c.shake--; if (c.shake === 0) { c.gone = CRUMBLE_GONE; st.events.push('crumble'); } } else if (c.gone > 0) { c.gone--; if (c.gone === 0) delete st.crumble[k]; } }
@@ -236,8 +275,10 @@ function update(L, st, inp) {
 
   // ---- springs ----
   const springHit = (world, b, w, h, gdir) => forTiles(b.x + 1, b.y + (gdir > 0 ? h - 2 : 0), w - 2, 2, (tx, ty) => tileAt(L, tx, ty) === '^' && (world === 'top' ? ty < HALF : ty >= HALF));
-  if (!st.sleeping && p.vy * pgn >= 0 && springHit('top', p, PW, PH, pgn)) { p.vy = -PHYS.spring * pgn; p.jumping = false; st.events.push('spring'); }
-  if (!s.gone && !st.pinned && s.vy * sgn >= 0 && springHit('bot', s, SW, s.h, sgn)) { s.vy = -PHYS.spring * sgn; s.jumping = false; st.events.push('spring'); }
+  const sunUp = st.t < DUSK ? Math.sin(Math.PI * st.t / DUSK) : 0; // springs drink sunlight: strongest at noon, while shade-springs are strongest at dawn and dusk
+  const pSpring = PHYS.spring * (0.82 + 0.28 * sunUp), sSpring = PHYS.spring * (1.1 - 0.28 * sunUp);
+  if (!st.sleeping && p.vy * pgn >= 0 && springHit('top', p, PW, PH, pgn)) { p.vy = -pSpring * pgn; p.jumping = false; st.events.push('spring'); }
+  if (!s.gone && !st.pinned && s.vy * sgn >= 0 && springHit('bot', s, SW, s.h, sgn)) { s.vy = -sSpring * sgn; s.jumping = false; st.events.push('spring'); }
 
   // ---- clock: time moves only when something moves ----
   const moved = st.sleeping ? Math.abs(s.x - sx0) : Math.max(Math.abs(p.x - px0), s.gone || st.pinned ? 0 : Math.abs(s.x - sx0));
@@ -246,7 +287,7 @@ function update(L, st, inp) {
   const tdir = (!st.sleeping && st.grav < 0) ? -1 : 1;
   st.t = Math.max(0, st.t + dt * tdir); st.hours += dt;
   // ---- the sun moves, so the shadow slides west (pinned, sleeping or vanished shadows stay) ----
-  if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK && !eclipsed(st.t) && !eclipsed(t0)) { const d = castDx(st.t) - castDx(t0); if (d) tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); }
+  if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK && !eclipsed(st.t) && !eclipsed(t0)) { const d = castDx(st.t) - castDx(t0); if (d) { const T = st.t; st.t = t0; tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); st.t = T; } }
   // ---- enemies walk only as the hours pass (SUPERHOT rule) ----
   const edt = dt; // flips and view costs do not teleport enemies
   if (edt > 0) for (const e of st.enemies) {
@@ -256,7 +297,7 @@ function update(L, st, inp) {
     const footY = gd > 0 ? e.y + EH : e.y - 1;
     const aheadX = e.dir > 0 ? nx + EW - 1 : nx;
     const wall = overlap(L, st, e.world, nx, e.y, EW, EH, pr);
-    const floor = forTiles(aheadX, footY, 1, 1, (tx, ty) => solid(L, st, e.world, tx, ty, pr));
+    const floor = e.kind === 'bird' || forTiles(aheadX, footY, 1, 1, (tx, ty) => solid(L, st, e.world, tx, ty, pr));
     if (wall || !floor || nx < 0 || nx + EW > L.PX) e.dir = -e.dir; else e.x = nx;
   }
 
@@ -281,6 +322,7 @@ function update(L, st, inp) {
   if (chimeState(t0) < 2 && chimeState(st.t) === 2 && st.t > t0) st.events.push('chime');
   if (st.t < t0 && Math.floor(st.t * 4) !== Math.floor(t0 * 4)) st.events.push('rewind');
 
+  { const had = !!st.echo; st.echo = echoOf(L, st); if (st.echo && !had) st.events.push(st.echo.kind === 'crescent' ? 'crescent' : 'reflect'); }
   // ---- shards ----
   L.shards.forEach(([tx, ty], i) => {
     if (st.got[i]) return;
@@ -321,13 +363,15 @@ function update(L, st, inp) {
         const cx = Math.max(s.x, Math.min(lx, s.x + SW)), cy = Math.max(s.y, Math.min(ly, s.y + s.h));
         if ((cx - lx) ** 2 + (cy - ly) ** 2 < LANTERN_R ** 2) { die = 'lantern light'; break; }
       }
+    } else if (e.kind === 'bird') {
+      if (!s.gone && !st.sleeping && st.t < DUSK && !eclipsed(st.t)) { const bx = e.x + castDx(st.t), by = ROWS * TS - e.y - EH; if (s.x + 1 < bx + EW - 1 && s.x + SW - 1 > bx + 1 && s.y + 1 < by + EH - 1 && s.y + s.h - 1 > by + 1) { die = 'bird shadow'; break; } }
     } else if (!s.gone && hit(s, SW, s.h)) { die = 'shadow hound'; break; }
   }
   if (die) { restore(st); st.events.push(die); return; }
   if (st.pendingCheck && safeToCheckpoint(L, st)) { st.pendingCheck = false; st.check = snapshot(st); st.events.push('checkpoint'); }
   // finish: you on your dial; if the stage has a shadow dial (g), your shadow must stand on it at the same moment
   const onG = forTiles(p.x, p.y, PW, PH, (tx, ty) => ty < HALF && tileAt(L, tx, ty) === 'G');
-  const onShadowG = !s.gone && forTiles(s.x + 1, s.y, SW - 2, s.h, (tx, ty) => ty >= HALF && tileAt(L, tx, ty) === 'g');
+  const onShadowG = !s.gone && (forTiles(s.x + 1, s.y, SW - 2, s.h, (tx, ty) => ty >= HALF && tileAt(L, tx, ty) === 'g') || markRects(L, st.t).some(r => rectHit(r, s.x + 2, s.y, SW - 4, s.h)));
   st.shadowGoal = L.shadowGoal; st.atG = onG; st.atShadowG = onShadowG;
   if (onG && (!L.shadowGoal || onShadowG)) { st.won = true; st.events.push('win'); }
   else if (onG && L.shadowGoal && !st.waitedG) { st.waitedG = true; st.events.push('needshadow'); }
@@ -376,4 +420,4 @@ function fitShadow(L, st, want) {
 }
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
-if (typeof module !== 'undefined') module.exports = { eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
+if (typeof module !== 'undefined') module.exports = { markRects, echoOf, crescent, STAFF_W, STAFF_H, MARK_K, eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };

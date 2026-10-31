@@ -10,7 +10,7 @@ function run(i, script) {
       const inp = { l: keys.includes('L'), r: keys.includes('R'), jump: (keys.includes('J') && first) || (keys.includes('M') && n % 8 === 0), jumpHeld: keys.includes('J') || (keys.includes('M') && n % 8 < 5), wait: keys.includes('W'), pin: keys.includes('P'), flip: keys.includes('F') && first, up: keys.includes('U'), down: keys.includes('D'), view: keys.includes('V') && first };
       first = false;
       E.update(L, st, inp); n++; f++;
-      for (const ev of st.events) if (!['jump', 'land', 'hour', 'chime', 'crumble', 'spring', 'checkpoint', 'swim', 'view'].includes(ev)) log.push(`${ev}@f${f} t=${st.t.toFixed(2)} g${st.grav} p=${st.p.x.toFixed(0)},${st.p.y.toFixed(0)} s=${st.s.x.toFixed(0)},${st.s.y.toFixed(0)} h${st.s.h} pin${st.pin | 0}`);
+      for (const ev of st.events) if (!['jump', 'land', 'hour', 'chime', 'crumble', 'spring', 'checkpoint', 'swim', 'view', 'hour', 'rewind'].includes(ev)) log.push(`${ev}@f${f} t=${st.t.toFixed(2)} g${st.grav} p=${st.p.x.toFixed(0)},${st.p.y.toFixed(0)} s=${st.s.x.toFixed(0)},${st.s.y.toFixed(0)} h${st.s.h} pin${st.pin | 0}`);
       if (st.won) return { won: true, f, st, log };
       if (st.events.includes('death')) return { won: false, f, st, log };
     }

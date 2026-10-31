@@ -1,5 +1,7 @@
 const fs=require('fs');const LV=require('./levels.js');const run=require('./test.js');const S=require('./runall.js');
 LV.forEach((lv,i)=>{const sc=S[lv.name];if(sc){const r=run(i,sc);lv.par=Math.round(r.st.hours*10)/10;const flat=JSON.stringify(sc.map(x=>x[0]));lv.uses={flip:/F/.test(flat),pin:/P/.test(flat)};if(!r.won)console.log('WARN not won',lv.name);}});
+// Real Sun: which start hours can each stage still be beaten from? (the daily starts at your real local time when it can)
+LV.forEach((lv,i)=>{const sc=S[lv.name];if(!sc||lv.demo)return;const h0=lv.startHour;lv.real={};for(let h=0;h<=6.5;h+=0.5){lv.startHour=h;const r=run(i,sc);if(r.won)lv.real[h]=Math.round(r.st.hours*10)/10;}lv.startHour=h0;});
 const eng=fs.readFileSync('engine.js','utf8').replace(/if \(typeof module[^\n]*\n/,'');
 let t=fs.readFileSync('template.html','utf8').replace('/*__ENGINE__*/',eng).replace('/*__LEVELS__*/','const LEVELS = '+JSON.stringify(LV)+';');
 fs.writeFileSync('../out/gnomon.html',t);

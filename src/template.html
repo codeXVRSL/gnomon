@@ -156,7 +156,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
     <div class="clock-txt"><b id="phase">Dawn</b><br>DAY <span id="day">1</span></div>
   </div>
   <div class="meta">
-    <div class="pinbar">PIN <i><b id="pinfill"></b></i></div>
+    <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
     <div class="metaR"><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
@@ -170,11 +170,11 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
     <div class="right">
       <button class="ctl flip" data-k="f" aria-label="Flip gravity">FLIP</button>
       <button class="ctl wait" data-k="w" aria-label="Hold to let time pass">⧗</button>
-      <button class="ctl pin" data-k="p" aria-label="Hold to pin your shadow">PIN<small>HOLD</small></button>
+      <button class="ctl pin" data-k="p" aria-label="Plant or pull back your gnomon staff">STAFF<small>PLANT</small></button>
       <button class="ctl jump" data-k="j" aria-label="Jump">JUMP<small>▲▼</small></button>
     </div>
   </div>
-  <div class="keys">←→ move · ↑/Space jump · F flip · hold E pin · hold ↓ pass time · V camera · R restart</div>
+  <div class="keys">←→ move · ↑/Space jump · F flip · E staff · hold ↓ pass time · V camera · R restart</div>
 </div>
 <div class="overlay" id="overlay" hidden><div class="card" id="card"></div></div>
 
@@ -313,7 +313,8 @@ function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
 function load(i) {
-  li = i; L = parse(LEVELS[i]); st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
+  if (!dailyMode) { startOverride = null; realPar = null; }
+  li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; persist();
   $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint;
@@ -322,13 +323,13 @@ function load(i) {
   const uses = LEVELS[i].uses || { flip: true, pin: true };
   document.querySelector('.ctl.flip').style.visibility = uses.flip ? '' : 'hidden';
   document.querySelector('.ctl.pin').style.visibility = uses.pin ? '' : 'hidden';
-  document.querySelector('.pinbar').style.visibility = uses.pin ? '' : 'hidden';
+
   resize();
 }
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
-const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow' };
+const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours' };
 function handleEvents(prevP, prevS, prevG) {
   for (const ev of st.events) {
     if (ev === 'jump') { beep(520, .06, 'square', .03, 1.6); squashP = .72; squashS = .72; }
@@ -343,13 +344,18 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
     if (ev === 'eclipse') { toast('ECLIPSE · YOU SWAP WITH YOUR SHADOW'); beep(196, .5, 'triangle', .06, .5); beep(147, .8, 'sine', .05, .6); shake = 5; flash = .5; burst(st.p.x + 4, st.p.y + 6, '#fff6d0', 16, 1.6); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff', 16, 1.6); if (navigator.vibrate) try { navigator.vibrate([30, 60, 30]); } catch (e) {} }
+    if (ev === 'staff') { toast('STAFF PLANTED · ITS SHADOW KEEPS THE HOUR'); beep(392, .12, 'triangle', .05, 1.2); beep(587, .2, 'sine', .04, 1); dust(st.staff.x, st.staff.base, 1); }
+    if (ev === 'staffup') { toast('STAFF PULLED BACK'); beep(587, .1, 'triangle', .04, .7); }
+    if (ev === 'noplant') { toast('STAND ON THE GROUND TO PLANT'); beep(90, .06, 'square', .03); }
+    if (ev === 'reflect') { toast('THE WATER CASTS A SECOND SHADOW'); beep(880, .25, 'sine', .03, 1.2); }
+    if (ev === 'crescent') { toast('CRESCENT SUN · TWO SHADOWS'); beep(330, .4, 'sine', .04, 1.5); beep(495, .4, 'sine', .03, 1.5); }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'needshadow') { toast('WAIT FOR YOUR SHADOW TO REACH ITS DIAL'); beep(523, .12, 'sine', .04, .8); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
+    if (DEATH[ev]) { toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
 }
@@ -370,7 +376,7 @@ function tick() {
 }
 
 function win() {
-  const hrs = st.hours, prev = save.best[li], par = LEVELS[li].par || hrs;
+  const hrs = st.hours, prev = save.best[li], par = (dailyMode && realPar) || LEVELS[li].par || hrs;
   const medal = hrs <= par * 1.15 ? 3 : hrs <= par * 1.6 ? 2 : 1;
   const isBest = !prev || hrs < prev.hours;
   if (isBest) save.best[li] = { hours: hrs, deaths: st.deaths };
@@ -398,7 +404,7 @@ function dailyWin(hrs, par, medal) {
   const filled = hrs <= par * 1.02 ? 5 : Math.max(1, Math.min(4, Math.round(5 * par / hrs)));
   const bar = '🟨'.repeat(filled) + '⬛'.repeat(5 - filled);
   const icon = medal === 3 ? '☀' : medal === 2 ? '☾' : '✦';
-  const text = `Gnomon Daily #${d.n} ${icon}\n${LEVELS[li].name}: ${hrs.toFixed(1)}h (par ${par.toFixed(1)}) · ☠ ${st.deaths}\n${bar}  🔥${streak}\n${SHARE_URL}`;
+  const text = `Gnomon Daily #${d.n} ${icon}\n${LEVELS[li].name}: ${hrs.toFixed(1)}h (par ${par.toFixed(1)}) · ☠ ${st.deaths}\n☀ real sun ${realLabel}\n${bar}  🔥${streak}\n${SHARE_URL}`;
   [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
   showCard(`<h2>Daily Sundial #${d.n}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}</div>
@@ -414,7 +420,18 @@ function dailyWin(hrs, par, medal) {
   $('againD').onclick = () => { hideCard(); load(li); };
   $('toMenuD').onclick = () => { dailyMode = false; menu(); };
 }
-function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); load(d.li); toast('DAILY SUNDIAL #' + d.n); }
+// Real Sun: the daily starts at your real local time of day (6 AM = dawn, 6 PM = dusk), snapped to the nearest hour the dial can still be won from
+let startOverride = null, realPar = null, realLabel = '';
+function realSun(li) {
+  const now = new Date(), hr = now.getHours() + now.getMinutes() / 60;
+  const want = hr >= 6 && hr < 18 ? (hr - 6) * DUSK / 12 : hr >= 18 ? DUSK : 0;
+  const opts = Object.keys(LEVELS[li].real || {}).map(Number);
+  realLabel = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (!opts.length) return null;
+  const h = opts.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a);
+  return { h, par: LEVELS[li].real[h] };
+}
+function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); const rs = realSun(d.li); startOverride = rs ? rs.h : null; realPar = rs ? rs.par : null; load(d.li); toast('DAILY SUNDIAL #' + d.n + ' · REAL SUN ' + realLabel); }
 function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
@@ -441,16 +458,19 @@ function how() {
     <p>You are a gnomon, the pin of a sundial, trying to get back to your dial. Your shadow lives in the upside-down world below and copies every step. When you jump up, it jumps down.</p>
     <ul class="rules">
       <li><span>☀</span><span><b>Time only moves when you move.</b> Hold ⧗ to let it pass. Your shadow is long at dawn and dusk, short at midday, and gone at noon.</span></li>
-      <li><span>✎</span><span><b>PIN</b> (hold) nails your shadow in place so it stops copying you. The pin wears out and recharges.</span></li>
+      <li><span>✎</span><span><b>STAFF</b>: tap to plant your gnomon staff in front of you, tap again to pull it back. Its thin shadow falls into the world below and swings with the sun. <b>Shade presses violet plates</b>, so you can set it to press a plate at a chosen hour.</span></li>
+      <li><span>▮</span><span>In <b>cast lands</b>, every stone above the ground throws a real shadow into the world below, sliding with the sun like yours. Your shadow can walk on it, and it can press plates.</span></li>
+      <li><span>≈</span><span><b>Water</b> bounces sunlight: stand in or above it and a second, fainter shadow appears, thrown the <b>other way</b>. A <b>crescent sun</b> (partial eclipse) does the same.</span></li>
+      <li><span>⌃</span><span><b>Hawks</b> can't hurt you, but their shadows hunt yours below. <b>Springs</b> drink sunlight: strongest at noon. Shade-springs below are strongest at dawn and dusk.</span></li>
       <li><span>⇅</span><span><b>FLIP</b> turns the world over, and in an upside-down sky <b>the sun runs backward</b>: walking the ceiling rewinds the day and swings your shadow back east. Flip again to let time flow on. Only while standing.</span></li>
       <li><span>☾</span><span><b>At night</b> you sleep and steer your shadow alone. <b>At dawn</b> you wake where it stands.</span></li>
       <li><span>☠</span><span><b>Lantern-bearers</b> and <b>shade hounds</b> walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it.</span></li>
       <li><span>◎</span><span><b>2.5D</b> in the top bar tilts the camera to show depth; the sun lights the blocks from its side of the sky.</span></li>
-      <li><span>◐</span><span>Some stages have a <b>violet dial for your shadow</b>. You and your shadow must stand on your dials at the same moment.</span></li>
+      <li><span>◐</span><span>Some stages have a <b>violet finish line for your shadow</b>. A sliding <b>hour mark</b> moves east through the day like a sundial's numbers. You and your shadow must stand on your finish lines at the same moment.</span></li>
       <li><span>●</span><span><b>Eclipse</b>: when the moon covers the sun the whole world <b>spins 180°</b> (left becomes right on screen) and <b>you trade places with your shadow</b>. Its hours show black on the clock.</span></li>
       <li><span>☁</span><span><b>Clouds</b> crossing the sun make your shadow fade; it is reborn beneath you when the sun comes out. Their hours show grey on the clock.</span></li>
       <li><span>◆</span><span><b>Sunstones</b> cast a slab of shade below that slides west through the day. Your shadow can ride it.</span></li>
-      <li><span>≈</span><span><b>Water</b> slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
+      <li><span>~</span><span>Water slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
       <li><span>!</span><span>Shade presses violet plates, your feet press brass ones. Chime spikes rise late in every hour. Cracked stones crumble. Pale stones hold before noon, dark ones after.</span></li>
     </ul>
     <div class="row"><button class="btn primary" id="okBtn">Play</button></div>`);
@@ -498,6 +518,8 @@ function render(now) {
         if (eclipsed(t)) { g.fillStyle = '#fff6d0'; g.fillRect(mxx - 3, sy - 6, 6, 1); g.fillRect(mxx - 3, sy + 5, 6, 1); g.fillRect(mxx - 6, sy - 3, 1, 6); g.fillRect(mxx + 5, sy - 3, 1, 6); }
       }
     }
+    const PT = LEVELS[li].partial;
+    if (PT) { const off = t < PT[0] ? Math.min(14, (PT[0] - t) * 20) : t > PT[1] ? -Math.min(14, (t - PT[1]) * 20) : 5; if (Math.abs(off) < 14) { g.fillStyle = '#2a2350'; g.fillRect(sx - 4 + off, sy - 4, 8, 8); g.fillRect(sx - 5 + off, sy - 3, 10, 6); g.fillRect(sx - 3 + off, sy - 5, 6, 10); } }
     // clouds slide across the sun as the hours pass (they move with the clock, so they rewind too)
     for (const [a, b] of (LEVELS[li].clouds || [])) {
       const mid = (a + b) / 2, cw = (b - a) * 70 + 18, cx = sx + (mid - t) * 70;
@@ -621,6 +643,8 @@ function render(now) {
   // sun-cast slabs in the shadow world
   for (const r of slabs(L, st)) {
     const rx = Math.round(r.x);
+    if (r.kind === 'staff') { g.fillStyle = 'rgba(16,8,34,.9)'; g.fillRect(rx, r.y, r.w, r.h); g.fillStyle = 'rgba(240,184,78,.8)'; g.fillRect(rx, r.y + r.h - 2, r.w, 2); g.fillRect(rx - 2, r.y + r.h - 4, r.w + 4, 1); continue; }
+    if (r.kind === 'cast') { g.fillStyle = 'rgba(14,8,30,.92)'; g.fillRect(rx, r.y, r.w, r.h); g.fillStyle = 'rgba(157,124,255,.55)'; g.fillRect(rx, r.y, 1, r.h); g.fillRect(rx + r.w - 1, r.y, 1, r.h); g.fillStyle = 'rgba(157,124,255,.25)'; for (let k = 2; k < r.h; k += 4) g.fillRect(rx + 2, r.y + k, r.w - 4, 1); continue; }
     g.fillStyle = 'rgba(20,12,40,.85)'; g.fillRect(rx, r.y, r.w, r.h);
     g.fillStyle = 'rgba(246,200,95,.9)'; for (let k = 0; k < r.w; k += 3) g.fillRect(rx + k, r.y + r.h - 1, 2, 1);
     g.fillStyle = 'rgba(157,124,255,.5)'; g.fillRect(rx, r.y, r.w, 1);
@@ -641,6 +665,30 @@ function render(now) {
   }
   g.fillStyle = night ? 'rgba(199,180,255,.5)' : 'rgba(255,236,180,.55)'; g.fillRect(0, HZ, L.PX, 1);
 
+  // ---- your planted gnomon staff ----
+  if (st.staff) {
+    const fx0 = st.staff.x, by0 = st.staff.base;
+    g.fillStyle = '#6b4a2a'; g.fillRect(fx0 + 1, by0 - STAFF_H, 2, STAFF_H); g.fillStyle = '#a8794a'; g.fillRect(fx0 + 1, by0 - STAFF_H, 1, STAFF_H);
+    g.fillStyle = '#f0b84e'; g.fillRect(fx0 - 1, by0 - STAFF_H - 3, 6, 3); g.fillStyle = '#fff2b0'; g.fillRect(fx0, by0 - STAFF_H - 2, 4, 1);
+    g.fillStyle = '#3a2c1c'; g.fillRect(fx0 - 1, by0 - 1, 6, 1);
+  }
+  // ---- the shadow's hour mark slides east through the day ----
+  for (const r of markRects(L, t)) {
+    const mx = Math.round(r.x), pulse = (Math.sin(now / 260) + 1) / 2;
+    g.fillStyle = `rgba(157,124,255,${.15 + pulse * .2})`; g.fillRect(mx - 1, r.y, r.w + 2, r.h);
+    g.fillStyle = '#9d7cff'; g.fillRect(mx, r.y, r.w, 2); g.fillStyle = '#c7b4ff'; g.fillRect(mx + 5, r.y + 2, 2, 7); g.fillRect(mx + 3, r.y + 8, 6, 2);
+    g.fillStyle = 'rgba(199,180,255,.6)'; for (let k = 0; k < r.w; k += 4) g.fillRect(mx + k, r.y + r.h - 1, 2, 1);
+    if (st.atG && !st.won) { const k = (now / 400) % 1; g.fillStyle = 'rgba(199,180,255,.5)'; for (let i = 0; i < 6; i++) { const yy = HZ + ((i / 6 + k) % 1) * (r.y - HZ); g.fillRect(mx + 5, yy, 2, 2); } }
+  }
+  // ---- the second shadow: thrown the other way by water, or by a crescent sun ----
+  if (st.echo) {
+    const ex = Math.round(st.echo.x) - 4, ey = Math.round(st.echo.y);
+    g.globalAlpha = .42 + Math.sin(now / 200) * .08;
+    g.drawImage(S['s' + (st.face > 0 ? 1 : 0) + '1'], 0, 0, 16, 15, ex, ey - 1, 16, SH + 3);
+    g.globalAlpha = 1;
+    g.fillStyle = st.echo.kind === 'water' ? 'rgba(150,210,255,.55)' : 'rgba(199,180,255,.55)';
+    for (let k = 0; k < 3; k++) g.fillRect(ex + 4 + k * 3, ey + ((now / 120 + k * 4) % SH), 1, 1);
+  }
   // ---- when you stand on your dial, a faint beam points to where your shadow must stand ----
   if (st.atG && L.shadowGoal && !st.won) {
     for (let y = HALF; y < ROWS; y++) for (let x = 0; x < L.W; x++) if (L.grid[y][x] === 'g') {
@@ -755,7 +803,19 @@ function drawExtrusions(now, t, night, pr) {
 function drawEnemies(now, night) {
   for (const e of st.enemies) {
     const x = Math.round(e.x), y = Math.round(e.y), step = Math.floor(now / 160 + e.x) % 2;
-    if (e.kind === 'lantern') {
+    if (e.kind === 'bird') {
+      const flap = Math.floor(now / 120 + e.x / 7) % 2, dirx = e.dir > 0 ? 1 : -1;
+      g.fillStyle = '#3b2f3a'; g.fillRect(x + 1, y + 3, 6, 2); g.fillRect(x + (dirx > 0 ? 6 : 0), y + 2, 2, 2);
+      g.fillStyle = '#5a4552'; if (flap) { g.fillRect(x + 2, y, 2, 3); g.fillRect(x + 4, y + 1, 2, 2); } else { g.fillRect(x + 2, y + 5, 2, 2); g.fillRect(x + 4, y + 5, 2, 1); }
+      g.fillStyle = '#f0b84e'; g.fillRect(x + (dirx > 0 ? 8 : -1), y + 3, 1, 1);
+      if (!night && st.t < DUSK && !isGone(st.t) && !eclipsed(st.t)) {
+        const sx2 = Math.round(e.x + castDx(st.t)), sy2 = ROWS * TS - y - EH;
+        g.fillStyle = 'rgba(255,90,110,.18)'; g.fillRect(sx2 - 2, sy2 - 1, EW + 4, EH + 2);
+        g.fillStyle = '#0c0718'; g.fillRect(sx2 + 1, sy2 + 3, 6, 2); g.fillRect(sx2 + (dirx > 0 ? 6 : 0), sy2 + 4, 2, 2);
+        if (flap) { g.fillRect(sx2 + 2, sy2 + 5, 2, 3); g.fillRect(sx2 + 4, sy2 + 5, 2, 2); } else { g.fillRect(sx2 + 2, sy2 + 1, 2, 2); g.fillRect(sx2 + 4, sy2 + 2, 2, 1); }
+        g.fillStyle = '#ff6b5a'; g.fillRect(sx2 + (dirx > 0 ? 7 : 0), sy2 + 4, 1, 1);
+      }
+    } else if (e.kind === 'lantern') {
       // warm glow around the bearer, and its light falling into the shadow world
       g.fillStyle = 'rgba(255,214,120,.18)'; g.beginPath(); g.arc(x + 4, y + 3, 11, 0, 6.29); g.fill();
       const ly = ROWS * TS - (y + EH / 2), fl = Math.sin(now / 120) * .03;
@@ -809,6 +869,7 @@ function drawDial() {
   const nx0 = dayW * (NOON - .25) / DUSK, nx1 = dayW * (NOON + .25) / DUSK;
   dg.fillStyle = '#5a4b3a'; dg.fillRect(nx0, 0, nx1 - nx0, h);
   if (LEVELS[li].eclipse) { const [a, b] = LEVELS[li].eclipse; dg.fillStyle = '#120d26'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); dg.fillStyle = '#fff6d0'; dg.fillRect(dayW * (a + b) / 2 / DUSK - 1, h / 2 - 1, 3, 3); }
+  if (LEVELS[li].partial) { const [a, b] = LEVELS[li].partial; dg.fillStyle = 'rgba(40,30,80,.75)'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); dg.fillStyle = '#c7b4ff'; dg.fillRect(dayW * (a + b) / 2 / DUSK, 2, 2, h - 4); }
   for (const [a, b] of (LEVELS[li].clouds || [])) { dg.fillStyle = 'rgba(170,180,200,.55)'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); }
   // chime bands each hour
   for (let hr = 0; hr < DUSK; hr++) { const a = dayW * (hr + .6) / DUSK, b = dayW * (hr + .75) / DUSK, c = dayW * (hr + 1) / DUSK; dg.fillStyle = 'rgba(240,184,78,.35)'; dg.fillRect(a, h - 3, b - a, 3); dg.fillStyle = 'rgba(255,107,90,.6)'; dg.fillRect(b, h - 3, c - b, 3); }
@@ -898,7 +959,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily, MUSIC, load, hideCard };
+if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
