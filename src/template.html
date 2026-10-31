@@ -491,7 +491,7 @@ function render(now) {
     // eclipse: the moon slides across the sun with the hours, then covers it
     const EC = LEVELS[li].eclipse;
     if (EC) {
-      const mid = (EC[0] + EC[1]) / 2, mxx = sx + (mid - t) * 26;
+      const mxx = t < EC[0] ? sx + (EC[0] - t) * 40 : t > EC[1] ? sx - (t - EC[1]) * 40 : sx;
       if (Math.abs(mxx - sx) < 40) {
         if (eclipsed(t)) { g.fillStyle = 'rgba(255,244,200,.55)'; g.fillRect(sx - 9, sy - 1, 18, 2); g.fillRect(sx - 1, sy - 9, 2, 18); g.fillRect(sx - 7, sy - 7, 14, 14); }
         g.fillStyle = '#1a1530'; g.fillRect(mxx - 4, sy - 4, 8, 8); g.fillRect(mxx - 5, sy - 3, 10, 6); g.fillRect(mxx - 3, sy - 5, 6, 10);
