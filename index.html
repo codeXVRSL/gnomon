@@ -99,6 +99,8 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .stat b{color:var(--parch);font-weight:400;font-size:16px;display:block}
 .logo{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:.12em;color:var(--brass);line-height:1;position:relative;text-shadow:0 3px 0 #5a3f12,0 6px 0 rgba(0,0,0,.4)}
 .logo i{display:block;height:3px;margin-top:8px;background:linear-gradient(90deg,var(--brass),var(--violet))}
+.share{font-family:var(--display);font-size:12px;line-height:1.5;background:var(--ink);padding:10px;border-radius:4px;white-space:pre-wrap;margin:0;user-select:text;-webkit-user-select:text}
+.btn.daily{background:#5a4a1a;color:#ffd25e}
 .medal{font-family:var(--display);font-size:14px;letter-spacing:.08em;padding:6px 10px;border-radius:4px;display:inline-block;align-self:flex-start}
 .medal.m3{background:#5a4a1a;color:#ffd25e}.medal.m2{background:#2d2747;color:#c7b4ff}.medal.m1{background:#3a3346;color:var(--parch)}
 
@@ -155,7 +157,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
     <div class="lvl" id="lvl"></div>
     <button class="icon-btn" id="helpBtn" aria-label="Show stage hint" style="display:none">?</button>
     <button class="icon-btn" id="rotBtn" aria-label="Go fullscreen landscape">⟳</button>
-    <button class="icon-btn" id="viewBtn" aria-label="Toggle 2.5D camera">2.5D</button>
+    <button class="icon-btn" id="viewBtn" aria-label="Toggle 2.5D camera" hidden>2.5D</button>
     <button class="icon-btn" id="menuBtn">LEVELS</button>
   </header>
   <div id="bar">
@@ -216,7 +218,9 @@ function parse(def) {
 }
 
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
-const isGone = t => t < DUSK && Math.abs(t - NOON) < NOON_GAP;
+let CLOUDS = []; // hour ranges when a cloud covers the sun (set per level)
+const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
+const isGone = t => t < DUSK && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
 const morningSolid = t => t < NOON;           // 'm'
@@ -303,6 +307,7 @@ function warpPlayer(L, st, x) {
 }
 
 function init(L) {
+  CLOUDS = L.def.clouds || [];
   const t = L.def.startHour ?? 1;
   const st = {
     t, day: 1, frame: 0, sleeping: t >= DUSK, won: false, deaths: 0, events: [], hours: 0, grav: 1,
@@ -325,6 +330,7 @@ function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, wor
 // input: {l, r, up, down, jump (edge), jumpHeld, wait, pin (held), flip (edge), view (edge)}
 function update(L, st, inp) {
   st.events = [];
+  CLOUDS = L.def.clouds || [];
   if (st.won) return;
   st.frame++;
   const p = st.p, s = st.s;
@@ -343,7 +349,7 @@ function update(L, st, inp) {
   // ---- gravity flip (only while standing) ----
   if (inp.flip && st.flipLock === 0) {
     const can = st.sleeping ? s.ground : p.ground;
-    if (can) { st.grav = -st.grav; st.flipLock = 8; p.vy = 0; s.vy = 0; p.vx = 0; st.t += FLIP_COST; st.hours += FLIP_COST; st.events.push('flip'); p.ground = false; s.ground = false; p.coyote = 0; s.coyote = 0; }
+    if (can) { st.grav = -st.grav; st.flipLock = 8; p.vy = 0; s.vy = 0; p.vx = 0; const fdir = (!st.sleeping && st.grav < 0) ? -1 : 1; st.t = Math.max(0, st.t + FLIP_COST * fdir); st.hours += FLIP_COST; st.events.push('flip'); p.ground = false; s.ground = false; p.coyote = 0; s.coyote = 0; }
     else st.events.push('noflip');
   }
   const pgn = st.grav, sgn = -st.grav;
@@ -425,7 +431,8 @@ function update(L, st, inp) {
   const moved = st.sleeping ? Math.abs(s.x - sx0) : Math.max(Math.abs(p.x - px0), s.gone || st.pinned ? 0 : Math.abs(s.x - sx0));
   const dt = moved / L.hourPx + (inp.wait ? WAIT_RATE * HOUR_PX / L.hourPx : 0);
   const t0 = st.t;
-  st.t += dt; st.hours += dt;
+  const tdir = (!st.sleeping && st.grav < 0) ? -1 : 1;
+  st.t = Math.max(0, st.t + dt * tdir); st.hours += dt;
   // ---- the sun moves, so the shadow slides west (pinned, sleeping or vanished shadows stay) ----
   if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK) { const d = castDx(st.t) - castDx(t0); if (d) tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); }
   // ---- enemies walk only as the hours pass (SUPERHOT rule) ----
@@ -443,7 +450,7 @@ function update(L, st, inp) {
 
   // ---- phase transitions ----
   if (!st.sleeping) {
-    if (!s.gone && isGone(st.t) && t0 < NOON) { s.gone = true; st.events.push('noon'); }
+    if (!s.gone && isGone(st.t) && !isGone(t0)) { s.gone = true; st.events.push(overcast(st.t) ? 'cloud' : 'noon'); }
     if (s.gone && !isGone(st.t)) { s.gone = false; s.h = shadowHeight(st.t); spawnShadow(L, st, p.x + castDx(st.t)); st.events.push('resync'); checkpoint(st); }
     if (st.t >= DUSK) { st.sleeping = true; s.gone = false; st.events.push('nightfall'); fitShadow(L, st, NIGHT_H); checkpoint(st); }
   } else if (st.t >= DAY_TOTAL) {
@@ -453,7 +460,8 @@ function update(L, st, inp) {
   }
   if (!s.gone && !st.sleeping) fitShadow(L, st, shadowHeight(st.t));
   if (Math.floor(st.t) !== Math.floor(t0) && st.t < DUSK) st.events.push('hour');
-  if (chimeState(t0) < 2 && chimeState(st.t) === 2) st.events.push('chime');
+  if (chimeState(t0) < 2 && chimeState(st.t) === 2 && st.t > t0) st.events.push('chime');
+  if (st.t < t0 && Math.floor(st.t * 4) !== Math.floor(t0 * 4)) st.events.push('rewind');
 
   // ---- shards ----
   L.shards.forEach(([tx, ty], i) => {
@@ -545,7 +553,7 @@ function fitShadow(L, st, want) {
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
 
-const LEVELS = [{"name":"Two Worlds","startHour":0,"hint":"Your shadow walks upside-down in the world below and copies every step. Only shade presses a plate. Stop your shadow against the wall and keep walking.","map":["....................","....................","....................","..............A.....","..............A.....",".S........o...A...G.","####################","####################","............a#......",".............#......",".............#......",".............#......",".............#......",".............#......"],"par":3.2},{"name":"Mirror Steps","startHour":0.5,"hint":"When you jump up, your shadow jumps down. A leap that saves you can kill it.","map":["....................","....................","....................","....................","..........o.........",".S.................G","#####xx#####xx######","####################","......#......#......","....................","....................","........o...........","....................","...................."],"par":3.5},{"name":"Hold Still","startHour":4,"hint":"After noon your shadow trails west of you and slips further as the sun sinks. Walk until it stands on the plate, then hold PIN to nail it there. The pin wears out, so hurry to the gate.","map":["....................","....................","....................",".............A......",".............A......",".S...........A....G.","####################","####################","....a...............","....................","....................","..........o.........","....................","...................."],"par":6},{"name":"Turn the Dial","startHour":1,"hint":"Press FLIP while standing to turn gravity over. You fall to the sky, your shadow falls to the deep. Look where each of you will land first.","map":[".............x......","....................","..........#.........","..........#.........","..........#.........",".S........#.......G.","####################","####################","....................","....................","....................","....................","..........o.........","..xxxx.............."],"par":4.2},{"name":"Stone Hours","startHour":1,"hint":"Pale morning stones only hold before noon. Dark evening stones only hold after. Watch the sun and wait when you must.","map":["....................","....................","....................","....................","......o.............",".S.................G","####mm##ee##########","####################","....................","....................","....................","....................","....................","...................."],"par":4.7},{"name":"Still Water","startHour":3.8,"hint":"Water slows you, but not your shadow. Press JUMP to swim, and push against the edge to climb out. Pin your shadow the moment the plate lights up.","map":["....................","....................",".........A..........",".S.......A..G.......","####~~~~############","####~~~~############","####################","####################","..........a.........","....................","....................","......o.............","....................","...................."],"par":2.3},{"name":"Sunstones","startHour":1.5,"hint":"Your shadow slides west as the sun crosses the sky. Golden sunstones cast a slab of shade below that slides the same way. Stand on the stones so your shadow stands on their shade, then wait and let the day carry it over the gap.","map":["....................","....................","....................","....................","....................",".G............S.....","########==##########","######..############","....................","...........o........","....................","....................","....................","...................."],"par":5.4},{"name":"Hour Chime","startHour":0.3,"hint":"Chime spikes rise late in every hour. Watch the red band on the sun clock. Time only moves when you move, so stop and let the hour pass.","map":["....................","....................","....................","....................","....................",".S....vv..o..vv...G.","####################","####################","....................","....................","....................","....................","....................","...................."],"par":4.8},{"name":"Lantern Walk","startHour":3.8,"hourPx":80,"hint":"Lantern-bearers walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it, and your shadow trails a step behind you after noon. Jump late, so one leap carries you over the bearer and your shadow over its light.","map":["....................","....................","....................","....................","....................",".S..........l.....G.","####################","####################","....................","..........o.........","....................","....................","....................","...................."],"par":2.4},{"name":"Falling Stones","startHour":0,"hint":"Cracked stones crumble soon after they are stepped on. Pin your shadow on the plate before the ledge gives way, then hurry: the pin wears out.","map":["....................","....................","....................","..............A.....","..............A.....",".S............A...G.","################cc##","#####ccc############","......a.............","....................","....................","..........o.........","....................","...................."],"par":3.2},{"name":"Spring Tide","startHour":0.5,"hint":"Springs throw you high, and throw your shadow deep. Think about where the shadow lands.","map":["....................",".............o......",".................G..","........############","........############",".S....^.............","####################","####################","..........^.........","....................","....................","....................","....................","........xxxxx......."],"par":3},{"name":"Upside Dusk","startHour":5.5,"hint":"At nightfall you sleep and your shadow walks alone. It can turn gravity too. At dawn you wake wherever it stands.","map":["..........#.........","..........#.........","..........#.........","..........#.........","..........#.........",".S........#.....G...","####################","####################","..........#.........","..........#.........","..........#.........","....................","......o.............","...................."],"par":5},{"name":"Gnomon","startHour":3.1,"hint":"Everything at once. When the day runs out, let the night carry you.","map":["....................","....................",".......#............",".......#.....B......",".......#.....B......",".S.....#.....B.vv.G.","####mm##############","####################","...........b........","....................","..........o.........","....................","....................","...................."],"par":6.9},{"name":"The Deep Dial","demo":true,"startHour":0,"hint":"Hard demo. At dawn your shadow runs far ahead of you: pin it the moment it reaches the plate under the gate, then swim through. Flip past the wall and come down before the lamp finds your shadow, wait out the chime, then sleep on your plate and let the night carry you home.","map":["..........................#...","........A.................#...","........A.....#...........#...",".S......A.....#...........#...","##~~~~~#####..#...........#...","##~~~~~#####..#....vv...bb#.G.","##############################","##############################","........a.#...............B...","..........#...............B...","..........#...............B...","..............................",".o............................","..................*..........."],"par":10}];
+const LEVELS = [{"name":"The Hour Hand","startHour":0,"hint":"The sun only moves while you move, or while you hold the hourglass. At dawn your shadow stands far east of you. Hold the hourglass and watch it swing west onto the plate, then walk through before noon takes it away.","map":[".#..................",".#..................",".#..A...............",".#..A...............",".#..A...............",".#S.A.......G.......","####################","####################","...aaa..............","....................","....................","....................","....................","...................."],"par":4.3,"uses":{"flip":false,"pin":false}},{"name":"High Noon","startHour":2,"hint":"A wall in the shadow world catches your shadow. Keep walking anyway. At noon the sun stands overhead and your shadow vanishes, then it is reborn right beneath you, on the far side of the wall.","map":["....................","....................","..........A.........","..........A.........","..........A.........",".S........A....G....","####################","####################",".....#..aaa.........",".....#..............",".....#..............",".....#..............",".....#..............",".....#.............."],"par":2.9,"uses":{"flip":false,"pin":false}},{"name":"Passing Cloud","startHour":0,"clouds":[[1.5,1.9]],"hint":"A wall below holds your shadow back, and the plate lies far east, past the gate. Noon would bring your shadow back too late and too far west. Watch the sky: when a cloud crosses the sun your shadow fades, and it is reborn beneath you when the cloud moves on.","map":["....................","....................","............A.......","............A.......","............A.......",".S..........A.....G.","####################","####################","........#....aaaa...","........#...........","........#...........","........#...........","........#...........","........#..........."],"par":3.2,"uses":{"flip":false,"pin":false}},{"name":"Two Worlds","startHour":0,"hint":"Your shadow walks upside-down in the world below and copies every step. Only shade presses a plate. Stop your shadow against the wall and keep walking.","map":["....................","....................","....................","..............A.....","..............A.....",".S........o...A...G.","####################","####################","............a#......",".............#......",".............#......",".............#......",".............#......",".............#......"],"par":3.2,"uses":{"flip":false,"pin":false}},{"name":"Mirror Steps","startHour":0.5,"hint":"When you jump up, your shadow jumps down. A leap that saves you can kill it.","map":["....................","....................","....................","....................","..........o.........",".S.................G","#####xx#####xx######","####################","......#......#......","....................","....................","........o...........","....................","...................."],"par":3.5,"uses":{"flip":false,"pin":false}},{"name":"Hold Still","startHour":4,"hint":"After noon your shadow trails west of you and slips further as the sun sinks. Walk until it stands on the plate, then hold PIN to nail it there. The pin wears out, so hurry to the gate.","map":["....................","....................","....................",".............A......",".............A......",".S...........A....G.","####################","####################","....a...............","....................","....................","..........o.........","....................","...................."],"par":6,"uses":{"flip":false,"pin":true}},{"name":"Turn the Dial","startHour":1,"hint":"Press FLIP while standing to turn gravity over. You fall to the sky, your shadow falls to the deep. Look where each of you will land first.","map":[".............x......","....................","..........#.........","..........#.........","..........#.........",".S........#.......G.","####################","####################","....................","....................","....................","....................","..........o.........","..xxxx.............."],"par":4.2,"uses":{"flip":true,"pin":false}},{"name":"Backward Sun","startHour":4.5,"hint":"It is afternoon and your shadow trails west, but the plate is east, under the gate. Turn the world over: in an upside-down sky the sun runs backwards. Walk the ceiling to rewind the day until your shadow swings east, then flip home.","map":[".........A..........",".........A..........",".........A..........",".........A..........",".........A..........",".S.......A....G.....","####################","####################",".........aaaa.......","....................","....................",".............o......","....................","...................."],"par":4.7,"uses":{"flip":true,"pin":false}},{"name":"Yesterday's Cloud","startHour":4.5,"clouds":[[1,1.3]],"hint":"This morning a cloud crossed the sun. Your shadow cannot slide past the wall below, but a shadow reborn after a cloud can appear anywhere. Turn the world over and rewind toward the morning. Stand by the gate and hold the hourglass: upside down it turns the day backward through that cloud. Then flip home.","map":[".........A..........",".........A..........",".........A..........",".........A..........",".........A..........",".S.......A.....G....","####################","####################","..........#aaa......","..........#.........","..........#.........","..........#.........","..........#.........","..........#........."],"par":5.2,"uses":{"flip":true,"pin":false}},{"name":"Stone Hours","startHour":1,"hint":"Pale morning stones only hold before noon. Dark evening stones only hold after. Watch the sun and wait when you must.","map":["....................","....................","....................","....................","......o.............",".S.................G","####mm##ee##########","####################","....................","....................","....................","....................","....................","...................."],"par":4.7,"uses":{"flip":false,"pin":false}},{"name":"Still Water","startHour":3.8,"hint":"Water slows you, but not your shadow. Press JUMP to swim, and push against the edge to climb out. Pin your shadow the moment the plate lights up.","map":["....................","....................",".........A..........",".S.......A..G.......","####~~~~############","####~~~~############","####################","####################","..........a.........","....................","....................","......o.............","....................","...................."],"par":2.3,"uses":{"flip":false,"pin":true}},{"name":"Sunstones","startHour":1.5,"hint":"Your shadow slides west as the sun crosses the sky. Golden sunstones cast a slab of shade below that slides the same way. Stand on the stones so your shadow stands on their shade, then wait and let the day carry it over the gap.","map":["....................","....................","....................","....................","....................",".G............S.....","########==##########","######..############","....................","...........o........","....................","....................","....................","...................."],"par":5.4,"uses":{"flip":false,"pin":false}},{"name":"Hour Chime","startHour":0.3,"hint":"Chime spikes rise late in every hour. Watch the red band on the sun clock. Time only moves when you move, so stop and let the hour pass.","map":["....................","....................","....................","....................","....................",".S....vv..o..vv...G.","####################","####################","....................","....................","....................","....................","....................","...................."],"par":4.8,"uses":{"flip":false,"pin":false}},{"name":"Lantern Walk","startHour":3.8,"hourPx":80,"hint":"Lantern-bearers walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it, and your shadow trails a step behind you after noon. Jump late, so one leap carries you over the bearer and your shadow over its light.","map":["....................","....................","....................","....................","....................",".S..........l.....G.","####################","####################","....................","..........o.........","....................","....................","....................","...................."],"par":2.4,"uses":{"flip":false,"pin":false}},{"name":"Falling Stones","startHour":0,"hint":"Cracked stones crumble soon after they are stepped on. Pin your shadow on the plate before the ledge gives way, then hurry: the pin wears out.","map":["....................","....................","....................","..............A.....","..............A.....",".S............A...G.","################cc##","#####ccc############","......a.............","....................","....................","..........o.........","....................","...................."],"par":3.2,"uses":{"flip":false,"pin":true}},{"name":"Spring Tide","startHour":0.5,"hint":"Springs throw you high, and throw your shadow deep. Think about where the shadow lands.","map":["....................",".............o......",".................G..","........############","........############",".S....^.............","####################","####################","..........^.........","....................","....................","....................","....................","........xxxxx......."],"par":3,"uses":{"flip":false,"pin":false}},{"name":"Upside Dusk","startHour":5.5,"hint":"At nightfall you sleep and your shadow walks alone. It can turn gravity too. At dawn you wake wherever it stands.","map":["..........#.........","..........#.........","..........#.........","..........#.........","..........#.........",".S........#.....G...","####################","####################","..........#.........","..........#.........","..........#.........","....................","......o.............","...................."],"par":5,"uses":{"flip":true,"pin":false}},{"name":"Gnomon","startHour":3.1,"hint":"Everything at once. When the day runs out, let the night carry you.","map":["....................","....................",".......#............",".......#.....B......",".......#.....B......",".S.....#.....B.vv.G.","####mm##############","####################","...........b........","....................","..........o.........","....................","....................","...................."],"par":10.8,"uses":{"flip":true,"pin":true}},{"name":"The Deep Dial","demo":true,"startHour":0,"hint":"Hard demo. At dawn your shadow runs far ahead of you: pin it the moment it reaches the plate under the gate, then swim through. Flip past the wall and come down before the lamp finds your shadow, wait out the chime, then sleep on your plate and let the night carry you home.","map":["..........................#...","........A.................#...","........A.....#...........#...",".S......A.....#...........#...","##~~~~~#####..#...........#...","##~~~~~#####..#....vv...bb#.G.","##############################","##############################","........a.#...............B...","..........#...............B...","..........#...............B...","..............................",".o............................","..................*..........."],"par":12.2,"uses":{"flip":true,"pin":true}}];
 (() => {
 const $ = id => document.getElementById(id);
 const cv = $('game'), g = cv.getContext('2d');
@@ -587,11 +595,21 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['pj', SPR_JUMP, P
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0;
-let save = { best: {}, at: 0, shards: {}, demoFirst: true, seen: false, view25: true };
-try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: true, seen: false, view25: true }, JSON.parse(localStorage.getItem('gnomon-v4')) || {}); } catch (e) {}
+let save = { best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false };
+try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false }, JSON.parse(localStorage.getItem('gnomon-v5')) || {}); } catch (e) {}
 const DEMO = LEVELS.findIndex(l => l.demo);
+// ---- Daily Sundial: one stage per calendar day, same for everyone ----
+const DAILY_EPOCH = Date.UTC(2026, 10, 1);
+function dailyInfo() {
+  const now = new Date(); const day = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 86400000);
+  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo);
+  let h = Math.imul(Math.max(0, day) + 1, 2654435761) >>> 0; h = (h ^ (h >>> 15)) >>> 0;
+  return { n: day + 1, li: pool[h % pool.length], key: 'd' + (day + 1) };
+}
+let dailyMode = false;
+const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
 const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO); return save.demoFirst ? [DEMO, ...rest] : [...rest, DEMO]; };
-const persist = () => { try { localStorage.setItem('gnomon-v4', JSON.stringify(save)); } catch (e) {} };
+const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
 const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0 }; let jumpEdge = false, flipEdge = false;
 function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').classList.toggle('on', save.view25); toast(save.view25 ? 'CAMERA · 2.5D' : 'CAMERA · FLAT'); beep(520, .08, 'sine', .04, 1.4); }
 
@@ -616,6 +634,11 @@ function load(i) {
   $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint;
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
+  // only show the powers this stage actually needs, so the sun stays the star
+  const uses = LEVELS[i].uses || { flip: true, pin: true };
+  document.querySelector('.ctl.flip').style.visibility = uses.flip ? '' : 'hidden';
+  document.querySelector('.ctl.pin').style.visibility = uses.pin ? '' : 'hidden';
+  document.querySelector('.pinbar').style.visibility = uses.pin ? '' : 'hidden';
   resize();
 }
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
@@ -628,11 +651,13 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'land') { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} squashP = 1.35; shake = Math.max(shake, 1.5); dust(st.p.x, st.p.y + (st.grav > 0 ? PH : 0), st.grav); beep(160, .04, 'triangle', .03); }
     if (ev === 'swim') { beep(420, .05, 'sine', .03, 1.3); for (let i = 0; i < 3; i++) parts.push({ x: st.p.x + Math.random() * 8, y: st.p.y + 4, vx: (Math.random() - .5) * .4, vy: -.4 - Math.random() * .4, life: 20, col: 'rgba(220,240,255,.8)' }); }
     if (ev === 'spring') { beep(300, .18, 'square', .05, 2.5); squashP = .6; squashS = .6; shake = 2; }
-    if (ev === 'flip') { toast(st.grav < 0 ? 'GRAVITY TURNED · you fall skyward' : 'GRAVITY RESTORED'); beep(220, .25, 'sawtooth', .05, st.grav < 0 ? 2.2 : .45); shake = 4; burst(st.p.x + 4, st.p.y + 6, '#9fd0e8', 10, 1); }
+    if (ev === 'flip') { toast(st.grav < 0 ? 'WORLD TURNED · THE SUN RUNS BACKWARD' : 'WORLD RESTORED · TIME FLOWS ON'); beep(220, .25, 'sawtooth', .05, st.grav < 0 ? 2.2 : .45); shake = 4; burst(st.p.x + 4, st.p.y + 6, '#9fd0e8', 10, 1); }
     if (ev === 'noflip') { beep(90, .06, 'square', .03); toast('STAND ON SOMETHING TO FLIP'); }
     if (ev === 'crumble') { beep(120, .12, 'sawtooth', .04, .6); shake = Math.max(shake, 2); }
     if (ev === 'chime') beep(1320, .25, 'sine', .04, .98);
+    if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
+    if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
@@ -667,6 +692,7 @@ function win() {
   persist();
   [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
   const ord = order(), pos = ord.indexOf(li), lastLv = pos === ord.length - 1;
+  if (dailyMode) { dailyWin(hrs, par, medal); return; }
   showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
@@ -676,19 +702,49 @@ function win() {
   $('again').onclick = () => { hideCard(); load(li); };
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
 }
+function dailyWin(hrs, par, medal) {
+  const d = dailyInfo(); save.daily = save.daily || {};
+  const prevD = save.daily[d.key]; if (!prevD || hrs < prevD.hours) save.daily[d.key] = { hours: hrs, deaths: st.deaths, medal };
+  // streak: consecutive days with a clear
+  let streak = 0; for (let k = d.n; k > 0 && save.daily['d' + k]; k--) streak++;
+  persist();
+  const filled = hrs <= par * 1.02 ? 5 : Math.max(1, Math.min(4, Math.round(5 * par / hrs)));
+  const bar = '🟨'.repeat(filled) + '⬛'.repeat(5 - filled);
+  const icon = medal === 3 ? '☀' : medal === 2 ? '☾' : '✦';
+  const text = `Gnomon Daily #${d.n} ${icon}\n${LEVELS[li].name}: ${hrs.toFixed(1)}h (par ${par.toFixed(1)}) · ☠ ${st.deaths}\n${bar}  🔥${streak}\n${SHARE_URL}`;
+  [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
+  showCard(`<h2>Daily Sundial #${d.n}</h2>
+    <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}</div>
+    <pre class="share" id="shareText">${text}</pre>
+    <p class="sub">Streak: ${streak} day${streak === 1 ? '' : 's'}. A new dial turns over at midnight.</p>
+    <div class="row"><button class="btn primary" id="shareBtn">Share result</button><button class="btn" id="againD">Retry for a better time</button></div>
+    <div class="row"><button class="btn" id="toMenuD">All dials</button></div>`);
+  $('shareBtn').onclick = async () => {
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) {}
+    try { await navigator.clipboard.writeText(text); $('shareBtn').textContent = 'Copied!'; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('shareText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('shareBtn').textContent = 'Selected, copy it'; }
+  };
+  $('againD').onclick = () => { hideCard(); load(li); };
+  $('toMenuD').onclick = () => { dailyMode = false; menu(); };
+}
+function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); load(d.li); toast('DAILY SUNDIAL #' + d.n); }
 function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
   const ord = order(); let n = 0;
   const b = ord.map(i => { const lv = LEVELS[i]; const label = lv.demo ? '★' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; }).join('');
-  showCard(`<h2>Dials</h2><div class="grid">${b}</div>
+  const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
+  showCard(`<h2>Dials</h2>
+    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h' : ''}</button>
+    <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
-  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { hideCard(); load(+x.dataset.i); });
+  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
+  $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how;
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
 }
@@ -698,10 +754,11 @@ function how() {
     <ul class="rules">
       <li><span>☀</span><span><b>Time only moves when you move.</b> Hold ⧗ to let it pass. Your shadow is long at dawn and dusk, short at midday, and gone at noon.</span></li>
       <li><span>✎</span><span><b>PIN</b> (hold) nails your shadow in place so it stops copying you. The pin wears out and recharges.</span></li>
-      <li><span>⇅</span><span><b>FLIP</b> turns gravity over for both of you. Only while standing. It costs a little daylight.</span></li>
+      <li><span>⇅</span><span><b>FLIP</b> turns the world over, and in an upside-down sky <b>the sun runs backward</b>: walking the ceiling rewinds the day and swings your shadow back east. Flip again to let time flow on. Only while standing.</span></li>
       <li><span>☾</span><span><b>At night</b> you sleep and steer your shadow alone. <b>At dawn</b> you wake where it stands.</span></li>
       <li><span>☠</span><span><b>Lantern-bearers</b> and <b>shade hounds</b> walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it.</span></li>
       <li><span>◎</span><span><b>2.5D</b> in the top bar tilts the camera to show depth; the sun lights the blocks from its side of the sky.</span></li>
+      <li><span>☁</span><span><b>Clouds</b> crossing the sun make your shadow fade; it is reborn beneath you when the sun comes out. Their hours show grey on the clock.</span></li>
       <li><span>◆</span><span><b>Sunstones</b> cast a slab of shade below that slides west through the day. Your shadow can ride it.</span></li>
       <li><span>≈</span><span><b>Water</b> slows you but not your shadow. Press JUMP to swim; push against an edge to climb out.</span></li>
       <li><span>!</span><span>Shade presses violet plates, your feet press brass ones. Chime spikes rise late in every hour. Cracked stones crumble. Pale stones hold before noon, dark ones after.</span></li>
@@ -739,8 +796,19 @@ function render(now) {
     g.fillStyle = 'rgba(255,240,180,.35)'; g.fillRect(sx - 8, sy - 6, 16, 12); g.fillRect(sx - 6, sy - 8, 12, 16);
     g.fillStyle = '#fff2b0'; g.fillRect(sx - 5, sy - 4, 10, 8); g.fillRect(sx - 4, sy - 5, 8, 10);
     g.fillStyle = '#ffd25e'; g.fillRect(sx - 3, sy - 3, 6, 6);
+    // clouds slide across the sun as the hours pass (they move with the clock, so they rewind too)
+    for (const [a, b] of (LEVELS[li].clouds || [])) {
+      const mid = (a + b) / 2, cw = (b - a) * 70 + 18, cx = sx + (mid - t) * 70;
+      if (cx < -cw || cx > W + cw) continue;
+      const cover = overcast(t);
+      g.fillStyle = cover ? 'rgba(120,128,150,.95)' : 'rgba(150,160,180,.9)';
+      g.fillRect(cx - cw / 2, sy - 5, cw, 9); g.fillRect(cx - cw / 2 + 4, sy - 9, cw - 12, 5); g.fillRect(cx - cw / 2 + 10, sy - 12, cw - 26, 4);
+      g.fillStyle = 'rgba(230,236,245,.9)'; g.fillRect(cx - cw / 2 + 5, sy - 9, cw - 14, 1); g.fillRect(cx - cw / 2 + 1, sy - 5, 6, 1);
+      g.fillStyle = 'rgba(80,86,110,.6)'; g.fillRect(cx - cw / 2 + 2, sy + 3, cw - 4, 1);
+    }
   }
   drawBackdrop(now, t, night, top, low);
+  if (!night && overcast(t)) { g.fillStyle = 'rgba(70,80,110,.22)'; g.fillRect(0, 0, W, HZ); }
   for (let y = HZ; y < H; y += 6) { const k = (y - HZ) / (H - HZ); g.fillStyle = mix(night ? '#3b2b6e' : '#2c2350', '#140f26', k); g.fillRect(-4, y, W + 8, 6); }
   // camera follows whoever is awake
   const tgt = (night ? st.s.x : st.p.x) + 4 - W / 2;
@@ -911,7 +979,7 @@ function render(now) {
   drawEnemies(now, night);
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
   g.globalAlpha = 1;
-  if (flipped) { g.fillStyle = 'rgba(159,208,232,.08)'; g.fillRect(camX, 0, W, H); }
+  if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
   if (flash > 0) { g.fillStyle = `rgba(255,236,190,${flash * .6})`; g.fillRect(-4, -4, W + 8, H + 8); flash = Math.max(0, flash - .03); }
   g.setTransform(1, 0, 0, 1, 0, 0);
   drawDial();
@@ -1023,6 +1091,7 @@ function drawDial() {
   dg.fillStyle = '#26214a'; dg.fillRect(dayW, 0, w - dayW, h);
   const nx0 = dayW * (NOON - .25) / DUSK, nx1 = dayW * (NOON + .25) / DUSK;
   dg.fillStyle = '#5a4b3a'; dg.fillRect(nx0, 0, nx1 - nx0, h);
+  for (const [a, b] of (LEVELS[li].clouds || [])) { dg.fillStyle = 'rgba(170,180,200,.55)'; dg.fillRect(dayW * a / DUSK, 0, dayW * (b - a) / DUSK, h); }
   // chime bands each hour
   for (let hr = 0; hr < DUSK; hr++) { const a = dayW * (hr + .6) / DUSK, b = dayW * (hr + .75) / DUSK, c = dayW * (hr + 1) / DUSK; dg.fillStyle = 'rgba(240,184,78,.35)'; dg.fillRect(a, h - 3, b - a, 3); dg.fillStyle = 'rgba(255,107,90,.6)'; dg.fillRect(b, h - 3, c - b, 3); }
   // the shadow's sideways offset through the day: a line that crosses the centre at noon
@@ -1035,7 +1104,7 @@ function drawDial() {
   // sun arc across the day band, moon across the night band
   if (t < DUSK) { const k = t / DUSK, sx = Math.round(4 + k * (dayW - 8)), sy = Math.round(h - 4 - Math.sin(k * Math.PI) * (h - 7)); dg.fillStyle = '#fff2b0'; dg.fillRect(sx - 1, sy - 1, 3, 3); dg.fillStyle = '#ffd25e'; dg.fillRect(sx, sy, 1, 1); }
   else { const k = (t - DUSK) / (DAY_TOTAL - DUSK), sx = Math.round(dayW + 4 + k * (w - dayW - 8)), sy = Math.round(h - 4 - Math.sin(k * Math.PI) * (h - 7)); dg.fillStyle = '#efe7ff'; dg.fillRect(sx - 1, sy - 1, 3, 3); dg.fillStyle = '#26214a'; dg.fillRect(sx, sy - 1, 2, 2); }
-  $('phase').textContent = PHASE(t);
+  $('phase').textContent = (st.grav < 0 && !st.sleeping ? '◀ ' : '') + PHASE(t);
   $('day').textContent = st.day;
 }
 
@@ -1095,6 +1164,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('
 function start(data) {
   const i = data && Number.isInteger(data.li) ? data.li : (save.at || 0);
   load(Math.min(i, LEVELS.length - 1));
+  if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
   requestAnimationFrame(loop);
   if (!save.seen && !(data && data.st)) intro();
@@ -1104,11 +1174,13 @@ function intro() {
     <p>A platformer in two worlds. Your shadow lives upside-down below you and copies every move, and the sun only moves when you do.</p>
     <p class="sub">Pick where to start. You can switch any time from LEVELS.</p>
     <div class="row"><button class="btn" id="campBtn">Start at stage 1</button><button class="btn primary" id="demoBtn">Play the hard demo</button></div>
-    <div class="row"><button class="btn" id="howBtn2">How to play first</button></div>`);
+    <div class="row"><button class="btn daily" id="dailyIntro">☀ Today's Daily Sundial</button><button class="btn" id="howBtn2">How to play first</button></div>`);
   const go = demoFirst => { save.demoFirst = demoFirst; save.seen = true; persist(); hideCard(); load(order()[0]); };
   $('campBtn').onclick = () => go(false); $('demoBtn').onclick = () => go(true);
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
+  $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
+if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
