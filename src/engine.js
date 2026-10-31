@@ -31,7 +31,7 @@ let CLOUDS = []; // hour ranges when a cloud covers the sun (set per level)
 const overcast = t => CLOUDS.some(([a, b]) => t > a && t < b);
 let ECLIPSE = null; // [start, end] hours: the moon covers the sun and the two worlds trade places
 const eclipsed = t => !!ECLIPSE && t > ECLIPSE[0] && t < ECLIPSE[1];
-const isGone = t => t < DUSK && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
+const isGone = t => t < DUSK && !eclipsed(t) && (Math.abs(t - NOON) < NOON_GAP || overcast(t));
 const frac = t => t - Math.floor(t);
 const chimeState = t => { const f = frac(t); return f >= CHIME_ON ? 2 : f >= CHIME_WARN ? 1 : 0; };
 const morningSolid = t => t < NOON;           // 'm'
