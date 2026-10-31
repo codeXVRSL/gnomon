@@ -154,7 +154,7 @@ function update(L, st, inp) {
   // ---- gravity flip (only while standing) ----
   if (inp.flip && st.flipLock === 0) {
     const can = st.sleeping ? s.ground : p.ground;
-    if (can) { st.grav = -st.grav; st.flipLock = 8; p.vy = 0; s.vy = 0; p.vx = 0; st.t += FLIP_COST; st.hours += FLIP_COST; st.events.push('flip'); p.ground = false; s.ground = false; p.coyote = 0; s.coyote = 0; }
+    if (can) { st.grav = -st.grav; st.flipLock = 8; p.vy = 0; s.vy = 0; p.vx = 0; const fdir = (!st.sleeping && st.grav < 0) ? -1 : 1; st.t = Math.max(0, st.t + FLIP_COST * fdir); st.hours += FLIP_COST; st.events.push('flip'); p.ground = false; s.ground = false; p.coyote = 0; s.coyote = 0; }
     else st.events.push('noflip');
   }
   const pgn = st.grav, sgn = -st.grav;
@@ -236,7 +236,8 @@ function update(L, st, inp) {
   const moved = st.sleeping ? Math.abs(s.x - sx0) : Math.max(Math.abs(p.x - px0), s.gone || st.pinned ? 0 : Math.abs(s.x - sx0));
   const dt = moved / L.hourPx + (inp.wait ? WAIT_RATE * HOUR_PX / L.hourPx : 0);
   const t0 = st.t;
-  st.t += dt; st.hours += dt;
+  const tdir = (!st.sleeping && st.grav < 0) ? -1 : 1;
+  st.t = Math.max(0, st.t + dt * tdir); st.hours += dt;
   // ---- the sun moves, so the shadow slides west (pinned, sleeping or vanished shadows stay) ----
   if (!s.gone && !st.pinned && !st.sleeping && st.t < DUSK) { const d = castDx(st.t) - castDx(t0); if (d) tryMove(L, st, 'bot', s, SW, s.h, d, 0, pr); }
   // ---- enemies walk only as the hours pass (SUPERHOT rule) ----
@@ -254,7 +255,7 @@ function update(L, st, inp) {
 
   // ---- phase transitions ----
   if (!st.sleeping) {
-    if (!s.gone && isGone(st.t) && t0 < NOON) { s.gone = true; st.events.push('noon'); }
+    if (!s.gone && isGone(st.t) && !isGone(t0)) { s.gone = true; st.events.push('noon'); }
     if (s.gone && !isGone(st.t)) { s.gone = false; s.h = shadowHeight(st.t); spawnShadow(L, st, p.x + castDx(st.t)); st.events.push('resync'); checkpoint(st); }
     if (st.t >= DUSK) { st.sleeping = true; s.gone = false; st.events.push('nightfall'); fitShadow(L, st, NIGHT_H); checkpoint(st); }
   } else if (st.t >= DAY_TOTAL) {
@@ -264,7 +265,8 @@ function update(L, st, inp) {
   }
   if (!s.gone && !st.sleeping) fitShadow(L, st, shadowHeight(st.t));
   if (Math.floor(st.t) !== Math.floor(t0) && st.t < DUSK) st.events.push('hour');
-  if (chimeState(t0) < 2 && chimeState(st.t) === 2) st.events.push('chime');
+  if (chimeState(t0) < 2 && chimeState(st.t) === 2 && st.t > t0) st.events.push('chime');
+  if (st.t < t0 && Math.floor(st.t * 4) !== Math.floor(t0 * 4)) st.events.push('rewind');
 
   // ---- shards ----
   L.shards.forEach(([tx, ty], i) => {
