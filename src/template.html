@@ -240,6 +240,63 @@ function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').clas
 
 // ---------- audio ----------
 let ac = null, muted = false;
+// ---------- adaptive music: one loop, four layers that follow the game's time of day ----------
+// Key of D major pentatonic by day; the night layer bends to D minor. Tempo 84 BPM, 8th-note grid.
+const MUSIC = { bpm: 84, on: true, started: false, step: 0, next: 0, bus: null, layers: {} };
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+const DAY_SCALE = [62, 64, 66, 69, 71, 74, 76, 78];   // D E F# A B D E F#
+const NIGHT_SCALE = [62, 64, 65, 69, 70, 74, 76, 77]; // D E F A Bb D E F
+const CHORDS = [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]]; // D Bm G A
+function musicInit() {
+  if (MUSIC.bus || !ac) return;
+  MUSIC.bus = ac.createGain(); MUSIC.bus.gain.value = 0.0;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+  MUSIC.bus.connect(lp).connect(ac.destination); MUSIC.lp = lp;
+  for (const k of ['pad', 'bass', 'arp', 'bell']) { const g = ac.createGain(); g.gain.value = 0; g.connect(MUSIC.bus); MUSIC.layers[k] = g; }
+  MUSIC.bus.gain.setTargetAtTime(0.55, ac.currentTime, 1.5);
+  MUSIC.next = ac.currentTime + 0.1;
+}
+function tone(layer, freq, when, dur, type, vol, attack = 0.01) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(vol, when + attack); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(g).connect(MUSIC.layers[layer]); o.start(when); o.stop(when + dur + 0.05);
+}
+// layer mix per phase of the day (dawn → noon → dusk → night)
+function musicMix(t, sleeping) {
+  if (sleeping || t >= DUSK) return { pad: .9, bass: .25, arp: 0, bell: .7 };
+  if (t < 1) return { pad: .8, bass: .2, arp: .35, bell: .2 };          // dawn: soft
+  if (Math.abs(t - NOON) < 1) return { pad: .7, bass: .7, arp: .8, bell: .1 }; // midday: full
+  if (t > 5.5) return { pad: .9, bass: .6, arp: .25, bell: .3 };          // dusk: warm, thinning
+  return { pad: .75, bass: .55, arp: .6, bell: .15 };
+}
+function musicTick() {
+  if (!ac || !MUSIC.bus) return;
+  const on = MUSIC.on && !muted && $('overlay').hidden !== undefined;
+  MUSIC.bus.gain.setTargetAtTime(on ? 0.55 : 0, ac.currentTime, 0.4);
+  if (!st) return;
+  const mix = musicMix(st.t, st.sleeping), reversed = st.grav < 0 && !st.sleeping;
+  for (const k in mix) MUSIC.layers[k].gain.setTargetAtTime(mix[k] * (st.s && st.s.gone && k === 'arp' ? .3 : 1), ac.currentTime, 0.8);
+  MUSIC.lp.frequency.setTargetAtTime(st.sleeping ? 900 : overcast(st.t) ? 1100 : 2400, ac.currentTime, 0.6);
+  const spb = 60 / MUSIC.bpm / 2; // eighth notes
+  while (MUSIC.next < ac.currentTime + 0.25) {
+    const s = MUSIC.step, when = MUSIC.next, bar = Math.floor(s / 8) % 4, beat = s % 8;
+    const chord = CHORDS[reversed ? 3 - bar : bar], scale = st.sleeping ? NIGHT_SCALE : DAY_SCALE;
+    if (beat === 0) for (const n of chord) tone('pad', NOTE(n + (st.sleeping && n % 12 === 6 ? -1 : 0)), when, spb * 8.5, 'sine', 0.035, 0.4);
+    if (beat === 0 || beat === 4) tone('bass', NOTE(chord[0] - 12), when, spb * 3.5, 'triangle', 0.09, 0.02);
+    // arpeggio walks up by day, down when the sun runs backward
+    const idx = reversed ? 7 - ((s * 3) % 8) : (s * 3) % 8;
+    if (beat % 2 === 0 || Math.abs(st.t - NOON) < 1) tone('arp', NOTE(scale[idx] + 12), when, spb * 1.6, 'triangle', 0.035);
+    if (beat === 6 && (s / 8 | 0) % 2 === 1) tone('bell', NOTE(scale[(s * 5) % 8] + 24), when, spb * 6, 'sine', 0.03, 0.005);
+    MUSIC.step++; MUSIC.next += spb;
+  }
+}
+function hourChime() { if (!ac || muted || !MUSIC.on) return; const now = ac.currentTime; [74, 81, 86].forEach((n, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = NOTE(n); g.gain.setValueAtTime(0.0001, now + i * 0.09); g.gain.exponentialRampToValueAtTime(0.05, now + i * 0.09 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 1.6); o.connect(g).connect(ac.destination); o.start(now + i * 0.09); o.stop(now + i * 0.09 + 1.7); }); }
+function audioUnlock() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); musicInit(); } catch (e) {} }
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, audioUnlock, { passive: true }));
+setInterval(musicTick, 100);
+if (save.music === false) MUSIC.on = false;
+
 function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
   if (muted) return;
   try {
@@ -280,6 +337,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'noflip') { beep(90, .06, 'square', .03); toast('STAND ON SOMETHING TO FLIP'); }
     if (ev === 'crumble') { beep(120, .12, 'sawtooth', .04, .6); shake = Math.max(shake, 2); }
     if (ev === 'chime') beep(1320, .25, 'sine', .04, .98);
+    if (ev === 'hour') hourChime();
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
@@ -365,13 +423,14 @@ function menu() {
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
-    <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
+    <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn" id="musicBtn">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how;
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
+  $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; };
 }
 function how() {
   showCard(`<h2>How to play</h2>
@@ -805,7 +864,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily };
+if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily, MUSIC };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
