@@ -87,6 +87,8 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .stat b{color:var(--parch);font-weight:400;font-size:16px;display:block}
 .logo{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:.12em;color:var(--brass);line-height:1;position:relative;text-shadow:0 3px 0 #5a3f12,0 6px 0 rgba(0,0,0,.4)}
 .logo i{display:block;height:3px;margin-top:8px;background:linear-gradient(90deg,var(--brass),var(--violet))}
+.share{font-family:var(--display);font-size:12px;line-height:1.5;background:var(--ink);padding:10px;border-radius:4px;white-space:pre-wrap;margin:0;user-select:text;-webkit-user-select:text}
+.btn.daily{background:#5a4a1a;color:#ffd25e}
 .medal{font-family:var(--display);font-size:14px;letter-spacing:.08em;padding:6px 10px;border-radius:4px;display:inline-block;align-self:flex-start}
 .medal.m3{background:#5a4a1a;color:#ffd25e}.medal.m2{background:#2d2747;color:#c7b4ff}.medal.m1{background:#3a3346;color:var(--parch)}
 
@@ -221,6 +223,16 @@ let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0;
 let save = { best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false };
 try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false }, JSON.parse(localStorage.getItem('gnomon-v5')) || {}); } catch (e) {}
 const DEMO = LEVELS.findIndex(l => l.demo);
+// ---- Daily Sundial: one stage per calendar day, same for everyone ----
+const DAILY_EPOCH = Date.UTC(2026, 10, 1);
+function dailyInfo() {
+  const now = new Date(); const day = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 86400000);
+  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo);
+  let h = Math.imul(Math.max(0, day) + 1, 2654435761) >>> 0; h = (h ^ (h >>> 15)) >>> 0;
+  return { n: day + 1, li: pool[h % pool.length], key: 'd' + (day + 1) };
+}
+let dailyMode = false;
+const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
 const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO); return save.demoFirst ? [DEMO, ...rest] : [...rest, DEMO]; };
 const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
 const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0 }; let jumpEdge = false, flipEdge = false;
@@ -303,6 +315,7 @@ function win() {
   persist();
   [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
   const ord = order(), pos = ord.indexOf(li), lastLv = pos === ord.length - 1;
+  if (dailyMode) { dailyWin(hrs, par, medal); return; }
   showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
@@ -312,19 +325,49 @@ function win() {
   $('again').onclick = () => { hideCard(); load(li); };
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
 }
+function dailyWin(hrs, par, medal) {
+  const d = dailyInfo(); save.daily = save.daily || {};
+  const prevD = save.daily[d.key]; if (!prevD || hrs < prevD.hours) save.daily[d.key] = { hours: hrs, deaths: st.deaths, medal };
+  // streak: consecutive days with a clear
+  let streak = 0; for (let k = d.n; k > 0 && save.daily['d' + k]; k--) streak++;
+  persist();
+  const filled = hrs <= par * 1.02 ? 5 : Math.max(1, Math.min(4, Math.round(5 * par / hrs)));
+  const bar = '🟨'.repeat(filled) + '⬛'.repeat(5 - filled);
+  const icon = medal === 3 ? '☀' : medal === 2 ? '☾' : '✦';
+  const text = `Gnomon Daily #${d.n} ${icon}\n${LEVELS[li].name}: ${hrs.toFixed(1)}h (par ${par.toFixed(1)}) · ☠ ${st.deaths}\n${bar}  🔥${streak}\n${SHARE_URL}`;
+  [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
+  showCard(`<h2>Daily Sundial #${d.n}</h2>
+    <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}</div>
+    <pre class="share" id="shareText">${text}</pre>
+    <p class="sub">Streak: ${streak} day${streak === 1 ? '' : 's'}. A new dial turns over at midnight.</p>
+    <div class="row"><button class="btn primary" id="shareBtn">Share result</button><button class="btn" id="againD">Retry for a better time</button></div>
+    <div class="row"><button class="btn" id="toMenuD">All dials</button></div>`);
+  $('shareBtn').onclick = async () => {
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) {}
+    try { await navigator.clipboard.writeText(text); $('shareBtn').textContent = 'Copied!'; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('shareText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('shareBtn').textContent = 'Selected, copy it'; }
+  };
+  $('againD').onclick = () => { hideCard(); load(li); };
+  $('toMenuD').onclick = () => { dailyMode = false; menu(); };
+}
+function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); load(d.li); toast('DAILY SUNDIAL #' + d.n); }
 function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
   const ord = order(); let n = 0;
   const b = ord.map(i => { const lv = LEVELS[i]; const label = lv.demo ? '★' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; }).join('');
-  showCard(`<h2>Dials</h2><div class="grid">${b}</div>
+  const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
+  showCard(`<h2>Dials</h2>
+    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h' : ''}</button>
+    <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
-  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { hideCard(); load(+x.dataset.i); });
+  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
+  $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how;
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
 }
@@ -731,6 +774,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('
 function start(data) {
   const i = data && Number.isInteger(data.li) ? data.li : (save.at || 0);
   load(Math.min(i, LEVELS.length - 1));
+  if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
   requestAnimationFrame(loop);
   if (!save.seen && !(data && data.st)) intro();
@@ -740,11 +784,13 @@ function intro() {
     <p>A platformer in two worlds. Your shadow lives upside-down below you and copies every move, and the sun only moves when you do.</p>
     <p class="sub">Pick where to start. You can switch any time from LEVELS.</p>
     <div class="row"><button class="btn" id="campBtn">Start at stage 1</button><button class="btn primary" id="demoBtn">Play the hard demo</button></div>
-    <div class="row"><button class="btn" id="howBtn2">How to play first</button></div>`);
+    <div class="row"><button class="btn daily" id="dailyIntro">☀ Today's Daily Sundial</button><button class="btn" id="howBtn2">How to play first</button></div>`);
   const go = demoFirst => { save.demoFirst = demoFirst; save.seen = true; persist(); hideCard(); load(order()[0]); };
   $('campBtn').onclick = () => go(false); $('demoBtn').onclick = () => go(true);
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
+  $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
+if (/[?&]test/.test(location.search)) window.__gnomon = { get st() { return st; }, win, startDaily };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
