@@ -1,6 +1,9 @@
 // Two worlds, one clock — v3: gravity flip, pin, traps
 const TS = 12, ROWS = 14, HALF = 7, HZ = HALF * TS;
-const PHYS = { g: 0.3, gFall: 0.42, gHang: 0.14, hangV: 0.9, jump: 4.6, run: 1.3, accel: 0.32, decel: 0.38, airAccel: 0.22, airDecel: 0.08, maxFall: 5.5, coyote: 6, buffer: 6, spring: 7.2, corner: 3 };
+const PHYS = { g: 0.3, gFall: 0.42, gHang: 0.14, hangV: 0.9, jump: 4.6, run: 1.65, accel: 0.42, decel: 0.55, airAccel: 0.3, airDecel: 0.1, maxFall: 5.5, coyote: 6, buffer: 6, spring: 7.2, corner: 3 };
+// Celeste-style moves: wall slide + wall jump (alternate walls to climb), and the Sun Dash: 8 directions, refills on the ground, costs half an hour
+const WALL = { slide: 1.3, jumpX: 2.3, jumpY: 4.3, lock: 9 };
+const DASH = { v: 3.6, frames: 9, cost: 0.5, endUp: 0.45, refillCd: 150 };
 const HOUR_PX = 60, WAIT_RATE = 1 / 40, NOON = 3.5, NOON_GAP = 0.25, DUSK = 7, DAY_TOTAL = 10, FLIP_COST = 0.5;
 const WATER = { g: 0.08, maxFall: 1.0, run: 0.8, stroke: 1.6, strokeCd: 8, exit: 3.3 };
 const PW = 8, PH = 11, SW = 8, SH = 11, NIGHT_H = 11;
@@ -15,7 +18,7 @@ const CHIME_WARN = 0.6, CHIME_ON = 0.75; // fraction of the hour
 function parse(def) {
   const rows = def.map, W = Math.max(...rows.map(r => r.length));
   const grid = rows.map(r => r.padEnd(W, '.').split(''));
-  let start = null; const lamps = [], shards = [], stones = [], enemies = [], casters = [], marks = [];
+  let start = null; const lamps = [], shards = [], stones = [], enemies = [], casters = [], marks = [], crystals = [], flags = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < W; x++) {
     const c = grid[y][x];
     if (c === 'S') { start = [x, y]; grid[y][x] = '.'; }
@@ -25,10 +28,12 @@ function parse(def) {
     if ((c === 'h' || c === 'H') && y >= HALF) { enemies.push({ kind: 'hound', world: 'bot', x: x * TS + 2, y: y * TS, dir: c === 'H' ? 1 : -1 }); grid[y][x] = '.'; }
     if ((c === 'y' || c === 'Y') && y < HALF) { enemies.push({ kind: 'bird', world: 'top', x: x * TS + 2, y: y * TS + 2, dir: c === 'Y' ? 1 : -1 }); grid[y][x] = '.'; }
     if (c === 'k' && y >= HALF) { marks.push([x, y]); grid[y][x] = '.'; }
+    if (c === 'r' && y < HALF) { crystals.push([x, y]); grid[y][x] = '.'; }
+    if (c === 'f' && y < HALF) { flags.push([x, y]); grid[y][x] = '.'; }
     if (c === '#' && def.cast && y < HALF - 1) casters.push([x, y]);
     if ((c === 'l' || c === 'L') && y < HALF) { enemies.push({ kind: 'lantern', world: 'top', x: x * TS + 2, y: y * TS + TS - EH, dir: c === 'L' ? 1 : -1 }); grid[y][x] = '.'; }
   }
-  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, casters, marks, shadowGoal: rows.slice(HALF).some(r => r.includes('g') || r.includes('k')), lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
+  return { def, grid, W, PX: W * TS, start, lamps, shards, stones, enemies, casters, marks, crystals, flags, dashOK: def.dash !== false, shadowGoal: rows.slice(HALF).some(r => r.includes('g') || r.includes('k')), lampR: def.lampR ?? 20, hourPx: def.hourPx ?? HOUR_PX };
 }
 
 function shadowHeight(t) { return SH; } // the shadow keeps its size; the sun moves it sideways instead
@@ -156,16 +161,16 @@ function init(L) {
     pin: PIN_MAX, pinned: false, flipLock: 0, crumble: {}, got: L.shards.map(() => false), shardsGot: 0,
     p: { x: L.start[0] * TS + 2, y: L.start[1] * TS + TS - PH, vx: 0, vy: 0, ground: false, coyote: 0, land: 0 },
     s: { x: 0, y: HZ + TS, vy: 0, ground: false, coyote: 0, h: shadowHeight(t), gone: isGone(t), land: 0 },
-    jumpBuf: 0, face: 1, swimCd: 0, enemies: L.enemies.map(e => ({ ...e })), staff: null, pinPrev: false, echo: null,
+    jumpBuf: 0, face: 1, swimCd: 0, enemies: L.enemies.map(e => ({ ...e })), staff: null, pinPrev: false, echo: null, dashes: 1, dashT: 0, dashV: [0, 0], dashCost: 0, wallLock: 0, lastWall: 0, crystalCd: L.crystals.map(() => 0), flagsHit: L.flags.map(() => false),
   };
   spawnShadow(L, st, st.p.x + castDx(t));
-  st.check = snapshot(st);
+  st.check = snapshot(st); st.check0 = st.check;
   return st;
 }
-function snapshot(st) { return JSON.parse(JSON.stringify({ ...st, check: null, events: [] })); }
-function restore(st) { const c = JSON.parse(JSON.stringify(st.check)); const deaths = st.deaths + 1; Object.assign(st, c); st.check = snapshot(c); st.deaths = deaths; st.pendingCheck = false; st.events = ['death']; }
+function snapshot(st) { return JSON.parse(JSON.stringify({ ...st, check: null, check0: null, events: [] })); }
+function restore(st) { const c0 = st.check0; const c = JSON.parse(JSON.stringify(st.check)); const deaths = st.deaths + 1; Object.assign(st, c); st.check0 = c0; st.check = snapshot(c); st.deaths = deaths; st.pendingCheck = false; st.events = ['death']; }
 function checkpoint(st) { st.pendingCheck = true; }
-function safeToCheckpoint(L, st) { if (st.sleeping) return st.s.ground; return st.p.ground && !st.pinned && (st.s.gone || st.s.ground) && !Object.keys(st.crumble).length; }
+function safeToCheckpoint(L, st) { if (st.sleeping) return st.s.ground; return st.dashT === 0 && st.p.ground && !st.pinned && (st.s.gone || st.s.ground) && !Object.keys(st.crumble).length; }
 
 function bodyGround(L, st, world, b, w, h, pr, gdir) { return overlap(L, st, world, b.x, b.y + 0.5 * gdir, w, h, pr); }
 
@@ -217,7 +222,30 @@ function update(L, st, inp) {
   if (s.ground && !st.pinned) standOn('bot', s, SW, s.h, sgn);
 
   const landP = p.land, landS = s.land;
-  if (!st.sleeping) {
+  // ---- Sun Dash ----
+  if (st.wallLock > 0) st.wallLock--;
+  for (let k = 0; k < st.crystalCd.length; k++) if (st.crystalCd[k] > 0) st.crystalCd[k]--;
+  if (inp.dash && L.dashOK && !st.sleeping && st.dashes > 0 && st.dashT === 0) {
+    let dx = (inp.r ? 1 : 0) - (inp.l ? 1 : 0), dy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * pgn;
+    if (!dx && !dy) dx = st.face;
+    const n = Math.hypot(dx, dy); st.dashV = [dx / n * DASH.v, dy / n * DASH.v];
+    st.dashT = DASH.frames; st.dashes--; st.dashCost += DASH.cost; st.jumpBuf = 0; p.jumping = false; s.jumping = false;
+    st.events.push('dash');
+  }
+  if (st.dashT > 0 && !st.sleeping) {
+    st.dashT--;
+    const [vx, vy] = st.dashV;
+    p.vx = vx; p.vy = vy;
+    const rp = tryMove(L, st, 'top', p, PW, PH, vx, vy, pr);
+    if (rp.hitY && vy * pgn < 0) cornerCorrect(L, st, 'top', p, PW, PH, vy, pr);
+    if (!s.gone && !st.pinned) { s.vx = vx; s.vy = -vy; tryMove(L, st, 'bot', s, SW, s.h, vx, -vy, pr); }
+    if (st.dashT === 0) { if (vy * pgn < 0) p.vy = vy * DASH.endUp; else p.vy = vy * 0.6; p.vx = Math.sign(vx) * Math.min(Math.abs(vx), PHYS.run * 1.15); s.vy = -p.vy; }
+  } else if (!st.sleeping) {
+    if (p.ground && st.dashT === 0) { st.dashes = 1; st.lastWall = 0; }
+  }
+  if (!st.sleeping) L.crystals.forEach(([tx, ty], k) => { if (st.crystalCd[k] === 0 && st.dashes === 0 && p.x < tx * TS + 11 && p.x + PW > tx * TS + 1 && p.y < ty * TS + 11 && p.y + PH > ty * TS + 1) { st.dashes = 1; st.crystalCd[k] = DASH.refillCd; st.events.push('refill'); } });
+  const dashing = st.dashT > 0 && !st.sleeping;
+  if (!st.sleeping && !dashing) {
     p.coyote = p.ground ? PHYS.coyote : Math.max(0, p.coyote - 1);
     if (!s.gone) s.coyote = s.ground ? PHYS.coyote : Math.max(0, s.coyote - 1);
     const pw = inWater(L, 'top', p, PW, PH), sw = !s.gone && inWater(L, 'bot', s, SW, s.h);
@@ -226,7 +254,16 @@ function update(L, st, inp) {
     if (st.jumpBuf > 0) {
       if (pw) { if (st.swimCd === 0) { const deep = inWater(L, 'top', { x: p.x, y: p.y - 4 * pgn }, PW, PH); const near = !inWater(L, 'top', { x: p.x, y: p.y - 9 * pgn }, PW, PH); const wall = dir && overlap(L, st, 'top', p.x + dir * 2, p.y, PW, PH, pr); if (deep || wall) { p.vy = -(wall && near ? WATER.exit : WATER.stroke) * pgn; p.jumping = false; jumped = true; st.swimCd = WATER.strokeCd; st.events.push('swim'); } } }
       else if (p.coyote > 0) { p.vy = -PHYS.jump * pgn; p.coyote = 0; p.jumping = true; jumped = true; }
-      if (!s.gone && !st.pinned) {
+      else {
+        // wall jump: push off a wall you are touching; climb by alternating walls
+        const side = overlap(L, st, 'top', p.x + 2, p.y, PW, PH, pr) ? 1 : overlap(L, st, 'top', p.x - 2, p.y, PW, PH, pr) ? -1 : 0;
+        if (side && side !== st.lastWall) {
+          p.vx = -side * WALL.jumpX; p.vy = -WALL.jumpY * pgn; p.jumping = true; jumped = true; st.wallLock = WALL.lock; st.lastWall = side; st.face = -side;
+          if (!s.gone && !st.pinned) { const ss = overlap(L, st, 'bot', s.x + 2 * side, s.y, SW, s.h, pr); if (ss || s.coyote > 0) { s.vy = -WALL.jumpY * sgn; s.jumping = true; s.coyote = 0; } }
+          st.events.push('walljump');
+        }
+      }
+      if (!s.gone && !st.pinned && !st.events.includes('walljump')) {
         if (sw) { if (st.swimCd === 0 || jumped) { const deep = inWater(L, 'bot', { x: s.x, y: s.y - 4 * sgn }, SW, s.h); const near = !inWater(L, 'bot', { x: s.x, y: s.y - 9 * sgn }, SW, s.h); const wall = dir && overlap(L, st, 'bot', s.x + dir * 2, s.y, SW, s.h, pr); if (deep || wall) { s.vy = -(wall && near ? WATER.exit : WATER.stroke) * sgn; s.jumping = false; jumped = true; st.swimCd = WATER.strokeCd; } } }
         else if (s.coyote > 0) { s.vy = -PHYS.jump * sgn; s.coyote = 0; s.jumping = true; jumped = true; }
       }
@@ -236,8 +273,10 @@ function update(L, st, inp) {
     if (!inp.jumpHeld && p.jumping && p.vy * pgn < -1.6) p.vy = -1.6 * pgn;
     if (!inp.jumpHeld && s.jumping && s.vy * sgn < -1.6) s.vy = -1.6 * sgn;
     // player: accelerate, asymmetric gravity, corner nudge
-    p.vx = steer(p.vx, dir, p.ground, pw);
+    p.vx = steer(p.vx, st.wallLock > 0 && dir === st.lastWall ? 0 : dir, p.ground, pw);
     p.vy = pw ? waterClamp(p.vy + WATER.g * pgn, pgn) : fallClamp(p.vy + gravityFor(p.vy, pgn, inp.jumpHeld, p.jumping) * pgn, pgn);
+    // wall slide: pressing into a wall while falling slows you down
+    if (!pw && dir && !p.ground && p.vy * pgn > WALL.slide && overlap(L, st, 'top', p.x + dir * 2, p.y, PW, PH, pr)) { p.vy = WALL.slide * pgn; st.sliding = dir; } else st.sliding = 0;
     const wasAir = !p.ground;
     const rp = tryMove(L, st, 'top', p, PW, PH, p.vx, p.vy, pr);
     if (rp.hitX) p.vx = 0;
@@ -281,8 +320,8 @@ function update(L, st, inp) {
   if (!s.gone && !st.pinned && s.vy * sgn >= 0 && springHit('bot', s, SW, s.h, sgn)) { s.vy = -sSpring * sgn; s.jumping = false; st.events.push('spring'); }
 
   // ---- clock: time moves only when something moves ----
-  const moved = st.sleeping ? Math.abs(s.x - sx0) : Math.max(Math.abs(p.x - px0), s.gone || st.pinned ? 0 : Math.abs(s.x - sx0));
-  const dt = moved / L.hourPx + (inp.wait ? WAIT_RATE * HOUR_PX / L.hourPx : 0);
+  const moved = dashing ? 0 : st.sleeping ? Math.abs(s.x - sx0) : Math.max(Math.abs(p.x - px0), s.gone || st.pinned ? 0 : Math.abs(s.x - sx0));
+  const dt = moved / L.hourPx + (inp.wait ? WAIT_RATE * HOUR_PX / L.hourPx : 0) + st.dashCost + (!st.sleeping && L.def.sunRate ? L.def.sunRate / 60 : 0); st.dashCost = 0; // sunset runs: here the sun does not wait for you
   const t0 = st.t;
   const tdir = (!st.sleeping && st.grav < 0) ? -1 : 1;
   st.t = Math.max(0, st.t + dt * tdir); st.hours += dt;
@@ -305,6 +344,7 @@ function update(L, st, inp) {
   if (!st.sleeping) {
     if (!s.gone && isGone(st.t) && !isGone(t0)) { s.gone = true; st.events.push(overcast(st.t) ? 'cloud' : 'noon'); }
     if (s.gone && !isGone(st.t)) { s.gone = false; s.h = shadowHeight(st.t); spawnShadow(L, st, p.x + castDx(st.t)); st.events.push('resync'); checkpoint(st); }
+    if (st.t >= DUSK && L.def.duskFail) { st.check = st.check0; restore(st); st.events.push('dusk'); return; }
     if (st.t >= DUSK) { st.sleeping = true; s.gone = false; st.events.push('nightfall'); fitShadow(L, st, NIGHT_H); checkpoint(st); }
   } else if (st.t >= DAY_TOTAL) {
     st.t -= DAY_TOTAL; st.day++; CUR_DAY = st.day; st.sleeping = false;
@@ -323,6 +363,7 @@ function update(L, st, inp) {
   if (st.t < t0 && Math.floor(st.t * 4) !== Math.floor(t0 * 4)) st.events.push('rewind');
 
   { const had = !!st.echo; st.echo = echoOf(L, st); if (st.echo && !had) st.events.push(st.echo.kind === 'crescent' ? 'crescent' : 'reflect'); }
+  L.flags.forEach(([tx, ty], k) => { if (!st.flagsHit[k] && !st.sleeping && Math.abs(p.x + PW / 2 - (tx * TS + 6)) < 8 && p.y < (ty + 1) * TS && p.y + PH > ty * TS - 12) { st.flagsHit[k] = true; st.events.push('flag'); checkpoint(st); } });
   // ---- shards ----
   L.shards.forEach(([tx, ty], i) => {
     if (st.got[i]) return;
@@ -420,4 +461,4 @@ function fitShadow(L, st, want) {
 }
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
-if (typeof module !== 'undefined') module.exports = { markRects, echoOf, crescent, STAFF_W, STAFF_H, MARK_K, eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
+if (typeof module !== 'undefined') module.exports = { DASH, WALL, PHYS, markRects, echoOf, crescent, STAFF_W, STAFF_H, MARK_K, eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };

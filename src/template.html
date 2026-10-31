@@ -51,11 +51,14 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .ctl.on{transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35);background:#463c72}
 .move{display:flex;gap:8px}
 .move .ctl{width:60px;height:68px;font-size:22px}
-.right{display:grid;grid-template-columns:56px 56px 84px;grid-template-rows:32px 32px;gap:6px;align-items:end}
+.right{display:grid;grid-template-columns:52px 66px 80px;grid-template-rows:32px 32px;gap:6px;align-items:end}
 .ctl.flip{grid-area:1/1;height:32px;font-size:10px;background:#2d3a4a}
 .icon-btn.on{background:#4a3a2d;color:var(--brass)}
 .ctl.wait{grid-area:2/1;height:32px;font-size:14px;background:#2d2747}
-.ctl.pin{grid-area:1/2/3/3;height:70px;font-size:10px;background:#3d2f66}
+.ctl.pin{grid-area:1/2;height:32px;font-size:10px;background:#3d2f66;flex-direction:row;gap:4px}
+.ctl.dash{grid-area:2/2;height:32px;font-size:12px;background:#b84a5a;color:#fff4e8;letter-spacing:.06em}
+.ctl.dash.on{background:#d86070}
+.ctl.dash.spent{background:#3a5a8a}
 .ctl.pin small{color:#c7b4ff}
 .ctl.pin.on{background:var(--violet);color:#1a1230}
 .ctl.pin.on small{color:#1a1230}
@@ -64,7 +67,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .ctl.jump.on{background:#d79c34}
 .keys{font-size:11px;color:var(--mute);font-family:var(--display);text-align:center;width:100%}
 @media (hover:none){.keys{display:none}}
-@media (max-width:380px){.move .ctl{width:52px}.right{grid-template-columns:50px 50px 72px}}
+@media (max-width:380px){.move .ctl{width:50px}.right{grid-template-columns:46px 60px 70px}}
 .overlay{position:fixed;inset:0;background:rgba(15,12,26,.86);display:flex;align-items:center;justify-content:center;z-index:20;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .card{background:var(--ink-2);border-radius:6px;padding:20px;max-width:390px;width:100%;box-shadow:0 0 0 2px var(--ink-3),0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px;max-height:90%;overflow:auto;box-sizing:border-box}
@@ -130,7 +133,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
   .brand{font-size:13px}
   .move .ctl{width:58px;height:58px}
   .ctl.jump{height:66px;width:80px}
-  .ctl.pin{height:66px}
+  .ctl.pin,.ctl.dash{height:30px}
   .ctl.flip,.ctl.wait{height:30px}
   .right{grid-template-rows:30px 30px}
 }
@@ -157,7 +160,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
   </div>
   <div class="meta">
     <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
-    <div class="metaR"><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
+    <div class="metaR"><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
   <div id="stage"><canvas id="game" width="240" height="168" aria-label="Game screen"></canvas><div id="toast"></div></div>
@@ -170,11 +173,12 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
     <div class="right">
       <button class="ctl flip" data-k="f" aria-label="Flip gravity">FLIP</button>
       <button class="ctl wait" data-k="w" aria-label="Hold to let time pass">⧗</button>
-      <button class="ctl pin" data-k="p" aria-label="Plant or pull back your gnomon staff">STAFF<small>PLANT</small></button>
+      <button class="ctl pin" data-k="p" aria-label="Plant or pull back your gnomon staff">STAFF</button>
+      <button class="ctl dash" data-k="x" aria-label="Sun dash">DASH</button>
       <button class="ctl jump" data-k="j" aria-label="Jump">JUMP<small>▲▼</small></button>
     </div>
   </div>
-  <div class="keys">←→ move · ↑/Space jump · F flip · E staff · hold ↓ pass time · V camera · R restart</div>
+  <div class="keys">←→ move · Space/↑ jump · X/Shift dash (hold ↑↓ to aim) · F flip · E staff · hold ↓ pass time · R restart</div>
 </div>
 <div class="overlay" id="overlay" hidden><div class="card" id="card"></div></div>
 
@@ -221,7 +225,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['pj', SPR_JUMP, P
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
-let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0;
+let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0, runFrames = 0, trail = [], touchJump = false, speedLines = 0;
 let save = { best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false };
 try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false }, JSON.parse(localStorage.getItem('gnomon-v5')) || {}); } catch (e) {}
 const DEMO = LEVELS.findIndex(l => l.demo);
@@ -235,9 +239,10 @@ function dailyInfo() {
 }
 let dailyMode = false;
 const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
-const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO); return save.demoFirst ? [DEMO, ...rest] : [...rest, DEMO]; };
+const BSIDES = LEVELS.map((_, i) => i).filter(i => LEVELS[i].bside);
+const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO && !LEVELS[i].bside); return save.demoFirst ? [DEMO, ...rest, ...BSIDES] : [...rest, ...BSIDES, DEMO]; };
 const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
-const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0 }; let jumpEdge = false, flipEdge = false;
+const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0 }; let jumpEdge = false, flipEdge = false, dashEdge = false;
 function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').classList.toggle('on', save.view25); toast(save.view25 ? 'CAMERA · 2.5D' : 'CAMERA · FLAT'); beep(520, .08, 'sine', .04, 1.4); }
 
 // ---------- audio ----------
@@ -280,7 +285,8 @@ function musicTick() {
   const mix = musicMix(st.t, st.sleeping), reversed = st.grav < 0 && !st.sleeping;
   for (const k in mix) MUSIC.layers[k].gain.setTargetAtTime(mix[k] * (st.s && st.s.gone && k === 'arp' ? .3 : 1), ac.currentTime, 0.8);
   MUSIC.lp.frequency.setTargetAtTime(st.sleeping ? 900 : overcast(st.t) ? 1100 : 2400, ac.currentTime, 0.6);
-  const spb = 60 / MUSIC.bpm / 2; // eighth notes
+  const bpm = MUSIC.bpm * (L && L.def.sunRate ? 1.25 : 1) * (st.t > 5.6 && st.t < DUSK ? 1.15 : 1);
+  const spb = 60 / bpm / 2; // eighth notes, quicker as dusk closes in
   while (MUSIC.next < ac.currentTime + 0.25) {
     const s = MUSIC.step, when = MUSIC.next, bar = Math.floor(s / 8) % 4, beat = s % 8;
     const chord = CHORDS[reversed ? 3 - bar : bar], scale = st.sleeping ? NIGHT_SCALE : DAY_SCALE;
@@ -314,9 +320,10 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
+  runFrames = 0; trail = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; persist();
-  $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
+  $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint;
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
   // only show the powers this stage actually needs, so the sun stays the star
@@ -329,7 +336,7 @@ function load(i) {
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
-const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours' };
+const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours', dusk: 'Night fell before you got home' };
 function handleEvents(prevP, prevS, prevG) {
   for (const ev of st.events) {
     if (ev === 'jump') { beep(520, .06, 'square', .03, 1.6); squashP = .72; squashS = .72; }
@@ -349,6 +356,10 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'noplant') { toast('STAND ON THE GROUND TO PLANT'); beep(90, .06, 'square', .03); }
     if (ev === 'reflect') { toast('THE WATER CASTS A SECOND SHADOW'); beep(880, .25, 'sine', .03, 1.2); }
     if (ev === 'crescent') { toast('CRESCENT SUN · TWO SHADOWS'); beep(330, .4, 'sine', .04, 1.5); beep(495, .4, 'sine', .03, 1.5); }
+    if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(260, .14, 'sawtooth', .05, 2.4); beep(740, .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+    if (ev === 'walljump') { beep(560, .06, 'square', .035, 1.4); dust(st.p.x + (st.face > 0 ? 0 : 8), st.p.y + 6, 1); squashP = .75; }
+    if (ev === 'refill') { beep(988, .12, 'triangle', .05, 1.3); burst(st.p.x + 4, st.p.y + 6, '#9fe8ff', 12, 1.2); }
+    if (ev === 'flag') { toast('FLAG · YOUR SPOT IS SAVED'); beep(660, .1, 'triangle', .05, 1.5); beep(990, .14, 'triangle', .04, 1); }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'needshadow') { toast('WAIT FOR YOUR SHADOW TO REACH ITS DIAL'); beep(523, .12, 'sine', .04, .8); }
     if (ev === 'noon') { toast('NOON · your shadow vanishes'); beep(880, .2, 'sine', .05, .5); }
@@ -360,11 +371,14 @@ function handleEvents(prevP, prevS, prevG) {
   }
 }
 function tick() {
-  if (!$('overlay').hidden || st.won) { jumpEdge = flipEdge = false; return; }
+  if (!$('overlay').hidden || st.won) { jumpEdge = flipEdge = dashEdge = false; return; }
   if (hitStop > 0) { hitStop--; return; }
   const prevP = { ...st.p }, prevS = { ...st.s }, prevPr = pressedSet(L, st), prevG = st.grav;
-  update(L, st, { l: keys.l, r: keys.r, jump: jumpEdge, jumpHeld: keys.j, wait: keys.w, pin: keys.p, flip: flipEdge });
-  jumpEdge = flipEdge = false;
+  update(L, st, { l: keys.l, r: keys.r, jump: jumpEdge, jumpHeld: keys.j, wait: keys.w, pin: keys.p, flip: flipEdge, dash: dashEdge, up: keys.u || (touchJump && keys.j), down: keys.w });
+  jumpEdge = flipEdge = dashEdge = false;
+  if (!st.won) runFrames++;
+  if (st.dashT > 0) { trail.push({ x: st.p.x, y: st.p.y, sx: st.s.x, sy: st.s.y, life: 14, face: st.face }); }
+  for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
   if ([...pr].some(k => !prevPr.has(k))) beep(660, .08, 'triangle', .05);
   handleEvents(prevP, prevS, prevG);
@@ -380,6 +394,7 @@ function win() {
   const medal = hrs <= par * 1.15 ? 3 : hrs <= par * 1.6 ? 2 : 1;
   const isBest = !prev || hrs < prev.hours;
   if (isBest) save.best[li] = { hours: hrs, deaths: st.deaths };
+  save.times = save.times || {}; const secs = runFrames / 60, prevT = save.times[li]; if (!prevT || secs < prevT) save.times[li] = secs;
   save.medal = save.medal || {}; save.medal[li] = Math.max(save.medal[li] || 0, medal);
   save.shards[li] = Math.max(save.shards[li] || 0, st.shardsGot);
   persist();
@@ -388,7 +403,7 @@ function win() {
   if (dailyMode) { dailyWin(hrs, par, medal); return; }
   showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
-    <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
+    <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
     <div class="row"><button class="btn" id="again">Replay</button>
     ${lastLv ? '<button class="btn primary" id="toMenu">All dials</button>' : '<button class="btn primary" id="next">Next dial</button>'}</div>`);
@@ -434,10 +449,10 @@ function realSun(li) {
 function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); const rs = realSun(d.li); startOverride = rs ? rs.h : null; realPar = rs ? rs.par : null; load(d.li); toast('DAILY SUNDIAL #' + d.n + ' · REAL SUN ' + realLabel); }
 function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
-const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
+const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
   const ord = order(); let n = 0;
-  const b = ord.map(i => { const lv = LEVELS[i]; const label = lv.demo ? '★' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; }).join('');
+  const b = ord.map(i => { const lv = LEVELS[i]; const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h' : ''}</button>
@@ -458,6 +473,9 @@ function how() {
     <p>You are a gnomon, the pin of a sundial, trying to get back to your dial. Your shadow lives in the upside-down world below and copies every step. When you jump up, it jumps down.</p>
     <ul class="rules">
       <li><span>☀</span><span><b>Time only moves when you move.</b> Hold ⧗ to let it pass. Your shadow is long at dawn and dusk, short at midday, and gone at noon.</span></li>
+      <li><span>➶</span><span><b>DASH</b> (X / Shift, or the red button): a quick burst in any of 8 directions (hold ↑ or ↓ to aim; on touch, hold JUMP to dash up). It refills when you land or touch a <b>sun crystal</b>, and <b>each dash burns half an hour</b>, so your shadow swings with it. Your scarf turns blue when it's spent.</span></li>
+      <li><span>⇄</span><span><b>Wall jump</b>: jump while touching a wall to kick off it. Climb shafts by bouncing between two walls. Press into a wall while falling to slide.</span></li>
+      <li><span>⚑</span><span><b>Sunset runs</b>: the sun sinks on its own. Reach your dial before night or start over. Flags save your spot.</span></li>
       <li><span>✎</span><span><b>STAFF</b>: tap to plant your gnomon staff in front of you, tap again to pull it back. Its thin shadow falls into the world below and swings with the sun. <b>Shade presses violet plates</b>, so you can set it to press a plate at a chosen hour.</span></li>
       <li><span>▮</span><span>In <b>cast lands</b>, every stone above the ground throws a real shadow into the world below, sliding with the sun like yours. Your shadow can walk on it, and it can press plates.</span></li>
       <li><span>≈</span><span><b>Water</b> bounces sunlight: stand in or above it and a second, fainter shadow appears, thrown the <b>other way</b>. A <b>crescent sun</b> (partial eclipse) does the same.</span></li>
@@ -650,6 +668,17 @@ function render(now) {
     g.fillStyle = 'rgba(157,124,255,.5)'; g.fillRect(rx, r.y, r.w, 1);
     g.fillStyle = 'rgba(246,200,95,.12)'; g.fillRect(rx + 1, r.y - 2, r.w - 2, 2);
   }
+  // sun crystals: touch one to get your dash back
+  L.crystals.forEach(([tx, ty], k) => { const cd = st.crystalCd[k], cx = tx * TS + 6, cy = ty * TS + 6 + Math.round(Math.sin(now / 250 + k) * 1.5);
+    if (cd > 0) { g.fillStyle = 'rgba(159,232,255,.25)'; g.fillRect(cx - 2, cy - 4, 4, 8); g.fillRect(cx - 4, cy - 2, 8, 4); return; }
+    g.fillStyle = 'rgba(159,232,255,.25)'; g.fillRect(cx - 6, cy - 6, 12, 12);
+    g.fillStyle = '#9fe8ff'; g.fillRect(cx - 1, cy - 5, 2, 10); g.fillRect(cx - 3, cy - 3, 6, 6); g.fillRect(cx - 5, cy - 1, 10, 2);
+    g.fillStyle = '#ffffff'; g.fillRect(cx - 1, cy - 3, 1, 2); });
+  // checkpoint flags
+  L.flags.forEach(([tx, ty], k) => { const fx2 = tx * TS + 5, fy2 = ty * TS + TS, on = st.flagsHit[k], wv = Math.round(Math.sin(now / 160 + k) * 1);
+    g.fillStyle = '#5a4a3a'; g.fillRect(fx2, fy2 - 16, 1, 16);
+    g.fillStyle = on ? '#ffd25e' : '#8a7a9a'; g.fillRect(fx2 + 1, fy2 - 16 + wv, 6, 4); g.fillRect(fx2 + 1, fy2 - 12 + wv, 4, 1);
+    if (on) { g.fillStyle = 'rgba(255,210,94,.25)'; g.fillRect(fx2 - 3, fy2 - 19, 12, 12); } });
   // shards
   L.shards.forEach(([tx, ty], i) => {
     if (st.got[i]) return;
@@ -717,7 +746,18 @@ function render(now) {
     g.drawImage(S['sl' + fx + fy], ppx, ppy);
     const zt = (now / 800) % 1; g.globalAlpha = 1 - zt; g.fillStyle = '#e8e0ff';
     const zx = ppx + 12, zy = ppy - 2 - zt * 8; g.fillRect(zx, zy, 3, 1); g.fillRect(zx + 1, zy + 1, 1, 1); g.fillRect(zx, zy + 2, 3, 1); g.globalAlpha = 1;
-  } else drawBody(S['p' + fr + fx + fy], ppx, ppy, 16, 16, squashP, !flipped);
+  } else {
+    // dash afterimages (yours above, your shadow's below)
+    for (const q of trail) { g.globalAlpha = q.life / 22; g.drawImage(S['p' + fx + fy], Math.round(q.x) - 4, Math.round(q.y) - 4); g.fillStyle = `rgba(255,120,90,${q.life / 40})`; g.fillRect(Math.round(q.x), Math.round(q.y) + 2, 8, 8);
+      g.drawImage(S['s' + fx + (flipped ? 0 : 1)], 0, 0, 16, 15, Math.round(q.sx) - 4, Math.round(q.sy) - 1, 16, 14); }
+    g.globalAlpha = 1;
+    // a sun-scarf that trails behind you: gold while you hold a dash, blue once it is spent
+    const scol = st.dashes > 0 && st.dashT === 0 ? '#ffb347' : '#6aa8ff', sdir = -st.face, sway = Math.sin(now / 120) * 1.5;
+    const neckY = flipped ? ppy + 10 : ppy + 9;
+    for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? scol : (st.dashes > 0 ? '#ff8a3d' : '#4a7fd8'); g.fillRect(ppx + 8 + sdir * (3 + k * 2) - 1, neckY + Math.round(sway * k / 3 + (Math.abs(p.vx) > 1 ? 0 : k * .6)), 2, 2); }
+    drawBody(S['p' + fr + fx + fy], ppx, ppy, 16, 16, squashP, !flipped);
+    if (st.sliding) { if (Math.random() < .5) parts.push({ x: p.x + (st.sliding > 0 ? 8 : 0), y: p.y + 4 + Math.random() * 6, vx: -st.sliding * .3, vy: (flipped ? -1 : 1) * -.2, life: 12, col: 'rgba(230,220,200,.7)' }); }
+  }
   g.globalAlpha = 1;
   // ---- shadow ----
   if (!s.gone) {
@@ -745,6 +785,7 @@ function render(now) {
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
   g.globalAlpha = 1;
   if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
+  if (speedLines > 0) { speedLines--; const [vx, vy] = st.dashV || [1, 0]; const n = Math.hypot(vx, vy) || 1, ux = vx / n, uy = vy / n; g.fillStyle = `rgba(255,240,220,${speedLines / 20})`; for (let i = 0; i < 9; i++) { const ox = camX + hash(i, Math.floor(now / 50)) * W, oy = hash(i + 7, Math.floor(now / 50)) * H; for (let k = 0; k < 10; k++) g.fillRect(Math.round(ox - ux * k * 2), Math.round(oy - uy * k * 2), 1, 1); } }
   if (flash > 0) { g.fillStyle = `rgba(255,236,190,${flash * .6})`; g.fillRect(-4, -4, W + 8, H + 8); flash = Math.max(0, flash - .03); }
   g.setTransform(1, 0, 0, 1, 0, 0);
   drawDial();
@@ -752,6 +793,8 @@ function render(now) {
   $('pinfill').style.background = st.pin < 30 ? '#e9806e' : 'var(--violet)';
   $('shards').textContent = `✦ ${st.shardsGot}/${L.shards.length}`;
   $('falls').textContent = `☠ ${st.deaths}`;
+  { const sec = runFrames / 60; $('timer').textContent = Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); }
+  { const db = document.querySelector('.ctl.dash'); if (db) db.classList.toggle('spent', st.dashes === 0 || st.dashT > 0); }
 }
 
 // ---------- 2.5D camera: cabinet extrusion of every solid block ----------
@@ -909,19 +952,21 @@ window.addEventListener('resize', resize);
 document.fonts && document.fonts.ready.then(resize);
 
 // ---------- input ----------
-const KMAP = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'j', w: 'j', W: 'j', ' ': 'j', ArrowDown: 'w', s: 'w', S: 'w', e: 'p', E: 'p', x: 'p', X: 'p', Shift: 'p', f: 'f', F: 'f', c: 'f', C: 'f' };
+const KMAP = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'j', w: 'j', W: 'j', ' ': 'j', z: 'j', Z: 'j', ArrowDown: 'w', s: 'w', S: 'w', e: 'p', E: 'p', q: 'p', Q: 'p', x: 'x', X: 'x', k: 'x', K: 'x', Shift: 'x', f: 'f', F: 'f', c: 'f', C: 'f' };
+const UPKEYS = new Set(['ArrowUp', 'w', 'W']);
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) { if (e.key === 'Escape') hideCard(); return; }
   const k = KMAP[e.key];
   if (e.key === 'v' || e.key === 'V') { if (!e.repeat) toggleView(); e.preventDefault(); return; }
-  if (k) { e.preventDefault(); if (k === 'j' && !keys.j) jumpEdge = true; if (k === 'f' && !keys.f) flipEdge = true; keys[k] = 1; }
+  if (UPKEYS.has(e.key)) keys.u = 1;
+  if (k) { e.preventDefault(); if (k === 'j' && !keys.j) jumpEdge = true; if (k === 'f' && !keys.f) flipEdge = true; if (k === 'x' && !keys.x) dashEdge = true; keys[k] = 1; }
   else if (e.key === 'r' || e.key === 'R') load(li);
 });
-window.addEventListener('keyup', e => { const k = KMAP[e.key]; if (k) keys[k] = 0; });
+window.addEventListener('keyup', e => { const k = KMAP[e.key]; if (UPKEYS.has(e.key)) keys.u = 0; if (k) keys[k] = 0; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = 0; });
 document.querySelectorAll('.ctl').forEach(b => {
   const k = b.dataset.k;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} if (k === 'j') jumpEdge = true; if (k === 'f') flipEdge = true; keys[k] = 1; b.classList.add('on'); });
+  b.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') touchJump = true; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} if (k === 'j') jumpEdge = true; if (k === 'f') flipEdge = true; if (k === 'x') dashEdge = true; keys[k] = 1; b.classList.add('on'); });
   const up = () => { keys[k] = 0; b.classList.remove('on'); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
   b.addEventListener('contextmenu', e => e.preventDefault());

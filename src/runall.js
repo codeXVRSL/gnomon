@@ -2,7 +2,12 @@ const run = require('./test.js'); const LV = require('./levels.js');
 function rep(a,b,n){const o=[];for(let i=0;i<n;i++){o.push(a,b)}return o}
 const E_ = require('./engine.js');
 const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground && Math.abs(b.x + E_.castDx(s.t) - s.s.x) < 14; };
+const fr_ = s => s.t - Math.floor(s.t);
 const S = {
+ 'Last Light': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=164],['RJ',12],['RJUX',1],['RJ',20],['R',s=>s.p.x>=230],['RJ',14],['RJX',1],['R',s=>s.p.x>=380],['RJ',12],['RJUX',1],['RJ',20],['R',s=>s.p.x>=488],['RJ',25],['R',s=>s.p.x>=548],['RJ',25],['R',600]],
+ 'Chime Run': [['R',s=>s.p.x>=56],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=246],['RJ',8],['R',6],['LJ',1],['L',6],['LJ',1],['R',1],['RJ',40],['R',s=>s.p.x>=380],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=500],['RJ',30],['R',600]],
+ 'Eclipse B': [['R',s=>s.p.x>=72],['W',s=>s.t>=2.05],['R',s=>s.p.x>=124],['RJ',30],['R',s=>s.p.x>=172],['RJ',12],['RJUX',1],['RJ',8],['RJX',1],['R',s=>s.p.x>=276||s.won],['RJ',16],['R',600]],
+ 'Tower Clock B': [['R',s=>s.p.x>=96],['RJ',30],['R',s=>s.p.x>=152],['RJ',12],['RJUX',1],['',s=>s.p.ground],['R',s=>s.p.x>=184],['RJ',8],['RJX',1],['R',s=>s.p.x>=255||s.t>6.9],['',s=>s.t>=5.0||s.t>=6.9],['R',600]],
  'Tower Clock': [['R',s=>s.p.x>=111],['W',s=>s.t>=5.0],['R',900]],
  'Crescent': [['R',s=>s.p.x>=75],['W',s=>s.t>=1.7],['R',900]],
  'Hawk Hours': [...Array.from({length:5},()=>[['R',s=>hawkNear(s)],['RJ',30]]).flat(),['R',900]],
@@ -13,8 +18,8 @@ const S = {
  'Two Worlds': [['R',1500]],
  'Mirror Steps': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=130],['RJ',30],['R',600]],
  'Plant the Hour': [['R',s=>s.p.x>=84],['RP',1],['R',900]],
- 'Turn the Dial': [['R',s=>s.p.x>=80],['F',1],['',40],['R',s=>s.p.x>=131],['RJ',30],['R',s=>s.p.x>=180],['F',1],['',40],['R',600]],
- 'Bright Water': [['R',s=>s.p.x>=99||s.t>9],['W',s=>s.t>=5.0],['RM',1500]],
+ 'Turn the Dial': [['R',s=>s.p.x>=80],['F',1],['',40],['R',s=>s.p.x>=131],['RJ',30],['R',s=>s.p.x>=180],['',20],['F',1],['',40],['R',600]],
+ 'Bright Water': [['R',s=>s.p.x>=99||s.t>9],['W',s=>s.t>=4.9],['RM',1500]],
  'Old Still Water': [['R',s=>s.p.x>=40], ['RM',s=>s.s.x>=122], ['RMP',s=>s.p.x>=100], ['RP',s=>s.p.x>=118], ['R',600]],
  'Backward Sun': [['F',1],['',40],['R',s=>s.p.x>=96],['L',s=>s.p.x<=60],['R',s=>s.p.x>=96],['L',s=>s.t<=2.2||s.p.x<=30],['R',s=>s.p.x>=96],['F',1],['',40],['R',600]],
  "Yesterday's Cloud": [['F',1],['',40],...Array.from({length:12},()=>[['R',s=>s.p.x>=96||s.t<=1.45],['L',s=>s.p.x<=60||s.t<=1.45]]).flat(),['R',s=>s.p.x>=98],['W',s=>!s.s.gone&&s.t<0.98],['F',1],['',40],['R',600]],
@@ -27,7 +32,7 @@ const S = {
  'Upside Dusk': [['R',s=>s.p.x>=100],['W',s=>s.sleeping],['F',1],['',40],['R',s=>s.s.x>=190],['W',s=>s.day==2],['F',1],['',40],['R',400]],
  'Gnomon': [['F',1],['',40],['R',s=>s.p.x>=100],['F',1],['',40],['R',s=>s.p.x>=106],['RP',1],['R',s=>s.p.x>=166||s.t>6.9],['W',s=>(s.t-Math.floor(s.t))<0.15],['R',600]],
 };
-S['The Deep Dial'] = [['RM',s=>s.p.x>=88],['W',s=>(s.s.x>84&&s.s.x<106)||s.t>6],['R',s=>s.p.x>=112],['R',s=>s.p.x>=150],['',25],['F',1],['',40],['R',s=>s.p.x>=190],['F',1],['',40],['R',s=>s.p.x>=218],['W',s=>(s.t-Math.floor(s.t))<0.08],['R',s=>s.p.x>=296],['W',s=>s.sleeping],['R',s=>s.s.x>=336],['W',s=>s.day==2||s.won],['R',s=>s.p.x>=380],['W',s=>s.t>=1.05],['R',s=>s.p.x>=444],['RJ',22],['R',900]];
+S['The Deep Dial'] = [['RM',s=>s.p.x>=88],['W',s=>(s.s.x>84&&s.s.x<106)||s.t>6],['R',s=>s.p.x>=112],['R',s=>s.p.x>=150],['',25],['F',1],['',40],['RJ',s=>s.p.x>=190],['F',1],['',40],['R',s=>s.p.x>=218],['W',s=>(s.t-Math.floor(s.t))<0.08],['R',s=>s.p.x>=296],['W',s=>s.sleeping],['R',s=>s.s.x>=336],['W',s=>s.day==2||s.won],['R',s=>s.p.x>=380],['W',s=>s.t>=1.05],['R',s=>s.p.x>=444],['RJ',22],['R',900]];
 S['Lantern Walk'] = [['R',s=>s.enemies[0].x<s.p.x+16],['RJ',30],['R',600]];
 module.exports = S;
 if (require.main === module) LV.forEach((lv, i) => { const sc = S[lv.name]; if (!sc) return console.log(i+1, lv.name, 'NO SCRIPT'); const r = run(i, sc); const naive = run(i, [['R', 1200]]); console.log((i+1+'').padStart(2), lv.name.padEnd(16), r.won ? 'WON ' : 'FAIL', 'hrs', r.st.hours.toFixed(1), '| naive', naive.won ? 'wins!' : 'fails', r.won ? '' : r.log.slice(-2).join(' ; ')); });
