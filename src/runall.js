@@ -15,6 +15,7 @@ const S = {
  'Night Walk': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=86],['RJ',30],['R',s=>s.s.x>=150],['RJ',30],['R',s=>s.s.x>=204],['W',s=>s.day==2||s.won],['',30]],
  'Moonlamps': [['W',s=>s.sleeping],['R',s=>s.s.x>=56],['RJ',30],['R',s=>s.s.x>=130],['RJ',30],['R',s=>s.s.x>=228],['W',s=>s.day==2||s.won],['',30]],
  'In the Shade': [['R',s=>s.p.x>=80],['W',s=>s.t>=1.7],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
+  'Under the Chime': [['R',s=>s.p.x>=48],['W',s=>s.t>1&&s.t%1>=0.05&&s.t%1<0.15],['R',s=>s.p.x>=140],['W',s=>s.t>2&&s.t%1>=0.05&&s.t%1<0.15],['R',900]],
   'Mirror Hours': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=130],['W',s=>s.t>=3.2],['RJ',30],['R',600]],
   'Stone Nights': [['R',s=>s.p.x>=96],['W',s=>s.t>=3.6],['R',s=>s.p.x>=170],['W',s=>s.sleeping],['R',s=>s.s.x>=200],['W',s=>s.day==2&&!s.sleeping],['R',600]],
   'Two Locks': [['R',s=>s.p.x>=200],['W',s=>s.t>=4.75],['R',600]],

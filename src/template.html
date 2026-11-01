@@ -1020,7 +1020,7 @@ function render(now) {
       const hgt = Math.round(7 * rise) + 1;
       g.fillStyle = col;
       for (let i = 0; i < 3; i++) { const bx = px + 1 + i * 4; if (topW) { g.fillRect(bx, py + TS - hgt, 2, hgt); if (hgt > 3) g.fillRect(bx + 1, py + TS - hgt - 2, 1, 2); } else { g.fillRect(bx, py, 2, hgt); if (hgt > 3) g.fillRect(bx + 1, py + hgt, 1, 2); } }
-      if (c === 'v') { g.fillStyle = '#2a2240'; g.fillRect(px, topW ? py + TS - 2 : py, TS, 2);
+      if (c === 'v') { g.fillStyle = topW ? '#2a2240' : '#7a66b8'; g.fillRect(px, topW ? py + TS - 2 : py, TS, 2); if (!topW) { g.fillStyle = 'rgba(199,180,255,.35)'; g.fillRect(px + 1, py + 2, TS - 2, 1); }
         if (ch === 1) { g.fillStyle = '#ffffff'; for (let i = 0; i < 6; i += 2) g.fillRect(px + i * 2, topW ? py + TS - 2 : py + 1, 2, 1); }
         if (ch === 2) { g.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) g.fillRect(px + 2 + i * 4, topW ? py + TS - hgt - 2 : py + hgt + 1, 1, 1); } }
     } else if (c >= 'A' && c <= 'D') {
@@ -1554,9 +1554,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 144, t: 'tall phones can turn on Closer view in Assist mode: bigger pixels, with the camera following you across the stage.' };
+const WHATS_NEW = { v: 145, t: 'a new B-side, Under the Chime: the bells ring in your shadow\'s world too, and your shadow runs ahead of you.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Under the Chime (B-side of Hour Chime).',
   'Assist: Closer view gives tall phones bigger pixels.',
   'B-sides show which dial they belong to, and NEW until you try them.',
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
@@ -1565,8 +1566,7 @@ const NEWS = [
   'Hear which gate moved: each pair has its own note.',
   'Hanging roots and glow tips in the shadow world.',
   'Stage maker: remix any dial you have beaten.',
-  'New B-side: Stone Nights (B-side of Stone Hours).',
-  'Screen readers announce stages, gates opening and closing, falls and wins.',];
+  'New B-side: Stone Nights (B-side of Stone Hours).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
