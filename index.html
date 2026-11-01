@@ -1293,6 +1293,11 @@ function how() {
       ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button; on phones aim with the <b>d-pad</b>, or just <b>swipe the game screen</b> in any direction). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
       ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
       ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
+    ${sec('Keyboard shortcuts', false, [
+      ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · X/Shift dash (hold arrows to aim) · ↓ hold to pass time · F flip · E staff · R restart · V 2.5D view.'],
+      ['☰', '<b>Menus:</b> Tab and Shift+Tab move, Enter picks, Esc closes; arrow keys move around the stage grid.'],
+      ['✎', '<b>Stage maker:</b> number keys 1–0 pick tiles, Ctrl/Cmd+Z undoes.'],
+      ['⚙', 'Change the play keys in Assist › Keyboard keys.']])}
     ${sec('Sun tricks', false, [
       ['☾', '<b>Night:</b> you sleep and steer your shadow alone. <b>Dawn:</b> you wake where it stands.'],
       ['⇅', '<b>FLIP</b> turns the world over, and upside down <b>the sun runs backward</b>.'],
@@ -1978,7 +1983,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 115, t: 'every share button now falls back to a copy card if the clipboard is blocked.' };
+const WHATS_NEW = { v: 116, t: 'How to play now lists every keyboard shortcut.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
   'Race the solution ghost: the win card says who got there first.',
