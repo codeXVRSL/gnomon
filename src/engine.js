@@ -55,7 +55,10 @@ const castDx = t => (NOON - t) * CAST_K;
 function slabs(L, st, t = st.t) {
   if (t >= DUSK || isGone(t) || eclipsed(t)) return [];
   if (!L.stones.length && !L.casters.length && !st.staff) return [];
-  const dx = castDx(t), out = [];
+  // collision asks for the slabs many times per frame at the same hour: reuse the last answer
+  const key = t + '|' + (st.staff ? st.staff.x + ',' + st.staff.base : ''), c = L._slabC;
+  if (c && c.key === key) return c.out;
+  const dx = castDx(t), out = []; L._slabC = { key, out };
   for (const [tx, ty] of L.stones) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'stone' });
   for (const [tx, ty] of L.casters) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'cast' });
   if (st.staff) out.push({ x: st.staff.x + dx, y: ROWS * TS - st.staff.base, w: STAFF_W, h: STAFF_H, kind: 'staff' });

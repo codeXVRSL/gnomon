@@ -289,7 +289,10 @@ const castDx = t => (NOON - t) * CAST_K;
 function slabs(L, st, t = st.t) {
   if (t >= DUSK || isGone(t) || eclipsed(t)) return [];
   if (!L.stones.length && !L.casters.length && !st.staff) return [];
-  const dx = castDx(t), out = [];
+  // collision asks for the slabs many times per frame at the same hour: reuse the last answer
+  const key = t + '|' + (st.staff ? st.staff.x + ',' + st.staff.base : ''), c = L._slabC;
+  if (c && c.key === key) return c.out;
+  const dx = castDx(t), out = []; L._slabC = { key, out };
   for (const [tx, ty] of L.stones) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'stone' });
   for (const [tx, ty] of L.casters) out.push({ x: tx * TS + dx, y: (ROWS - 1 - ty) * TS, w: TS, h: TS, kind: 'cast' });
   if (st.staff) out.push({ x: st.staff.x + dx, y: ROWS * TS - st.staff.base, w: STAFF_W, h: STAFF_H, kind: 'staff' });
@@ -2045,9 +2048,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 139, t: 'the Daily Sundial keeps its schedule steady: new stages no longer reshuffle which dial comes up on future days.' };
+const WHATS_NEW = { v: 140, t: 'stages with cast shadows run lighter: the rules engine works out each hour\'s shadows once per frame instead of dozens of times.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Cast-shadow stages run lighter on slow phones.',
   'Daily Sundial picks stay put when new stages are added.',
   'Hear which gate moved: each pair has its own note.',
   'Hanging roots and glow tips in the shadow world.',
@@ -2056,8 +2060,7 @@ const NEWS = [
   'Screen readers announce stages, gates opening and closing, falls and wins.',
   'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
   'New B-side: Two Locks (B-side of Two Worlds).',
-  'Chapter headings show how many dials you have beaten.',
-  'Hints show more lines on tall phones; a cut-off hint says ▾ more.',];
+  'Chapter headings show how many dials you have beaten.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
