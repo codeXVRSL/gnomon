@@ -814,6 +814,9 @@ const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 const DAY_SCALE = [62, 64, 66, 69, 71, 74, 76, 78];   // D E F# A B D E F#
 const NIGHT_SCALE = [62, 64, 65, 69, 70, 74, 76, 77]; // D E F A Bb D E F
 const CHORDS = [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]]; // D Bm G A
+// B-sides play the flip side of the same song: Dm Bb F C, in the minor colour of the night scale
+const CHORDS_B = [[50, 57, 62, 65], [46, 53, 58, 62], [41, 48, 53, 57], [48, 55, 60, 64]];
+const chordSet = () => (typeof li !== 'undefined' && LEVELS[li] && LEVELS[li].bside) ? CHORDS_B : CHORDS;
 function musicInit() {
   if (MUSIC.bus || !ac) return;
   MUSIC.bus = ac.createGain(); MUSIC.bus.gain.value = 0.0;
@@ -849,7 +852,7 @@ function musicTick() {
   const spb = 60 / bpm / 2; // eighth notes, quicker as dusk closes in
   while (MUSIC.next < ac.currentTime + 0.25) {
     const s = MUSIC.step, when = MUSIC.next, bar = Math.floor(s / 8) % 4, beat = s % 8;
-    const chord = CHORDS[reversed ? 3 - bar : bar], scale = st.sleeping ? NIGHT_SCALE : DAY_SCALE;
+    const chord = chordSet()[reversed ? 3 - bar : bar], scale = st.sleeping || LEVELS[li].bside ? NIGHT_SCALE : DAY_SCALE;
     if (beat === 0 && eclipsed(st.t)) { tone('bass', NOTE(26), when, spb * 8, 'sawtooth', 0.03, 0.3); tone('pad', NOTE(33), when, spb * 8, 'sine', 0.05, 0.6); }
     if (beat === 0) for (const n of chord) tone('pad', NOTE(n + (st.sleeping && n % 12 === 6 ? -1 : 0)), when, spb * 8.5, 'sine', 0.035, 0.4);
     if (beat === 0 || beat === 4) tone('bass', NOTE(chord[0] - 12), when, spb * 3.5, 'triangle', 0.09, 0.02);
@@ -867,7 +870,7 @@ setInterval(musicTick, 100);
 if (save.music === false) MUSIC.on = false;
 if (save.sfx === false) muted = true;
 
-function inKey(deg, oct = 0) { const bar = Math.floor(MUSIC.step / 8) % 4, ch = CHORDS[(st && st.grav < 0 && !st.sleeping) ? 3 - bar : bar]; const n = ch[((deg % 4) + 4) % 4] + 12 * (oct + Math.floor(deg / 4)); return NOTE(n + 12); }
+function inKey(deg, oct = 0) { const bar = Math.floor(MUSIC.step / 8) % 4, ch = chordSet()[(st && st.grav < 0 && !st.sleeping) ? 3 - bar : bar]; const n = ch[((deg % 4) + 4) % 4] + 12 * (oct + Math.floor(deg / 4)); return NOTE(n + 12); }
 function beep(f, d = .07, type = 'square', v = .045, slide = 0, at = 0) {
   if (muted) return;
   try {
@@ -2073,9 +2076,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 150, t: 'winning a B-side now shows how many of them you have beaten, and how close you are to the Far Side postcard.' };
+const WHATS_NEW = { v: 151, t: 'B-sides play the flip side of the soundtrack: the same tune in a minor key, Dm Bb F C instead of D Bm G A.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'B-sides have their own minor-key music.',
   'B-side wins show your progress toward the Far Side.',
   'Far Side postcard shows on the title screen and journey summary.',
   'Beat every B-side for the Far Side postcard.',
@@ -2084,8 +2088,7 @@ const NEWS = [
   'New B-side: Under the Chime (B-side of Hour Chime).',
   'Assist: Closer view gives tall phones bigger pixels.',
   'B-sides show which dial they belong to, and NEW until you try them.',
-  'New B-side: Mirror Hours (B-side of Mirror Steps).',
-  'Cast-shadow stages run lighter on slow phones.',];
+  'New B-side: Mirror Hours (B-side of Mirror Steps).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
