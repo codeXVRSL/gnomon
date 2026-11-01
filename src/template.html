@@ -410,7 +410,7 @@ function load(i) {
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
   // a beaten stage greets you with your record, since phones have no hover tooltips on the stage list
-  { const b = save.best[i], tm = (save.times || {})[i], md = ['', '✦', '☾', '☀'][(save.medal || {})[i] || 0]; toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase() + (b && !LEVELS[i].custom ? ` · BEST ${b.hours.toFixed(1)}H${tm ? ' · ' + tm.toFixed(1) + 'S' : ''}${md ? ' ' + md : ''}` : '')); }
+  { const b = save.best[i], tm = (save.times || {})[i], md = ['', '✦', '☾', '☀'][(save.medal || {})[i] || 0]; const par = LEVELS[i].par, sunAt = par && ((save.medal || {})[i] || 0) < 3 ? ` · ☀ ≤${(Math.floor(par * 1.15 * 10) / 10).toFixed(1)}H` : ''; toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase() + (b && !LEVELS[i].custom ? ` · BEST ${b.hours.toFixed(1)}H${tm ? ' · ' + tm.toFixed(1) + 'S' : ''}${md ? ' ' + md : ''}${sunAt}` : '')); }
   // only show the powers this stage actually needs, so the sun stays the star
   const uses = LEVELS[i].uses || { flip: true, pin: true };
   document.querySelector('.ctl.flip').style.visibility = uses.flip ? '' : 'hidden';
@@ -1593,9 +1593,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 156, t: 'beat every main dial and Stats offers a Full run: all 31 dials back to back on one clock, with splits and a personal best.' };
+const WHATS_NEW = { v: 157, t: 'a beaten dial without its sun medal now tells you the hour to beat for it when you open it.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Opening a dial shows the hour to beat for its sun medal.',
   'Full run: all 31 dials on one clock.',
   'Beaten dials show your record when you open them.',
   'A one-time tip points new players to ⟲ BACK.',
@@ -1604,8 +1605,7 @@ const NEWS = [
   'B-sides have their own minor-key music.',
   'B-side wins show your progress toward the Far Side.',
   'Far Side postcard shows on the title screen and journey summary.',
-  'Beat every B-side for the Far Side postcard.',
-  'New B-side: Two Lanterns (B-side of Lantern Walk).',];
+  'Beat every B-side for the Far Side postcard.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
