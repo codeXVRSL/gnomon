@@ -512,6 +512,17 @@ function tick() {
 
 // a little postcard for finishing a chapter: the dial at that chapter's hour, in its colour
 function postcard(k) {
+  // the seventh card, for beating every B-side: the far side of the dial, a ring of sun around the moon
+  if (k === 6) return `<svg viewBox="0 0 240 96" width="100%" style="display:block;border-radius:6px;margin:0 0 10px;image-rendering:pixelated" aria-hidden="true">
+    <defs><radialGradient id="pc6" cx=".5" cy=".38" r=".75"><stop offset="0" stop-color="#3a2c6e"/><stop offset="1" stop-color="#0f0b22"/></radialGradient></defs>
+    <rect width="240" height="96" fill="url(#pc6)"/>
+    ${[[24, 12], [58, 30], [196, 16], [214, 40], [160, 10], [88, 8], [132, 52], [30, 52]].map(([x, y]) => `<rect x="${x}" y="${y}" width="2" height="2" fill="#c7b4ff" opacity=".7"/>`).join('')}
+    <circle cx="120" cy="36" r="17" fill="#f6c85f" opacity=".25"/><circle cx="120" cy="36" r="13" fill="#f6c85f"/><circle cx="120" cy="36" r="11" fill="#140f26"/>
+    <ellipse cx="120" cy="80" rx="86" ry="12" fill="#241c40"/><ellipse cx="120" cy="78" rx="80" ry="10" fill="#3e2f66"/>
+    ${Array.from({ length: 11 }, (_, i) => { const a = Math.PI * (i / 10); return `<rect x="${(120 - Math.cos(a) * 70).toFixed(0)}" y="${(78 - Math.sin(a) * 7).toFixed(0)}" width="2" height="2" fill="#c7b4ff"/>`; }).join('')}
+    <polygon points="117,78 123,78 120,50" fill="#9a8be0"/>
+    <text x="10" y="18" font-family="monospace" font-size="9" fill="#fff" opacity=".8">FAR SIDE · EVERY B-SIDE</text>
+  </svg>`;
   const c = window.CHC[Math.min(5, k)], night = k >= 5, sx = [40, 75, 120, 165, 200, 120][k] || 120, sy = [62, 34, 18, 34, 62, 26][k] || 30;
   const ang = night ? 0 : (120 - sx) * 0.9, len = night ? 0 : 26 + Math.abs(120 - sx) * 0.35;
   const sky0 = night ? '#1a1638' : '#2a2350';
@@ -584,7 +595,8 @@ function win() {
   const comeback = save.skipped && save.skipped[LEVELS[li].name]; if (comeback) { delete save.skipped[LEVELS[li].name]; persist(); }
   const bUnlocks = prev ? [] : LEVELS.filter(l => l.bside === LEVELS[li].name), bUnlock = bUnlocks[0]; if (bUnlock) setTimeout(() => toast((bUnlocks.length > 1 ? bUnlocks.length + ' B-SIDES UNLOCKED' : 'B-SIDE UNLOCKED · ' + bUnlock.name.toUpperCase())), 900);
   const race = ghost && ghost.label === 'SOLUTION' ? (() => { const d = (runFrames - ghost.data.length) / 60; return `<p class="sub" style="color:#c7b4ff;margin:0 0 6px">${d < 0 ? `You beat the solution ghost by ${(-d).toFixed(1)}s.` : `The solution ghost was ${d.toFixed(1)}s faster.`}</p>`; })() : '';
-  showCard(`${race}${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlocks.length ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ ${bUnlocks.length > 1 ? 'B-SIDES' : 'B-SIDE'} UNLOCKED: ${bUnlocks.map(b => b.name.toUpperCase()).join(' · ')}</p><div class="row" style="margin:0 0 10px">${bUnlocks.map((b, k) => `<button class="btn" ${k ? '' : 'id="bsideGo"'} data-bs="${LEVELS.indexOf(b)}" style="flex:1">Play ${b.name}</button>`).join('')}</div>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
+  const farSide = LEVELS[li].bside && BSIDES.every(j => save.best[j]) && !save.farSide ? (save.farSide = 1, persist(), `${postcard(6)}<p class="sub" style="color:#c7b4ff;letter-spacing:.1em;margin:0 0 6px">EVERY B-SIDE BEATEN · THE FAR SIDE POSTCARD IS YOURS</p>`) : '';
+  showCard(`${farSide}${race}${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlocks.length ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ ${bUnlocks.length > 1 ? 'B-SIDES' : 'B-SIDE'} UNLOCKED: ${bUnlocks.map(b => b.name.toUpperCase()).join(' · ')}</p><div class="row" style="margin:0 0 10px">${bUnlocks.map((b, k) => `<button class="btn" ${k ? '' : 'id="bsideGo"'} data-bs="${LEVELS.indexOf(b)}" style="flex:1">Play ${b.name}</button>`).join('')}</div>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
@@ -809,7 +821,7 @@ function stats() {
       const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; const won5 = ids.every(i => save.best[i]), cr = save.chRuns && save.chRuns[k]; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}${won5 ? `<button class="btn" data-ch="${k}" style="display:block;padding:3px 6px;font-size:10px;margin-top:4px" title="Play all five ${c} stages back to back">▶ RUN${cr ? ' ' + fmt(cr) : ''}</button>` : ''}</span>`; }).join('');
       return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
     ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
-    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/6</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k]}</div>`).join('')}</div>`; })()}
+    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); if (BSIDES.every(j => save.best[j])) got.push(6); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/7</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5, 6].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT', 'FAR SIDE'][k]}</div>`).join('')}</div>`; })()}
     <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
@@ -1559,9 +1571,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 147, t: 'a new B-side, Two Lanterns: two lantern-bearers on the road, and the old trick of jumping late will not save your shadow from the first.' };
+const WHATS_NEW = { v: 148, t: 'beat every B-side to earn a seventh postcard, the Far Side; the postcard gallery now has room for it.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Beat every B-side for the Far Side postcard.',
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
   'Thorns and resting stones are easier to see.',
   'New B-side: Under the Chime (B-side of Hour Chime).',
@@ -1570,8 +1583,7 @@ const NEWS = [
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
   'Cast-shadow stages run lighter on slow phones.',
   'Daily Sundial picks stay put when new stages are added.',
-  'Hear which gate moved: each pair has its own note.',
-  'Hanging roots and glow tips in the shadow world.',];
+  'Hear which gate moved: each pair has its own note.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
