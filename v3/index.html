@@ -1948,6 +1948,14 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { const k = KMAP[e.key]; if (UPKEYS.has(e.key)) keys.u = 0; if (k) keys[k] = 0; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = 0; });
+// tab hidden or phone locked: let go of every key and hush the audio, then pick the music up cleanly on return
+let hushed = false;
+document.addEventListener('visibilitychange', () => {
+  for (const k in keys) keys[k] = 0;
+  if (!ac) return;
+  if (document.hidden) { if (ac.state === 'running') { hushed = true; ac.suspend(); } }
+  else if (hushed) { hushed = false; last = 0; ac.resume().then(() => { if (MUSIC.next < ac.currentTime) MUSIC.next = ac.currentTime + 0.05; }); }
+});
 document.querySelectorAll('.ctl').forEach(b => {
   const k = b.dataset.k;
   b.addEventListener('pointerdown', e => { if (k === 'w' && save.assist && save.assist.waitToggle) { e.preventDefault(); keys.w = keys.w ? 0 : 1; b.classList.toggle('on', !!keys.w); return; } if (e.pointerType !== 'mouse') touchJump = true; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} if (k === 'j') jumpEdge = true; if (k === 'f') flipEdge = true; if (k === 'x') dashEdge = true; keys[k] = 1; b.classList.add('on'); });
@@ -2003,9 +2011,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 128, t: 'the stage maker has a second gate and plate pair (two dots), so your stages can have two locks.' };
+const WHATS_NEW = { v: 129, t: 'switching tabs or locking your phone now hushes the music and lets go of every button; it picks up cleanly when you come back.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Switching tabs or locking your phone hushes the music until you return.',
   'Stage maker: a second gate and plate pair, for stages with two locks.',
   'Opened a gate off screen? A blinking tag on the edge points to it.',
   'Pressing a plate sends sparks to the gate it opens.',
@@ -2014,8 +2023,7 @@ const NEWS = [
   'New B-side: Plant at Dusk (staff + hour mark).',
   'How to play lists every keyboard shortcut.',
   'Sharing never opens a blocking pop-up; a copy card appears if needed.',
-  'Race the solution ghost: the win card says who got there first.',
-  'Beat a stage, then watch a solution ghost to compare routes.',];
+  'Race the solution ghost: the win card says who got there first.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
@@ -2092,7 +2100,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { linkSparks, keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
+if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { linkSparks, audio: () => ac ? ac.state : 'none', keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
