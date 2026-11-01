@@ -720,7 +720,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
-let decor = [], lookX = 0;
+let decor = [], lookX = 0, wipe = 0;
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
 const BITS = ['l', 'r', 'jump', 'jumpHeld', 'wait', 'pin', 'flip', 'dash', 'up', 'down'];
 const packInp = inp => BITS.reduce((m, k, i) => m | (inp[k] ? 1 << i : 0), 0);
@@ -809,6 +809,7 @@ function audioUnlock() { try { ac = ac || new (window.AudioContext || window.web
 setInterval(musicTick, 100);
 if (save.music === false) MUSIC.on = false;
 
+function inKey(deg, oct = 0) { const bar = Math.floor(MUSIC.step / 8) % 4, ch = CHORDS[(st && st.grav < 0 && !st.sleeping) ? 3 - bar : bar]; const n = ch[((deg % 4) + 4) % 4] + 12 * (oct + Math.floor(deg / 4)); return NOTE(n + 12); }
 function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
   if (muted) return;
   try {
@@ -824,7 +825,7 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
-  runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
+  wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
@@ -853,8 +854,8 @@ function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math
 const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours', dusk: 'Night fell before you got home' };
 function handleEvents(prevP, prevS, prevG) {
   for (const ev of st.events) {
-    if (ev === 'jump') { beep(520, .06, 'square', .03, 1.6); squashP = .72; squashS = .72; }
-    if (ev === 'land') { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} squashP = 1.35; shake = Math.max(shake, 1.5); dust(st.p.x, st.p.y + (st.grav > 0 ? PH : 0), st.grav); beep(160, .04, 'triangle', .03); }
+    if (ev === 'jump') { beep(inKey(2, 1), .06, 'square', .03, 1.6); squashP = .72; squashS = .72; }
+    if (ev === 'land') { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} squashP = 1.35; shake = Math.max(shake, 1.5); dust(st.p.x, st.p.y + (st.grav > 0 ? PH : 0), st.grav); beep(inKey(0, -1), .05, 'triangle', .035); }
     if (ev === 'swim') { beep(420, .05, 'sine', .03, 1.3); for (let i = 0; i < 3; i++) parts.push({ x: st.p.x + Math.random() * 8, y: st.p.y + 4, vx: (Math.random() - .5) * .4, vy: -.4 - Math.random() * .4, life: 20, col: 'rgba(220,240,255,.8)' }); }
     if (ev === 'spring') { beep(300, .18, 'square', .05, 2.5); squashP = .6; squashS = .6; shake = 2; }
     if (ev === 'flip') { toast(st.grav < 0 ? 'WORLD TURNED · THE SUN RUNS BACKWARD' : 'WORLD RESTORED · TIME FLOWS ON'); beep(220, .25, 'sawtooth', .05, st.grav < 0 ? 2.2 : .45); shake = 4; burst(st.p.x + 4, st.p.y + 6, '#9fd0e8', 10, 1); }
@@ -870,10 +871,10 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'noplant') { toast('STAND ON THE GROUND TO PLANT'); beep(90, .06, 'square', .03); }
     if (ev === 'reflect') { toast('THE WATER CASTS A SECOND SHADOW'); beep(880, .25, 'sine', .03, 1.2); }
     if (ev === 'crescent') { toast('CRESCENT SUN · TWO SHADOWS'); beep(330, .4, 'sine', .04, 1.5); beep(495, .4, 'sine', .03, 1.5); }
-    if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(260, .14, 'sawtooth', .05, 2.4); beep(740, .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+    if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(inKey(0), .14, 'sawtooth', .05, 2.4); beep(inKey(3, 1), .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
     if (ev === 'superwall' || ev === 'dashjump') { beep(ev === 'superwall' ? 700 : 420, .14, 'square', .04, 1.8); speedLines = 10; burst(st.p.x + 4, st.p.y + 6, '#ffd25e', 10, 1.6); }
-    if (ev === 'walljump') { beep(560, .06, 'square', .035, 1.4); dust(st.p.x + (st.face > 0 ? 0 : 8), st.p.y + 6, 1); squashP = .75; }
-    if (ev === 'refill') { beep(988, .12, 'triangle', .05, 1.3); burst(st.p.x + 4, st.p.y + 6, '#9fe8ff', 12, 1.2); }
+    if (ev === 'walljump') { beep(inKey(1, 1), .06, 'square', .035, 1.4); dust(st.p.x + (st.face > 0 ? 0 : 8), st.p.y + 6, 1); squashP = .75; }
+    if (ev === 'refill') { beep(inKey(3, 2), .12, 'triangle', .05, 1.3); burst(st.p.x + 4, st.p.y + 6, '#9fe8ff', 12, 1.2); }
     if (ev === 'flag') { toast('FLAG · YOUR SPOT IS SAVED'); beep(660, .1, 'triangle', .05, 1.5); beep(990, .14, 'triangle', .04, 1); }
     if (ev === 'cloud') { toast('A CLOUD COVERS THE SUN'); beep(330, .3, 'sine', .04, .7); }
     if (ev === 'needshadow') { toast('WAIT FOR YOUR SHADOW TO REACH ITS DIAL'); beep(523, .12, 'sine', .04, .8); }
@@ -881,7 +882,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
+    if (DEATH[ev]) { wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
 }
@@ -1354,6 +1355,8 @@ function render(now) {
   g.globalAlpha = 1;
   if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
   if (speedLines > 0) { speedLines--; const [vx, vy] = st.dashV || [1, 0]; const n = Math.hypot(vx, vy) || 1, ux = vx / n, uy = vy / n; g.fillStyle = `rgba(255,240,220,${speedLines / 20})`; for (let i = 0; i < 9; i++) { const ox = camX + hash(i, Math.floor(now / 50)) * W, oy = hash(i + 7, Math.floor(now / 50)) * H; for (let k = 0; k < 10; k++) g.fillRect(Math.round(ox - ux * k * 2), Math.round(oy - uy * k * 2), 1, 1); } }
+  // circle wipe in on a new stage or a respawn, centred on you
+  if (wipe > 0) { const k = 1 - wipe / 26, r = Math.max(0, k * k * 260); g.fillStyle = '#100c1e'; g.beginPath(); g.rect(camX - 8, -8, W + 16, H + 16); { const cx = Math.round(st.p.x) + 4, cy = Math.round(st.p.y) + 6; g.moveTo(cx + r, cy); g.arc(cx, cy, r, 0, 6.29, true); g.closePath(); } g.fill('evenodd'); wipe--; }
   if (flash > 0) { g.fillStyle = `rgba(255,236,190,${flash * .6})`; g.fillRect(-4, -4, W + 8, H + 8); flash = Math.max(0, flash - .03); }
   g.setTransform(1, 0, 0, 1, 0, 0);
   drawDial();
