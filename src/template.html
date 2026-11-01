@@ -499,7 +499,7 @@ function win() {
   }
   const CHN = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'], mainPos = ord.filter(k => k !== DEMO && !LEVELS[k].bside).indexOf(li), chapEnd = mainPos >= 0 && mainPos % 5 === 4 && CHN[Math.floor(mainPos / 5)];
   const bUnlock = !prev && LEVELS.find(l => l.bside === LEVELS[li].name); if (bUnlock) setTimeout(() => toast('B-SIDE UNLOCKED · ' + bUnlock.name.toUpperCase()), 900);
-  showCard(`${bUnlock ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ B-SIDE UNLOCKED: ${bUnlock.name.toUpperCase()} (in Dials, under B-SIDES)</p>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
+  showCard(`${bUnlock ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ B-SIDE UNLOCKED: ${bUnlock.name.toUpperCase()} </p><button class="btn" id="bsideGo" style="width:100%;margin:0 0 10px">Play ${bUnlock.name} now</button>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
@@ -509,6 +509,7 @@ function win() {
   $('again').onclick = () => { hideCard(); load(li); };
   $('ghostBtn').onclick = () => shareGhost($('ghostBtn'));
   $('photoBtn').onclick = () => takePhoto($('photoBtn'));
+  if ($('bsideGo')) $('bsideGo').onclick = () => { hideCard(); load(LEVELS.findIndex(l => l.bside === LEVELS[li].name)); };
   if (LEVELS[li].custom) { $('again').textContent = 'Edit stage'; $('again').onclick = () => editor(); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
 }
@@ -1325,7 +1326,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 47, t: 'beating a stage now tells you when it unlocks a B-side.' };
+const WHATS_NEW = { v: 48, t: 'when a stage unlocks its B-side, you can jump straight into it from the win card.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
