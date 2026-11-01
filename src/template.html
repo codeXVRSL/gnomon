@@ -365,15 +365,15 @@ if (save.music === false) MUSIC.on = false;
 if (save.sfx === false) muted = true;
 
 function inKey(deg, oct = 0) { const bar = Math.floor(MUSIC.step / 8) % 4, ch = CHORDS[(st && st.grav < 0 && !st.sleeping) ? 3 - bar : bar]; const n = ch[((deg % 4) + 4) % 4] + 12 * (oct + Math.floor(deg / 4)); return NOTE(n + 12); }
-function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
+function beep(f, d = .07, type = 'square', v = .045, slide = 0, at = 0) {
   if (muted) return;
   try {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-    const o = ac.createOscillator(), gn = ac.createGain();
+    const o = ac.createOscillator(), gn = ac.createGain(), t0 = ac.currentTime + at;
     o.type = type; o.frequency.value = f;
-    if (slide) o.frequency.exponentialRampToValueAtTime(f * slide, ac.currentTime + d);
-    gn.gain.setValueAtTime(v, ac.currentTime); gn.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d);
-    o.connect(gn).connect(sfxOut()); o.start(); o.stop(ac.currentTime + d);
+    if (slide) o.frequency.setValueAtTime(f, t0), o.frequency.exponentialRampToValueAtTime(f * slide, t0 + d);
+    gn.gain.setValueAtTime(0, ac.currentTime); gn.gain.setValueAtTime(v, t0); gn.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+    o.connect(gn).connect(sfxOut()); o.start(); o.stop(t0 + d);
   } catch (e) {}
 }
 const cloudWarned = new Set();
@@ -493,7 +493,8 @@ function tick() {
   if (st.dashT > 0) { trail.push({ x: st.p.x, y: st.p.y, sx: st.s.x, sy: st.s.y, life: 14, face: st.face }); }
   for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
-  if ([...pr].some(k => !prevPr.has(k))) beep(660, .08, 'triangle', .05);
+  // each gate pair has its own note (one dot lowest, four dots highest), so you can hear which lock moved
+  { const NOTE = [1, 1.25, 1.5, 2]; let n = 0; for (const k of pr) if (!prevPr.has(k)) beep(660 * NOTE[k.charCodeAt(0) - 65], .08, 'triangle', .05, 1, n++ * .05); for (const k of prevPr) if (!pr.has(k)) beep(330 * NOTE[k.charCodeAt(0) - 65], .07, 'sine', .03, .8); }
   for (const k of pr) if (!prevPr.has(k)) { linkSparks(k); say(['One', 'Two', 'Three', 'Four'][k.charCodeAt(0) - 65] + '-dot gate open.'); }
   for (const k of prevPr) if (!pr.has(k)) say(['One', 'Two', 'Three', 'Four'][k.charCodeAt(0) - 65] + '-dot gate closed.');
   handleEvents(prevP, prevS, prevG);
@@ -1544,9 +1545,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 137, t: 'the shadow world grows hanging roots from its ceiling, a few tipped with a faint violet glow (scenery only; still with Reduce motion).' };
+const WHATS_NEW = { v: 138, t: 'each gate pair has its own note when it opens (one dot lowest, four dots highest) and a soft low note when it closes.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Hear which gate moved: each pair has its own note.',
   'Hanging roots and glow tips in the shadow world.',
   'Stage maker: remix any dial you have beaten.',
   'New B-side: Stone Nights (B-side of Stone Hours).',
@@ -1555,8 +1557,7 @@ const NEWS = [
   'New B-side: Two Locks (B-side of Two Worlds).',
   'Chapter headings show how many dials you have beaten.',
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
-  'Switching tabs or locking your phone hushes the music until you return.',
-  'Stage maker: a second gate and plate pair, for stages with two locks.',];
+  'Switching tabs or locking your phone hushes the music until you return.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
