@@ -1800,6 +1800,11 @@ function render(now) {
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
   // stepping back in time: a brief violet wash with drifting scanlines
   if (rewFx > 0) { rewFx--; const a = rewFx / 16; g.globalAlpha = 1; g.fillStyle = `rgba(120,90,220,${.22 * a})`; g.fillRect(camX, 0, W, H); g.fillStyle = `rgba(230,220,255,${.18 * a})`; for (let yy = (rewFx * 3) % 6; yy < H; yy += 6) g.fillRect(camX, yy, W, 1); }
+  // the dial is off screen (wide stages, closer view): a small gold sun on that edge points the way
+  { if (L._goal === undefined) { L._goal = null; for (let y = 0; y < HALF && !L._goal; y++) for (let x = 0; x < L.grid[y].length; x++) if (L.grid[y][x] === 'G') { L._goal = { x: x * TS + TS / 2, y: y * TS + TS / 2 }; break; } }
+    const gl = L._goal; if (gl && !st.won && (gl.x < camX - 2 || gl.x > camX + W + 2)) { const right = gl.x > camX + W / 2, bx = right ? camX + W - 13 : camX + 5, by = Math.max(4, Math.min(H - 10, gl.y - 3)), pu = .75 + .2 * Math.sin(runFrames / 9);
+      g.globalAlpha = pu; g.fillStyle = 'rgba(16,12,30,.8)'; g.fillRect(bx - 1, by - 1, 8, 8); g.fillStyle = '#ffd34a'; g.fillRect(bx + 1, by + 1, 4, 4); g.fillRect(bx + 2, by, 2, 6); g.fillRect(bx, by + 2, 6, 2);
+      const ax = right ? bx + 8 : bx - 4; for (let r = 0; r < 3; r++) g.fillRect(right ? ax + r : ax + 2 - r, by + r, 1, 6 - 2 * r); g.globalAlpha = 1; } }
   // the gate you just opened is off screen: a blinking tag on that edge shows which way it is, with its dots
   if (gateCue && Math.floor(gateCue.life / 8) % 2) { const right = gateCue.x > camX + W / 2, bx = right ? camX + W - 15 : camX + 3, by = Math.max(2, Math.min(H - 14, gateCue.y - 6));
     g.globalAlpha = 1; g.fillStyle = 'rgba(16,12,30,.85)'; g.fillRect(bx, by, 12, 12); pips(gateCue.k, bx, by, '#c7b4ff');
@@ -2142,9 +2147,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 190, t: 'the stage list preview also shows your best hours and medal for that dial, or says it is not beaten yet' };
+const WHATS_NEW = { v: 192, t: 'on wide stages, when the dial is off screen a small gold sun on the screen edge points the way to it' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '192 · gold sun edge marker points to an off-screen dial',
   '190 · stage preview shows your best and medal',
   '189 · stage list shows a tiny map preview of each dial',
   '188 · cleared the last swipe-to-dash code from the phone controls',
@@ -2153,8 +2159,7 @@ const NEWS = [
   'How to play covers ⟲ BACK and step-by-step hints.',
   'Sunset runs show the daylight you had left.',
   'Assist: Reset to defaults.',
-  'New B-side: Quick Chimes (B-side of Chime Run).',
-  'New B-side: Late Light (B-side of Last Light).',];
+  'New B-side: Quick Chimes (B-side of Chime Run).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
