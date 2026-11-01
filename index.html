@@ -73,6 +73,7 @@ body.calm #game{transition:none}
 .hint{width:100%;font-size:14px;line-height:1.4;color:var(--mute);min-height:2.8em;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .hint.open{display:block;-webkit-line-clamp:unset}
 .hint{position:relative}
+.hint.open.has2::after{content:' ▸ tap again for step by step';color:var(--brass);font-size:12px}
 .hint.trunc:not(.open)::after{content:'▾ more';position:absolute;right:0;bottom:0;padding:0 2px 0 14px;background:linear-gradient(90deg,transparent,var(--ink) 12px);color:var(--brass);font-size:12px;line-height:inherit}
 @media (orientation: portrait) and (min-height: 600px){.hint{-webkit-line-clamp:4}}
 .controls{width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:8px;padding-bottom:4px}
@@ -911,7 +912,7 @@ function load(i) {
   for (let x = 1; x < L.W - 1; x++) if (L.grid[HALF][x] === '#' && L.grid[HALF + 1][x] === '.' && L.grid[HALF + 2][x] === '.' && hash(x, i + 41) < 0.22 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !roots.some(r => Math.abs(r.x - x * TS) < 18)) roots.push({ x: x * TS + 2 + Math.round(hash(x, 17) * 7), len: 3 + Math.round(hash(x, 23) * 6), glow: hash(x, 29) < 0.35, ph: hash(x, 31) * 6.28 });
   save.at = i; save.atName = LEVELS[i].name; if (LEVELS[i].bside) (save.playedB = save.playedB || {})[LEVELS[i].name] = 1; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
-  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
+  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open', 'has2'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
   // a beaten stage greets you with your record, since phones have no hover tooltips on the stage list
   { const b = save.best[i], tm = (save.times || {})[i], md = ['', '✦', '☾', '☀'][(save.medal || {})[i] || 0]; const par = LEVELS[i].par, sunAt = par && ((save.medal || {})[i] || 0) < 3 ? ` · ☀ ≤${(Math.floor(par * 1.15 * 10) / 10).toFixed(1)}H` : ''; toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase() + (b && !LEVELS[i].custom ? ` · BEST ${b.hours.toFixed(1)}H${tm ? ' · ' + tm.toFixed(1) + 'S' : ''}${md ? ' ' + md : ''}${sunAt}` : '')); }
   // only show the powers this stage actually needs, so the sun stays the star
@@ -2089,8 +2090,9 @@ $('rewBtn').onclick = e => { e.currentTarget.blur(); rewind(); };
 // a cut-off hint shows '▾ more' so players know a tap reveals the rest
 function hintTrunc() { requestAnimationFrame(() => { const h = $('hint'); h.classList.toggle('trunc', !h.classList.contains('open') && h.scrollHeight > h.clientHeight + 2); }); }
 window.addEventListener('resize', hintTrunc);
-$('hint').onclick = () => { $('hint').classList.toggle('open'); hintTrunc(); };
-$('helpBtn').onclick = () => { $('hint').classList.toggle('open'); };
+$('hint').onclick = () => $('helpBtn').onclick();
+// ? opens the hint; pressing it again while open adds the step-by-step version; a third press closes it
+$('helpBtn').onclick = () => { const h = $('hint'), lv = LEVELS[li]; if (h.classList.contains('open') && lv.hint2 && !h.textContent.includes(lv.hint2)) { h.textContent = lv.hint + ' ' + lv.hint2; say(lv.hint2); toast('STEP BY STEP'); } else h.classList.toggle('open'); h.classList.toggle('has2', h.classList.contains('open') && !!lv.hint2 && !h.textContent.includes(lv.hint2)); hintTrunc(); };
 $('viewBtn').onclick = toggleView;
 $('rotBtn').onclick = async () => {
   // Fullscreen + landscape lock works in Android Chrome; iPhones can only rotate by hand.
@@ -2112,9 +2114,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 168, t: 'every stage now has a step-by-step hint: fall six times on any dial and the hint below the game spells out one way through.' };
+const WHATS_NEW = { v: 169, t: 'no need to fall six times for the step-by-step hint: open the hint, then tap it again to see one way through.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Tap an open hint again for the step-by-step version.',
   'Every dial now has a step-by-step hint after six falls.',
   'New B-side: Lamplit Night (B-side of Moonlamps).',
   'Assist: larger text in menus and hints.',
@@ -2123,8 +2126,7 @@ const NEWS = [
   'Run splits show + or − against your best.',
   'Rewinds count up, and Stats totals the seconds rewound.',
   'Photos keep your Screen look.',
-  'New B-side: Backward Noon (B-side of Backward Sun).',
-  'Screen looks: Warm film, Handheld green, High contrast, Cool night.',];
+  'New B-side: Backward Noon (B-side of Backward Sun).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
