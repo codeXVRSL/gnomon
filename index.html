@@ -1109,7 +1109,7 @@ function menu() {
   const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
-  showCard(`<h2>Dials</h2>
+  showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">Chapter run in progress (stage ${chRun.i + 1}/5). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
@@ -1120,7 +1120,7 @@ function menu() {
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
-  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; $('editBtn').onclick = () => editor();
+  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; if ($('chQuit')) $('chQuit').onclick = () => { chRun = null; menu(); }; $('editBtn').onclick = () => editor();
   $('muteBtn').onclick = e => { muted = !muted; save.sfx = !muted; persist(); e.target.textContent = muted ? 'Effects off' : 'Effects on'; e.target.setAttribute('aria-pressed', !muted); if (!muted) beep(660, .06, 'triangle', .04); };
   $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; e.target.setAttribute('aria-pressed', MUSIC.on); };
 }
@@ -1611,7 +1611,7 @@ function render(now) {
   $('pinfill').style.background = st.pin < 30 ? '#e9806e' : 'var(--violet)';
   $('shards').textContent = `✦ ${st.shardsGot}/${L.shards.length}`;
   $('falls').textContent = `☠ ${st.deaths}`;
-  { const sec = runFrames / 60; $('timer').textContent = Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); }
+  { const sec = (runFrames + (chRun ? chRun.f : 0)) / 60; $('timer').textContent = (chRun ? `RUN ${chRun.i + 1}/5 · ` : '') + Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); $('timer').style.color = chRun ? 'var(--brass)' : ''; }
   { const db = document.querySelector('.ctl.dash'), spent = st.dashes === 0 || st.dashT > 0; if (db) db.classList.toggle('spent', spent); const pip = $('dashPip'); if (pip) { pip.textContent = spent ? '○' : '●'; pip.style.color = spent ? '#6aa8ff' : '#ffb347'; pip.title = spent ? 'Dash used: land or touch a crystal' : 'Dash ready'; } }
 }
 
@@ -1919,7 +1919,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 65, t: 'chapter runs: play a whole chapter back to back on one clock, from Stats.' };
+const WHATS_NEW = { v: 66, t: 'chapter runs: play a whole chapter on one clock (start from Stats), with a run timer on screen.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
