@@ -25,7 +25,7 @@ const S = {
  'Hawk Hours': [...Array.from({length:5},()=>[['R',s=>hawkNear(s)],['RJ',30]]).flat(),['R',900]],
  'The Hour Hand': [['W',s=>s.s.x<=46],['R',600]],
  'High Noon': [['R',s=>s.p.x>=104],['W',s=>!s.s.gone&&s.t>3.6],['R',600]],
- 'Passing Cloud': [['R',s=>s.p.x>=136],['W',s=>!s.s.gone&&s.t>1.9],['R',600]],
+ 'Passing Cloud': [['R',s=>s.p.x>=134],['W',s=>!s.s.gone&&s.t>2.25],['R',600]],
  'Meet at Dusk': [['R',s=>s.atG],['W',900]],
  'Two Worlds': [['R',1500]],
  'Mirror Steps': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=130],['RJ',30],['R',600]],

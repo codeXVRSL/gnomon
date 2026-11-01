@@ -70,8 +70,8 @@ const LEVELS = [
       '....o...............',
       '....................',
       '....................'] },
-  { name: 'Passing Cloud', startHour: 0, clouds: [[1.5, 1.9]],
-    hint: 'A wall holds your shadow back and noon comes too late. When a cloud crosses the sun your shadow fades, then it is reborn beneath you.',
+  { name: 'Passing Cloud', startHour: 0, clouds: [[2.05, 2.25]],
+    hint: 'A wall holds your shadow back. Wait at the gate with the hourglass: when a cloud crosses the sun your shadow fades, then it is reborn beneath you.',
     map: [
       '....................',
       '....................',
@@ -81,12 +81,12 @@ const LEVELS = [
       '.S..........A.....G.',
       '####################',
       '####################',
-      '........#....aaaa...',
-      '........#...........',
-      '........#...........',
-      '........#...........',
-      '........#...........',
-      '........#...........'] },
+      '..........#..aaaa...',
+      '..........#.........',
+      '..........#.........',
+      '..........#.........',
+      '..........#.........',
+      '..........#.........'] },
   { name: 'Meet at Dusk', startHour: 0.5,
     hint: 'Your shadow has its own finish: a violet hour mark sliding east below. Reach your dial, then wait for shadow and mark to meet.',
     map: [
@@ -139,7 +139,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Plant the Hour', startHour: 3.6,
-    hint: 'Tap STAFF to plant your gnomon staff in front of you. Its thin shadow falls into the world below and swings west as the sun sinks, and shade presses plates. Plant it east of the plate, and by the time you reach the gate its shadow will lie across the plate.',
+    hint: 'Tap STAFF to plant your staff. Its thin shadow swings west as the sun sinks, and shade presses plates. Plant it east of the plate, then walk to the gate.',
     map: [
       '....................',
       '....................',
@@ -173,7 +173,7 @@ const LEVELS = [
       '..........o.........',
       '..xxxx..............'] },
   { name: 'Backward Sun', startHour: 4.5,
-    hint: 'It is afternoon and your shadow trails west, but the plate is east, under the gate. Turn the world over: in an upside-down sky the sun runs backwards. Walk the ceiling to rewind the day until your shadow swings east, then flip home.',
+    hint: 'Your shadow trails west, but the plate is east. Flip the world: upside down, the sun runs backwards. Walk the ceiling until your shadow swings east, then flip home.',
     map: [
       '.........A..........',
       '.........A..........',
@@ -190,7 +190,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Yesterday\'s Cloud', startHour: 4.5, clouds: [[1.0, 1.3]],
-    hint: 'This morning a cloud crossed the sun. Your shadow cannot slide past the wall below, but a shadow reborn after a cloud can appear anywhere. Turn the world over and rewind toward the morning. Stand by the gate and hold the hourglass: upside down it turns the day backward through that cloud. Then flip home.',
+    hint: 'A reborn shadow can appear past any wall. Flip the world and hold the hourglass by the gate: upside down, the day rewinds back through this morning\'s cloud. Then flip home.',
     map: [
       '.........A..........',
       '.........A..........',
@@ -207,7 +207,7 @@ const LEVELS = [
       '..........#.........',
       '..........#.........'] },
   { name: 'Eclipse', startHour: 0.5, eclipse: [2.0, 6.6],
-    hint: 'A wall you cannot climb. Your shadow can slip past it below. At two o\'clock the moon covers the sun, the whole world spins around, and you trade places with your shadow. The eclipse lasts the rest of the day: cross the spikes with the world upside down.',
+    hint: 'Slip your shadow past the wall below. At two o\'clock the moon covers the sun, the world spins, and you trade places with your shadow. Cross the spikes upside down.',
     map: [
       '.......#......................',
       '.......#......................',
@@ -224,7 +224,7 @@ const LEVELS = [
       '..............................',
       '..............................'] },
   { name: 'Crescent', startHour: 0, partial: [1.5, 3.0],
-    hint: 'A partial eclipse: the moon bites the sun into a crescent, and a crescent sun casts two shadows, one on each side of you. Two gates, two plates. Wait for the crescent, then let your shadows stand on both plates at once.',
+    hint: 'A crescent sun casts two shadows, one on each side of you. Two gates, two plates: wait for the crescent, then stand so both shadows press both plates.',
     map: [
       '....................',
       '....................',
@@ -275,7 +275,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Sunstones', startHour: 1.5,
-    hint: 'Your shadow slides west as the sun crosses the sky. Golden sunstones cast a slab of shade below that slides the same way. Stand on the stones so your shadow stands on their shade, then wait and let the day carry it over the gap.',
+    hint: 'Golden sunstones cast shade below that slides with the sun. Stand on the stones so your shadow rides their shade, then wait for the day to carry it over the gap.',
     map: [
       '....................',
       '....................',
@@ -309,7 +309,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Hawk Hours', startHour: 0.5,
-    hint: 'A hawk circles low. It cannot hurt you, but its shadow hunts yours in the world below, and it only flies as the hours pass. Your shadow is stuck behind a wall, so watch the world below and jump when the hawk\'s shadow sweeps in.',
+    hint: 'The hawk can\'t hurt you, but its shadow hunts yours below, and it only flies as hours pass. Your shadow is stuck, so jump it when the hawk\'s shadow sweeps in.',
     map: [
       '....................',
       '....................',
@@ -326,7 +326,7 @@ const LEVELS = [
       '.....o...#..........',
       '.........#..........'] },
   { name: 'Lantern Walk', startHour: 3.8, hourPx: 80,
-    hint: 'Lantern-bearers walk only as the hours pass, even while you wait. A lantern burns shade in the world beneath it, and your shadow trails a step behind you after noon. Jump late, so one leap carries you over the bearer and your shadow over its light.',
+    hint: 'Lantern-bearers walk as the hours pass, and their light burns shade below. After noon your shadow trails behind you: jump late so it clears the light too.',
     map: [
       '....................',
       '....................',
@@ -411,7 +411,7 @@ const LEVELS = [
       '..............#.....',
       '..............#.....'] },
 { name: 'Last Light', startHour: 3, sunRate: 0.04, duskFail: true, hourPx: 600,
-    hint: 'Sunset run. Here the sun does not wait for you: it sinks on its own, and if night falls before you reach your dial you start over. DASH costs half an hour, so use it only where you must. Flags save your spot.',
+    hint: 'Sunset run: the sun sinks on its own, and night means starting over. DASH costs half an hour, so spend it only where you must. Flags save your spot.',
     map: [
       '........................................................',
       '........................................................',
@@ -428,7 +428,7 @@ const LEVELS = [
       '........................................................',
       '....................xxxxxx..............................'] },
   { name: 'Chime Run', startHour: 0.3, sunRate: 0.12, duskFail: true, hourPx: 600,
-    hint: 'Sunset run with a beat. The sun runs fast and chime spikes rise late in every hour, so cross them on the safe part of the clock. To reach the high ledge, climb the chimney with wall jumps: an up-dash there would drive your shadow into the spikes below.',
+    hint: 'The sun runs fast and chime spikes rise late each hour: cross on the safe part of the clock. Wall-jump up the chimney; an up-dash would drive your shadow into spikes.',
     map: [
       '....................................................',
       '...................#................................',
@@ -445,7 +445,7 @@ const LEVELS = [
       '..................xxxxxx............................',
       '..................xxxxxx............................'] },
   { name: 'Night Walk', startHour: 5.6,
-    hint: 'Walls you cannot climb on either side. By day you are stuck, so let the day run out. At night you sleep and your shadow walks alone: hop it over the spikes and the wall below, and stop it under your dial. At dawn you wake where it stands.',
+    hint: 'Walled in by day, so let the day run out. At night your shadow walks alone: hop it over the spikes and wall, stop it under your dial, and wake there at dawn.',
     map: [
       '.....#......#.......',
       '.....#......#.......',
@@ -496,7 +496,7 @@ const LEVELS = [
       '..............................',
       '..............................'] },
   { name: 'Night Flip', startHour: 6.4, hourPx: 120,
-    hint: 'A wall hangs from the floor of the world below and blocks your shadow. At night your shadow can still FLIP: turn its world over, slip under the wall along the deep floor, and flip back. Stop it under your dial; at dawn your shadow wakes far east, on its own violet dial.',
+    hint: 'A wall hangs below and blocks your shadow. At night it can still FLIP: slip under the wall along the deep floor, flip back, and stop under your dial.',
     map: [
       '............#...........',
       '............#...........',
@@ -513,7 +513,7 @@ const LEVELS = [
       '.....o..................',
       '........................'] },
   { name: 'Epilogue', startHour: 0.5, epilogue: true,
-    hint: 'Everything you have learned. The plate is boxed in below, so only your staff\'s thin shadow can reach it: plant the staff so its shadow holds the plate when you reach the gate. Then let the day run out, steer your shadow past the last wall at night, wake there at dawn, and jump for home.',
+    hint: 'Everything at once. Plant the staff so its thin shadow holds the boxed plate at the gate. Then let night fall, steer your shadow past the last wall, and wake there.',
     map: [
       '.............A....#...........',
       '.............A....#...........',

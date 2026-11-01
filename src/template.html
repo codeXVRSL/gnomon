@@ -1298,7 +1298,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 38, t: 'shorter Dawn hints, chapter colours on every stage button and the win card. Before that: a new B-side, In the Shade B (the sun moves by itself, so catch the tower shade in time), and chapter colours on the stage list. Before that: a phone d-pad with up/down and diagonals, swipe the screen to dash, a dash indicator by the timer, a photo button and footsteps.' };
+const WHATS_NEW = { v: 39, t: 'Passing Cloud now needs you to wait at the gate for the cloud (no more walking through by luck), and shorter hints everywhere. Before that: shorter Dawn hints, chapter colours on every stage button and the win card. Before that: a new B-side, In the Shade B (the sun moves by itself, so catch the tower shade in time), and chapter colours on the stage list. Before that: a phone d-pad with up/down and diagonals, swipe the screen to dash, a dash indicator by the timer, a photo button and footsteps.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
