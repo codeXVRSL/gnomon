@@ -1248,6 +1248,8 @@ function render(now) {
     const neckY = flipped ? ppy + 10 : ppy + 9;
     for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? scol : (st.dashes > 0 ? '#ff8a3d' : '#4a7fd8'); g.fillRect(ppx + 8 + sdir * (3 + k * 2) - 1, neckY + Math.round(sway * k / 3 + (Math.abs(p.vx) > 1 ? 0 : k * .6)), 2, 2); }
     drawBody(S['p' + fr + (fr === 'w' ? (st.sliding > 0 ? 0 : 1) : fx) + fy], ppx, ppy + bob, 16, 16, squashP, !flipped);
+    // standing still, the gnome blinks now and then
+    if (fr === '' && Math.abs(squashP - 1) < .05 && (now % 3300) < 110) { g.fillStyle = '#efe3c8'; const ey = Math.round(ppy + bob) + (flipped ? 7 : 8); g.fillRect(ppx + 5, ey, 1, 1); g.fillRect(ppx + 10, ey, 1, 1); g.fillStyle = '#cdbb98'; g.fillRect(ppx + 4, ey + (flipped ? -1 : 1), 2, 1); g.fillRect(ppx + 10, ey + (flipped ? -1 : 1), 2, 1); }
     if (st.sliding) { if (Math.random() < .5) parts.push({ x: p.x + (st.sliding > 0 ? 8 : 0), y: p.y + 4 + Math.random() * 6, vx: -st.sliding * .3, vy: (flipped ? -1 : 1) * -.2, life: 12, col: 'rgba(230,220,200,.7)' }); }
   }
   g.globalAlpha = 1;
@@ -1630,9 +1632,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 174, t: 'the stage list has a Next unbeaten button that takes you straight to the first open dial you have not beaten, main stages first, then B-sides.' };
+const WHATS_NEW = { v: 175, t: 'the little gnome now blinks every few seconds while you stand still.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'The gnome blinks when idle.',
   'Next unbeaten: one tap to the next dial left to beat.',
   'Crickets at night, birdsong at dawn.',
   'New B-side: Upside Midnight (B-side of Upside Dusk).',
@@ -1641,8 +1644,7 @@ const NEWS = [
   'Tap an open hint again for the step-by-step version.',
   'Every dial now has a step-by-step hint after six falls.',
   'New B-side: Lamplit Night (B-side of Moonlamps).',
-  'Assist: larger text in menus and hints.',
-  'Stage maker: add a passing cloud.',];
+  'Assist: larger text in menus and hints.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
