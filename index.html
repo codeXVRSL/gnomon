@@ -1277,12 +1277,12 @@ const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Sta
 const edColor = c => (ED_TILES.find(x => x[0] === c) || ED_TILES[0])[2];
 let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#', edZoom = -1; // -1 = whole map, 0 = left half, 1 = right half
 const edBlank = () => { const m = []; for (let y = 0; y < ROWS; y++) m.push((y === HALF - 1 || y === HALF ? '#' : '.').repeat(20).split('')); m[HALF - 2][1] = 'S'; m[HALF - 2][18] = 'G'; return m; };
-const edEncode = () => { const s = edMap.map(r => r.join('')).join('|'); let o = ''; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i]) j++; o += (j - i > 1 ? (j - i) : '') + s[i]; i = j; } return edOpts.h + '!' + (edOpts.cast ? 1 : 0) + (edOpts.sun ? 1 : 0) + '!' + o; };
-const edDecode = str => { const [h, fl, body] = str.split('!'); let s = ''; for (const m of body.matchAll(/(\d*)(\D)/g)) s += m[2].repeat(m[1] ? +m[1] : 1); const rows = s.split('|'); if (rows.length !== ROWS) throw 0; return { map: rows.map(r => r.split('')), opts: { h: +h, cast: fl[0] === '1', sun: fl[1] === '1' } }; };
+const edEncode = () => { const s = edMap.map(r => r.join('')).join('|'); let o = ''; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i]) j++; o += (j - i > 1 ? (j - i) : '') + s[i]; i = j; } return edOpts.h + '!' + (edOpts.cast ? 1 : 0) + (edOpts.sun ? 1 : 0) + '!' + o + (edOpts.cloud != null ? '!c' + edOpts.cloud : ''); };
+const edDecode = str => { const [h, fl, body, ext] = str.split('!'); let s = ''; for (const m of body.matchAll(/(\d*)(\D)/g)) s += m[2].repeat(m[1] ? +m[1] : 1); const rows = s.split('|'); if (rows.length !== ROWS) throw 0; return { map: rows.map(r => r.split('')), opts: { h: +h, cast: fl[0] === '1', sun: fl[1] === '1', cloud: ext && ext[0] === 'c' && !isNaN(+ext.slice(1)) ? +ext.slice(1) : null } }; };
 // official stages that fit the stage maker (20 wide, only maker tiles, no special skies), once you have beaten them
 const REMIX_BAN = ['clouds', 'eclipse', 'partial', 'sunRate', 'hourPx', 'lampR', 'duskFail', 'epilogue', 'demo', 'custom'];
 function remixable() { const ok = new Set(ED_TILES.map(t => t[0])); return LEVELS.map((_, i) => i).filter(i => { const l = LEVELS[i]; return save.best[i] && l.map.length === ROWS && l.map.every(r => r.length === 20 && [...r].every(c => ok.has(c))) && !REMIX_BAN.some(k => k in l); }); }
-function customDef() { const d = { name: 'Your stage', custom: true, startHour: edOpts.h, cast: edOpts.cast, hint: 'A stage made in the stage maker. Press LEVELS to go back and edit it.', map: edMap.map(r => r.join('')) }; if (edOpts.sun) { d.sunRate = 0.06; d.duskFail = true; d.hourPx = 400; } return d; }
+function customDef() { const d = { name: 'Your stage', custom: true, startHour: edOpts.h, cast: edOpts.cast, hint: 'A stage made in the stage maker. Press LEVELS to go back and edit it.', map: edMap.map(r => r.join('')) }; if (edOpts.sun) { d.sunRate = 0.06; d.duskFail = true; d.hourPx = 400; } if (edOpts.cloud != null) d.clouds = [[edOpts.cloud, edOpts.cloud + 0.3]]; return d; }
 function playCustom() {
   const m = edMap.map(r => r.join('')).join('');
   if ((m.match(/S/g) || []).length !== 1 || (m.match(/G/g) || []).length !== 1) { toast('PUT EXACTLY ONE START AND ONE DIAL'); return; }
@@ -1310,6 +1310,7 @@ function editor(fromLink) {
     ${(() => { const r = remixable(); return r.length ? `<label class="toggle">Remix <select id="edFrom" style="flex:1"><option value="">a dial you have beaten…</option>${r.map(i => `<option value="${i}">${LEVELS[i].name}</option>`).join('')}</select></label>` : ''; })()}
     <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
+    <label class="toggle">Passing cloud <select id="edCloud" style="flex:1"><option value="">none</option>${[1, 1.5, 2, 2.5, 3, 4, 4.5, 5, 5.5, 6].map(h => `<option value="${h}" ${edOpts.cloud === h ? 'selected' : ''}>crosses the sun at ${Math.floor(h)}:${h % 1 ? '30' : '00'}</option>`).join('')}</select></label>
     <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
     <div class="row"><button class="btn primary" id="edPlay">Play</button><button class="btn" id="edTest" title="Play without dying, to explore your stage">Test (safe)</button><button class="btn" id="edShare">Share link</button></div>
     <div class="row"><button class="btn" id="edUndo" ${edUndo.length ? '' : 'disabled'}>Undo${edUndo.length ? ' (' + edUndo.length + ')' : ''}</button><button class="btn" id="edClear">Clear</button><button class="btn" id="edBack">Back</button></div>`);
@@ -1326,6 +1327,7 @@ function editor(fromLink) {
   $('edH').oninput = e => { edOpts.h = +e.target.value; $('edHv').textContent = edOpts.h; save.edit = edEncode(); persist(); };
   $('edH').onchange = () => editor();
   $('edCast').onchange = e => { edOpts.cast = e.target.checked; save.edit = edEncode(); persist(); };
+  $('edCloud').onchange = e => { edOpts.cloud = e.target.value === '' ? null : +e.target.value; save.edit = edEncode(); persist(); };
   $('edSun').onchange = e => { edOpts.sun = e.target.checked; save.edit = edEncode(); persist(); };
   $('edPlay').onclick = () => { edTestInv = false; playCustom(); };
   $('edTest').onclick = () => { edTestInv = true; playCustom(); };
@@ -2107,9 +2109,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 164, t: 'the Assist card is now grouped into Challenge, Controls, and Screen and sound, so its many options are easier to find.' };
+const WHATS_NEW = { v: 165, t: 'the stage maker can add a passing cloud that crosses the sun at the hour you pick, and it travels in share links.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Stage maker: add a passing cloud.',
   'Assist options grouped into three sections.',
   'Run splits show + or − against your best.',
   'Rewinds count up, and Stats totals the seconds rewound.',
@@ -2118,8 +2121,7 @@ const NEWS = [
   'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
   'Locked dials say what opens them when tapped.',
   'Opening a dial shows the hour to beat for its sun medal.',
-  'Full run: all 31 dials on one clock.',
-  'Beaten dials show your record when you open them.',];
+  'Full run: all 31 dials on one clock.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
