@@ -1643,6 +1643,18 @@ function warnBrackets(now, col) {
 }
 // ---------- enemies ----------
 function drawEnemies(now, night) {
+  { // spikes ahead of your shadow: project its path ~12 frames ahead and warn if that path runs into spikes
+    const ss = st.s, vx = (night ? ss.vx : st.p.vx) || 0, vy = ss.vy || 0;
+    if (!ss.gone && (Math.abs(vx) > 0.3 || Math.abs(vy) > 0.5)) {
+      let hit = false;
+      const bad = c => c === 'x' || (c === 'v' && chimeState(st.t) === 2);
+      for (let k = 2; k <= 12 && !hit; k += 2) {
+        const x = ss.x + vx * k, y = ss.y + vy * k;
+        for (let tx = Math.floor((x + 1) / TS); tx <= Math.floor((x + SW - 2) / TS) && !hit; tx++) for (let ty = Math.max(HALF, Math.floor((y + 1) / TS)); ty <= Math.floor((y + ss.h - 2) / TS); ty++) if (bad(tileAt(L, tx, ty))) { hit = true; break; }
+      }
+      if (hit) warnBrackets(now, 'rgba(255,90,110,.85)');
+    }
+  }
   for (const e of st.enemies) {
     const x = Math.round(e.x), y = Math.round(e.y), step = Math.floor(now / 160 + e.x) % 2;
     if (e.kind === 'bird') {
@@ -1873,7 +1885,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 59, t: 'the title screen shows a colour stripe for each chapter postcard you have earned.' };
+const WHATS_NEW = { v: 60, t: 'your shadow also blinks red right before it walks into spikes.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
