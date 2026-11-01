@@ -111,6 +111,7 @@ body.calm #game{transition:none}
 .card h2{font-family:var(--display);font-weight:700;color:var(--brass);margin:0;font-size:20px;letter-spacing:.04em;text-wrap:balance}
 .card p{margin:0;line-height:1.45}
 .card .sub{color:var(--mute);font-size:13px}
+body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}body.bigtext .card h2{font-size:23px}body.bigtext .hint{font-size:16px}body.bigtext .card .btn{font-size:15px}body.bigtext #toast{font-size:15px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
@@ -1249,12 +1250,14 @@ function assist() {
     <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">SCREEN AND SOUND</p>
     <label class="toggle">Screen look <select id="aLook" style="flex:1">${Object.keys(LOOKS).map(k => `<option value="${k}" ${(a.look || 'original') === k ? 'selected' : ''}>${LOOKS[k][0]}</option>`).join('')}</select></label>
     <label class="toggle"><input type="checkbox" id="aCloser" ${a.closer ? 'checked' : ''}> Closer view on tall phones (bigger pixels, the camera follows you)</label>
+    <label class="toggle"><input type="checkbox" id="aBig" ${a.bigText ? 'checked' : ''}> Larger text in menus and hints</label>
     <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
+  $('aBig').onchange = e => { a.bigText = e.target.checked; persist(); document.body.classList.toggle('bigtext', a.bigText); hintTrunc(); };
   $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
   $('aSwipe').onchange = e => { a.noSwipe = !e.target.checked; persist(); };
@@ -1428,7 +1431,7 @@ function drawBody(img, x, y, w, h, sq, anchorBottom) {
 
 function render(now) {
   const t = st.t, night = st.sleeping, flipped = st.grav < 0, v25 = save.view25;
-  document.body.classList.toggle('calm', calm()); document.body.classList.toggle('lefty', !!(save.assist && save.assist.lefty)); applyLook();
+  document.body.classList.toggle('calm', calm()); document.body.classList.toggle('lefty', !!(save.assist && save.assist.lefty)); document.body.classList.toggle('bigtext', !!(save.assist && save.assist.bigText)); applyLook();
   const ecl = !night && !!LEVELS[li].eclipse && eclipsed(t);
   if (ecl !== cv.classList.contains('eclipse')) cv.classList.toggle('eclipse', ecl);
   g.setTransform(1, 0, 0, 1, Math.round(shakeX), Math.round(shakeY));
@@ -2109,9 +2112,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 165, t: 'the stage maker can add a passing cloud that crosses the sun at the hour you pick, and it travels in share links.' };
+const WHATS_NEW = { v: 166, t: 'Assist mode can make the text in menus, cards and hints larger, for easier reading on small screens.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Assist: larger text in menus and hints.',
   'Stage maker: add a passing cloud.',
   'Assist options grouped into three sections.',
   'Run splits show + or − against your best.',
@@ -2120,8 +2124,7 @@ const NEWS = [
   'New B-side: Backward Noon (B-side of Backward Sun).',
   'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
   'Locked dials say what opens them when tapped.',
-  'Opening a dial shows the hour to beat for its sun medal.',
-  'Full run: all 31 dials on one clock.',];
+  'Opening a dial shows the hour to beat for its sun medal.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
