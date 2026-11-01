@@ -939,7 +939,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
+    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; { const tot = Object.values(deathCount).reduce((a, b) => a + b, 0); if (tot === 10 && !save.best[li] && !LEVELS[li].demo && !LEVELS[li].custom && !dailyMode && !chRun) setTimeout(skipOffer, 1100); } save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
       wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
@@ -992,6 +992,15 @@ function postcard(k) {
   </svg>`;
 }
 let chRun = null;
+// after ten falls on a stage you have not beaten yet, offer to open the next one (no medal, and the stage stays unbeaten)
+function skipOffer() {
+  if (!$('overlay').hidden) return;
+  const ord = order().filter(k => k !== DEMO), p = ord.indexOf(li), nx = ord[p + 1];
+  showCard(`<h2>Stuck on this one?</h2><p class="sub">You can open the next dial and come back later. This stage stays unbeaten, with no medal. The hint is below the game.</p>
+    <div class="row"><button class="btn primary" id="skKeep">Keep trying</button>${nx != null && !LEVELS[li].bside ? '<button class="btn" id="skGo">Open the next dial</button>' : ''}</div>`);
+  $('skKeep').onclick = () => { hideCard(); $('hint').classList.add('open'); };
+  if ($('skGo')) $('skGo').onclick = () => { save.skipped = save.skipped || {}; save.skipped[LEVELS[li].name] = 1; persist(); hideCard(); load(nx); };
+}
 function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast('CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
 function win() {
   const hrs = st.hours, prev = save.best[li], par = (dailyMode && realPar) || LEVELS[li].par || hrs;
@@ -1107,7 +1116,7 @@ function moreFade() { const c = $('card'); c.classList.toggle('more', c.scrollHe
 $('card').addEventListener('scroll', moreFade, { passive: true }); window.addEventListener('resize', moreFade);
 function showCard(html) { $('card').innerHTML = html; $('card').scrollTop = 0; requestAnimationFrame(moreFade); $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.lv-btn.cur:not([disabled])') || $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
-const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
+const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i] || (save.skipped && save.skipped[LEVELS[ord[p - 1]].name]); };
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
@@ -1924,7 +1933,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 69, t: 'long menus now fade at the bottom when there is more to scroll.' };
+const WHATS_NEW = { v: 70, t: 'stuck after ten falls? You can now open the next dial and come back later.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
