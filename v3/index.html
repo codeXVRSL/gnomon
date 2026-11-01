@@ -752,7 +752,7 @@ const S = {};
 for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P], ['pf', SPR_FALL, P], ['pd', SPR_DASH, P], ['pw', SPR_SLIDE, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
-let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
+let gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let decor = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
@@ -877,7 +877,7 @@ function load(i) {
   cloudWarned.clear();
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
-  deathCount = {}; deathMarks = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
+  deathCount = {}; deathMarks = []; gateCue = null; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv) || !!(LEVELS[i].custom && edTestInv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
@@ -909,6 +909,7 @@ function linkSparks(k) {
   const [qx, qy] = pl.reduce((b, q) => Math.hypot(q[0] * TS - st.p.x, q[1] * TS - st.p.y) < Math.hypot(b[0] * TS - st.p.x, b[1] * TS - st.p.y) ? q : b);
   const [gx, gy] = ga.reduce((b, q) => Math.hypot(q[0] - qx, q[1] - qy) < Math.hypot(b[0] - qx, b[1] - qy) ? q : b);
   const sx = qx * TS + 5, sy = qy * TS + 5, dx = gx * TS + 5 - sx, dy = gy * TS + 5 - sy, col = qy < HALF ? 'rgba(255,224,140,.95)' : 'rgba(199,180,255,.95)';
+  if (gx * TS + 6 < camX || gx * TS + 6 > camX + W) gateCue = { k, x: gx * TS + 6, y: gy * TS + 6, life: 90 };
   for (let i = 0; i < 10; i++) { const f = (.55 + i * .05) / 14.07; parts.push({ x: sx, y: sy, vx: dx * f, vy: dy * f, life: 36, col, link: 1 }); }
 }
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
@@ -980,6 +981,7 @@ function tick() {
   handleEvents(prevP, prevS, prevG);
   for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vx *= .94; p.vy *= .94; p.life--; }
   parts = parts.filter(p => p.life > 0);
+  if (gateCue && (--gateCue.life <= 0 || (gateCue.x > camX + 8 && gateCue.x < camX + W - 8))) gateCue = null;
   squashP += (1 - squashP) * .25; squashS += (1 - squashS) * .25;
   if (calm()) { shake = 0; flash = 0; speedLines = 0; }
   if (shake > 0) { shake *= .8; if (shake < .2) shake = 0; shakeX = (Math.random() - .5) * shake * 2; shakeY = (Math.random() - .5) * shake * 2; } else shakeX = shakeY = 0;
@@ -1671,6 +1673,10 @@ function render(now) {
   drawEnemies(now, night);
   { const tt = st.t; let c = null; if (night) c = 'rgba(40,40,130,.20)'; else if (tt < 1) c = `rgba(255,140,150,${.10 * (1 - tt)})`; else if (tt > 5.2) c = `rgba(255,120,50,${Math.min(.16, (tt - 5.2) * .09)})`; if (c) { g.fillStyle = c; g.fillRect(camX - 4, -4, W + 8, HZ + 4); } }
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
+  // the gate you just opened is off screen: a blinking tag on that edge shows which way it is, with its dots
+  if (gateCue && Math.floor(gateCue.life / 8) % 2) { const right = gateCue.x > camX + W / 2, bx = right ? camX + W - 15 : camX + 3, by = Math.max(2, Math.min(H - 14, gateCue.y - 6));
+    g.globalAlpha = 1; g.fillStyle = 'rgba(16,12,30,.85)'; g.fillRect(bx, by, 12, 12); pips(gateCue.k, bx, by, '#c7b4ff');
+    g.fillStyle = '#c7b4ff'; const ax = right ? bx + 13 : bx - 2; for (let r = 0; r < 3; r++) g.fillRect(right ? ax + r : ax - r, by + 3 + r, 1, 6 - 2 * r); }
   g.globalAlpha = 1;
   if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
   if (speedLines > 0) { speedLines--; const [vx, vy] = st.dashV || [1, 0]; const n = Math.hypot(vx, vy) || 1, ux = vx / n, uy = vy / n; g.fillStyle = `rgba(255,240,220,${speedLines / 20})`; for (let i = 0; i < 9; i++) { const ox = camX + hash(i, Math.floor(now / 50)) * W, oy = hash(i + 7, Math.floor(now / 50)) * H; for (let k = 0; k < 10; k++) g.fillRect(Math.round(ox - ux * k * 2), Math.round(oy - uy * k * 2), 1, 1); } }
@@ -1997,9 +2003,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 126, t: 'when a plate goes down, a stream of sparks flies to the gate it opens.' };
+const WHATS_NEW = { v: 127, t: 'if the gate a plate opens is off screen, a blinking tag on that edge shows which way it is.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Opened a gate off screen? A blinking tag on the edge points to it.',
   'Pressing a plate sends sparks to the gate it opens.',
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
   'New B-side: Bright Staff (water shadow + staff).',
@@ -2008,8 +2015,7 @@ const NEWS = [
   'Sharing never opens a blocking pop-up; a copy card appears if needed.',
   'Race the solution ghost: the win card says who got there first.',
   'Beat a stage, then watch a solution ghost to compare routes.',
-  'Every stage can now show you a solution ghost after ten falls.',
-  'Stuck on a hard stage? After ten falls a ghost can show you one way through.',];
+  'Every stage can now show you a solution ghost after ten falls.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
