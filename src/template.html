@@ -1643,9 +1643,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 180, t: 'after your tenth dial the win card suggests keeping a save code, with a one-tap Copy save code button, since browsers can clear saved games.' };
+const WHATS_NEW = { v: 181, t: 'a new B-side, Late Light: the Last Light road later in the day, with no flags to catch you, so it is one clean run before dusk.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Late Light (B-side of Last Light).',
   'A one-time reminder to back up your save code.',
   'Nights count down to dawn.',
   'New B-side: Three Nights (B-side of Two Nights).',
@@ -1654,8 +1655,7 @@ const NEWS = [
   'The gnome blinks when idle.',
   'Next unbeaten: one tap to the next dial left to beat.',
   'Crickets at night, birdsong at dawn.',
-  'New B-side: Upside Midnight (B-side of Upside Dusk).',
-  'The HUD shows the dial\'s hour, as used in hints.',];
+  'New B-side: Upside Midnight (B-side of Upside Dusk).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
