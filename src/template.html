@@ -690,7 +690,8 @@ function stats() {
   const count = m => main.filter(i => md[i] === m).length;
   const deaths = main.reduce((a, i) => a + (save.best[i] ? save.best[i].deaths : 0), 0);
   const shards = main.reduce((a, i) => a + (save.shards[i] || 0), 0), totalSh = LEVELS.reduce((a, l) => a + (l.custom ? 0 : (l.map.join('').match(/o/g) || []).length), 0);
-  const rows = main.filter(i => save.best[i]).map(i => `<tr><td>${LEVELS[i].name}</td><td>${['', '✦', '☾', '☀'][md[i] || 0]}</td><td>${save.best[i].hours.toFixed(1)}h</td><td>${tm[i] ? tm[i].toFixed(1) + 's' : '–'}</td></tr>`).join('');
+  const sect = (lbl, f) => { const ids = main.filter(i => save.best[i] && f(LEVELS[i])); return ids.length ? `<tr><td colspan="4" style="padding-top:8px;color:var(--brass);letter-spacing:.1em;font-size:11px">${lbl}</td></tr>` + ids.map(i => `<tr><td>${LEVELS[i].name}</td><td>${['', '✦', '☾', '☀'][md[i] || 0]}</td><td>${save.best[i].hours.toFixed(1)}h</td><td>${tm[i] ? tm[i].toFixed(1) + 's' : '–'}</td></tr>`).join('') : ''; };
+  const rows = sect('MAIN', l => !l.bside && !l.demo) + sect('B-SIDES', l => l.bside) + sect('DEMO', l => l.demo); const _unused = main.filter(i => save.best[i]).map(i => `<tr><td>${LEVELS[i].name}</td><td>${['', '✦', '☾', '☀'][md[i] || 0]}</td><td>${save.best[i].hours.toFixed(1)}h</td><td>${tm[i] ? tm[i].toFixed(1) + 's' : '–'}</td></tr>`).join('');
   showCard(`<h2>Stats</h2>
     <div class="stat"><span><b>${won}/${main.length}</b>DIALS</span><span><b>${count(3)}</b>☀ SUN</span><span><b>${count(2)}</b>☾ MOON</span><span><b>${shards}/${totalSh}</b>SHARDS</span></div>
     ${(() => { const CH = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); let total = 0, full = true; const fmt = s => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
@@ -1343,7 +1344,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 50, t: 'collect all six chapter postcards: see them in Stats.' };
+const WHATS_NEW = { v: 51, t: 'Stats now groups your records into main stages, B-sides and the demo.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
