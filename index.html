@@ -117,6 +117,7 @@ body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}bod
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#lvPrev{display:block;flex-shrink:0;height:84px;width:auto;max-width:100%;object-fit:contain;margin:0 auto 4px;image-rendering:pixelated;border-radius:4px;background:#1b1626}#lvPrevName{text-align:center;font-family:var(--display);font-size:11px;letter-spacing:.08em;color:var(--parch);opacity:.85;margin:0 0 6px;min-height:1.2em}
 .lv-btn{box-shadow:inset 0 -2px 0 var(--cc,transparent)}.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chp{order:1;font-size:10px;letter-spacing:.06em;opacity:.75}.chp.all{opacity:1;color:var(--brass)}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
@@ -1228,6 +1229,12 @@ function lockedWhy(i) { const lv = LEVELS[i]; let nice; if (lv.bside) nice = `Be
 // the first open dial you have not beaten yet: main stages in order, then B-sides
 function nextUnbeaten() { const ord = order().filter(k => k !== DEMO); const m = ord.filter(i => !LEVELS[i].bside).find(i => unlocked(i) && !save.best[i]); if (m != null) return m; const b = BSIDES.find(i => unlocked(i) && !save.best[i]); return b == null ? null : b; }
 function copySaveCode() { let code = ''; try { const b = btoa(unescape(encodeURIComponent(localStorage.getItem('gnomon-v5') || '{}'))); code = 'GN2.' + b + '.' + sumCode(b); } catch (e) {} const done = () => toast('SAVE CODE COPIED · KEEP IT SOMEWHERE SAFE'); try { navigator.clipboard.writeText(code).then(done, () => copyCard('Your save code', code)); } catch (e) { copyCard('Your save code', code); } }
+// stage list preview: a tiny map of the stage under the pointer or focus (light world on top, shadow world below)
+const PREV_COL = { '#': '#8a6a4a', '^': '#e05a4a', 'G': '#ffd34a', 'S': '#ffffff', '~': '#4a8ad8', '=': '#a08a6a' };
+function stagePreview(i) { const c = $('lvPrev'), lv = LEVELS[i]; if (!c || !lv || !lv.map) return; const m = lv.map, w = m[0].length, h = m.length, half = h / 2, T = 3;
+  c.width = w * T; c.height = h * T; const g = c.getContext('2d'); g.fillStyle = '#3a5a7a'; g.fillRect(0, 0, c.width, half * T); g.fillStyle = '#1b1626'; g.fillRect(0, half * T, c.width, c.height - half * T);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === '.') continue; let col = PREV_COL[ch] || '#c9a24a'; if (ch === '#' && y >= half) col = '#3d3254'; g.fillStyle = col; g.fillRect(x * T, y * T, T, T); }
+  const n = $('lvPrevName'); if (n) n.textContent = (lv.bside ? 'B-side · ' : '') + lv.name; }
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
@@ -1237,7 +1244,7 @@ function menu() {
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
     ${(() => { const nx = nextUnbeaten(); return nx != null ? `<button class="btn" id="nextUnb" style="margin-top:-4px">▶ Next unbeaten: ${LEVELS[nx].bside ? bLabel(nx, ord) + ' · ' : ''}${LEVELS[nx].name}</button>` : ''; })()}
-    <div class="grid">${b}</div>
+    <canvas id="lvPrev" width="120" height="42" aria-hidden="true"></canvas><p id="lvPrevName" aria-hidden="true"></p><div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
     <div class="row"><button class="btn" id="statsBtn">Stats</button><button class="btn" id="assistBtn">Assist mode</button><button class="btn" id="editBtn">Make a stage</button></div>
@@ -1245,6 +1252,7 @@ function menu() {
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   if ($('nextUnb')) $('nextUnb').onclick = () => { dailyMode = false; hideCard(); load(nextUnbeaten()); };
+  document.querySelectorAll('.lv-btn').forEach(x => { const f = () => { if (!x.dataset.locked) stagePreview(+x.dataset.i); }; x.addEventListener('pointerenter', f); x.addEventListener('focus', f); }); stagePreview(li);
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { if (x.dataset.locked) { lockedWhy(+x.dataset.i); return; } dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; if ($('chQuit')) $('chQuit').onclick = () => { chRun = null; menu(); }; $('editBtn').onclick = () => editor();
@@ -2134,9 +2142,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 188, t: 'the old swipe-to-dash code is gone from phones, so a quick swipe on the game screen no longer does anything hidden' };
+const WHATS_NEW = { v: 189, t: 'the stage list now shows a little map of each dial when you point at it or move to it, light world on top and shadow world below' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '189 · stage list shows a tiny map preview of each dial',
   '188 · cleared the last swipe-to-dash code from the phone controls',
   'Up on the d-pad now jumps by default.',
   'The dash was removed; seven stages rebuilt for jumping.',
@@ -2145,8 +2154,7 @@ const NEWS = [
   'Assist: Reset to defaults.',
   'New B-side: Quick Chimes (B-side of Chime Run).',
   'New B-side: Late Light (B-side of Last Light).',
-  'A one-time reminder to back up your save code.',
-  'Nights count down to dawn.',];
+  'A one-time reminder to back up your save code.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
