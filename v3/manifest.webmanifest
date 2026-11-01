@@ -1,0 +1,24 @@
+{
+ "name": "Gnomon",
+ "short_name": "Gnomon",
+ "description": "Your shadow is the hand of a sundial.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "fullscreen",
+ "orientation": "any",
+ "background_color": "#191529",
+ "theme_color": "#191529",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
