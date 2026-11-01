@@ -98,7 +98,7 @@ body.calm #game{transition:none}
 .lv-btn{box-shadow:inset 0 -2px 0 var(--cc,transparent)}.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chp{order:1;font-size:10px;letter-spacing:.06em;opacity:.75}.chp.all{opacity:1;color:var(--brass)}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
-.lv-btn[disabled]{opacity:.35;cursor:default}
+.lv-btn[disabled],.lv-btn[data-locked]{opacity:.35;cursor:default}
 .lv-btn.cur{box-shadow:0 0 0 2px var(--brass)}
 .lv-btn.demo{background:#5a2e4a;color:var(--brass)}
 .ed-grid{display:grid;gap:1px;background:#0c0719;padding:1px;touch-action:none;user-select:none;width:100%;box-sizing:border-box}
@@ -699,11 +699,15 @@ const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (L
 const chProg = ids => { const d = ids.filter(j => save.best[j]).length; return d ? `<span class="chp${d === ids.length ? ' all' : ''}">${d === ids.length ? '✓ ' : ''}${d}/${ids.length}</span>` : ''; };
 // B-sides are labelled after their A-side's number (B7 = the B-side of dial 7), with a prime for a second one
 function bLabel(i, ord) { const mains = ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside), a = LEVELS.findIndex(l => l.name === LEVELS[i].bside), n = mains.indexOf(a) + 1; const sib = BSIDES.filter(j => LEVELS[j].bside === LEVELS[i].bside); return 'B' + (n || '') + (sib.indexOf(i) > 0 ? '′'.repeat(sib.indexOf(i)) : ''); }
+// tapping a locked dial says what opens it (phones have no hover tooltips)
+function lockedWhy(i) { const lv = LEVELS[i]; let nice; if (lv.bside) nice = `Beat ${lv.bside} to open this B-side.`; else { const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i), prev = LEVELS[ord[p - 1]]; nice = prev ? `Beat ${prev.name} first.` : 'Locked.'; }
+  let el = $('lockMsg'); if (!el && $('card').querySelector('h2')) { el = document.createElement('p'); el.id = 'lockMsg'; el.className = 'sub'; el.setAttribute('role', 'status'); el.style.cssText = 'color:var(--brass);margin:-4px 0 8px;position:sticky;top:0;background:var(--ink-2);z-index:2;padding:4px 0'; $('card').querySelector('h2').after(el); }
+  if (el) el.textContent = '🔒 ' + nice; else toast(nice.toUpperCase()); say(nice); beep(220, .05, 'triangle', .03); }
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
   const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}${chProg(ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside).slice(k, k + 5))}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = `<div class="chap">B-SIDES${chProg(ord.filter(j => LEVELS[j].bside))}</div>`; } if (lv.demo) head = '<div class="chap">DEMO</div>';
-    return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : 'B-SIDE') : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
+    return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'data-locked="1" aria-disabled="true"'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : 'B-SIDE') : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
@@ -714,7 +718,7 @@ function menu() {
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn" aria-pressed="${!muted}">${muted ? 'Effects off' : 'Effects on'}</button><button class="btn" id="musicBtn" aria-pressed="${MUSIC.on}">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
-  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
+  document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { if (x.dataset.locked) { lockedWhy(+x.dataset.i); return; } dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; if ($('chQuit')) $('chQuit').onclick = () => { chRun = null; menu(); }; $('editBtn').onclick = () => editor();
   $('muteBtn').onclick = e => { muted = !muted; save.sfx = !muted; persist(); e.target.textContent = muted ? 'Effects off' : 'Effects on'; e.target.setAttribute('aria-pressed', !muted); if (!muted) beep(660, .06, 'triangle', .04); };
@@ -1593,9 +1597,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 157, t: 'a beaten dial without its sun medal now tells you the hour to beat for it when you open it.' };
+const WHATS_NEW = { v: 158, t: 'tapping a locked dial on the stage list now says what opens it, like Beat High Noon first.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Locked dials say what opens them when tapped.',
   'Opening a dial shows the hour to beat for its sun medal.',
   'Full run: all 31 dials on one clock.',
   'Beaten dials show your record when you open them.',
@@ -1604,8 +1609,7 @@ const NEWS = [
   '⟲ BACK steps time back one second.',
   'B-sides have their own minor-key music.',
   'B-side wins show your progress toward the Far Side.',
-  'Far Side postcard shows on the title screen and journey summary.',
-  'Beat every B-side for the Far Side postcard.',];
+  'Far Side postcard shows on the title screen and journey summary.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
