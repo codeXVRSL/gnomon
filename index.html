@@ -1460,6 +1460,7 @@ function render(now) {
     if (st.got[i]) return;
     const bob = Math.round(Math.sin(now / 300 + i) * 1.5), cx = tx * TS + 6, cy = ty * TS + 6 + bob;
     g.fillStyle = 'rgba(255,240,170,.25)'; g.fillRect(cx - 4, cy - 4, 8, 8);
+    if (save.best[li] && runFrames < 150) { const k = runFrames / 150, r = 6 + (runFrames % 50) / 50 * 14; g.strokeStyle = `rgba(255,236,150,${(1 - k) * (1 - (runFrames % 50) / 50)})`; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r, 0, 6.29); g.stroke(); } // a missed shard calls to you as you start a replay
     g.fillStyle = '#fff0b0'; g.fillRect(cx - 1, cy - 3, 2, 6); g.fillRect(cx - 3, cy - 1, 6, 2);
     g.fillStyle = '#f6c85f'; g.fillRect(cx - 1, cy - 1, 2, 2);
   });
@@ -1872,7 +1873,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 55, t: 'controllers can now drive the menus: d-pad to move, A to pick, B to back out.' };
+const WHATS_NEW = { v: 56, t: 'when you replay a stage, any sun shard you missed pings so you can spot it.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
