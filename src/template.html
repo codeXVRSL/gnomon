@@ -97,6 +97,7 @@ body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}bod
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.week{display:flex;justify-content:center;gap:6px;margin:-4px 0 8px}.week i{font-style:normal;width:26px;text-align:center;font-family:var(--display);font-size:9px;line-height:1.3;color:var(--parch);opacity:.45}.week i b{display:block;font-size:13px;font-weight:400;color:var(--parch)}.week i.on{opacity:1}.week i.on b{color:#ffd34a}.week i.today{opacity:1;box-shadow:inset 0 -2px 0 var(--brass)}
 #lvPrev{display:block;flex-shrink:0;height:84px;width:auto;max-width:100%;object-fit:contain;margin:0 auto 4px;image-rendering:pixelated;border-radius:4px;background:#1b1626}#lvPrevName{text-align:center;font-family:var(--display);font-size:11px;letter-spacing:.08em;color:var(--parch);opacity:.85;margin:0 0 6px;min-height:1.2em}
 .lv-btn{box-shadow:inset 0 -2px 0 var(--cc,transparent)}.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chp{order:1;font-size:10px;letter-spacing:.06em;opacity:.75}.chp.all{opacity:1;color:var(--brass)}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
@@ -729,6 +730,11 @@ function lockedWhy(i) { const lv = LEVELS[i]; let nice; if (lv.bside) nice = `Be
 // the first open dial you have not beaten yet: main stages in order, then B-sides
 function nextUnbeaten() { const ord = order().filter(k => k !== DEMO); const m = ord.filter(i => !LEVELS[i].bside).find(i => unlocked(i) && !save.best[i]); if (m != null) return m; const b = BSIDES.find(i => unlocked(i) && !save.best[i]); return b == null ? null : b; }
 function copySaveCode() { let code = ''; try { const b = btoa(unescape(encodeURIComponent(localStorage.getItem('gnomon-v5') || '{}'))); code = 'GN2.' + b + '.' + sumCode(b); } catch (e) {} const done = () => toast('SAVE CODE COPIED · KEEP IT SOMEWHERE SAFE'); try { navigator.clipboard.writeText(code).then(done, () => copyCard('Your save code', code)); } catch (e) { copyCard('Your save code', code); } }
+// the last seven daily sundials: a sun for each one solved, today underlined
+function weekStrip(dd) { const DN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'], now = new Date(); let out = '';
+  for (let k = 6; k >= 0; k--) { const n = dd.n - k; if (n < 1) continue; const r = save.daily && save.daily['d' + n], dow = DN[(now.getDay() - k + 70) % 7];
+    out += `<i class="${r ? 'on' : ''} ${k === 0 ? 'today' : ''}" title="Daily #${n}${r ? ' solved' : ''}"><b>${r ? '☀' : '·'}</b>${dow}</i>`; }
+  return `<div class="week" aria-label="Daily sundials this week: ${[...Array(7)].filter((_, k) => dd.n - k >= 1 && save.daily && save.daily['d' + (dd.n - k)]).length} solved">${out}</div>`; }
 // stage list preview: a tiny map of the stage under the pointer or focus (light world on top, shadow world below)
 const PREV_COL = { '#': '#8a6a4a', '^': '#e05a4a', 'G': '#ffd34a', 'S': '#ffffff', '~': '#4a8ad8', '=': '#a08a6a' };
 function stagePreview(i) { const c = $('lvPrev'), lv = LEVELS[i]; if (!c || !lv || !lv.map) return; const m = lv.map, w = m[0].length, h = m.length, half = h / 2, T = 3;
@@ -742,7 +748,7 @@ function menu() {
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'data-locked="1" aria-disabled="true"'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? btnTag(i) : 'B-SIDE') : save.best[i] ? btnTag(i) : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
-    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
+    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>${weekStrip(dd)}
     ${(() => { const nx = nextUnbeaten(); return nx != null ? `<button class="btn" id="nextUnb" style="margin-top:-4px">▶ Next unbeaten: ${LEVELS[nx].bside ? bLabel(nx, ord) + ' · ' : ''}${LEVELS[nx].name}</button>` : ''; })()}
     <canvas id="lvPrev" width="120" height="42" aria-hidden="true"></canvas><p id="lvPrevName" aria-hidden="true"></p><div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
@@ -1647,9 +1653,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 192, t: 'on wide stages, when the dial is off screen a small gold sun on the screen edge points the way to it' };
+const WHATS_NEW = { v: 193, t: 'the stage list shows this week\'s daily sundials under the daily button: a sun for each day you solved it, today underlined' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '193 · daily week strip under the daily button',
   '192 · gold sun edge marker points to an off-screen dial',
   '190 · stage preview shows your best and medal',
   '189 · stage list shows a tiny map preview of each dial',
@@ -1658,8 +1665,7 @@ const NEWS = [
   'The dash was removed; seven stages rebuilt for jumping.',
   'How to play covers ⟲ BACK and step-by-step hints.',
   'Sunset runs show the daylight you had left.',
-  'Assist: Reset to defaults.',
-  'New B-side: Quick Chimes (B-side of Chime Run).',];
+  'Assist: Reset to defaults.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
