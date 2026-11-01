@@ -704,7 +704,7 @@ function assist() {
 // ---------- stage maker: paint a 20 x 14 map, set the hour, play it, share it as a link ----------
 const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Start', '#f6c85f'], ['G', 'Dial', '#ffd25e'], ['g', 'Shadow dial', '#9d7cff'], ['x', 'Spikes', '#e9806e'], ['v', 'Chime', '#f0a04e'],
   ['A', 'Gate', '#c98b2b'], ['a', 'Plate', '#c7b4ff'], ['~', 'Water', '#4a90c8'], ['=', 'Sunstone', '#ffd88a'], ['c', 'Crumble', '#a8946c'], ['^', 'Spring', '#7fe0a0'], ['r', 'Crystal', '#9fe8ff'], ['f', 'Flag', '#e8e0ff'],
-  ['o', 'Shard', '#fff0b0'], ['y', 'Hawk', '#5a4552'], ['*', 'Lamp', '#ffd36b'], ['m', 'Morning', '#e8e0c8'], ['e', 'Evening', '#3a3046']];
+  ['o', 'Shard', '#fff0b0'], ['y', 'Hawk', '#5a4552'], ['*', 'Lamp', '#ffd36b'], ['m', 'Morning', '#e8e0c8'], ['e', 'Evening', '#3a3046'], ['B', 'Gate ··', '#a8743a'], ['b', 'Plate ··', '#a890f0']];
 const edColor = c => (ED_TILES.find(x => x[0] === c) || ED_TILES[0])[2];
 let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#', edZoom = -1; // -1 = whole map, 0 = left half, 1 = right half
 const edBlank = () => { const m = []; for (let y = 0; y < ROWS; y++) m.push((y === HALF - 1 || y === HALF ? '#' : '.').repeat(20).split('')); m[HALF - 2][1] = 'S'; m[HALF - 2][18] = 'G'; return m; };
@@ -1506,9 +1506,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 127, t: 'if the gate a plate opens is off screen, a blinking tag on that edge shows which way it is.' };
+const WHATS_NEW = { v: 128, t: 'the stage maker has a second gate and plate pair (two dots), so your stages can have two locks.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Stage maker: a second gate and plate pair, for stages with two locks.',
   'Opened a gate off screen? A blinking tag on the edge points to it.',
   'Pressing a plate sends sparks to the gate it opens.',
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
@@ -1517,8 +1518,7 @@ const NEWS = [
   'How to play lists every keyboard shortcut.',
   'Sharing never opens a blocking pop-up; a copy card appears if needed.',
   'Race the solution ghost: the win card says who got there first.',
-  'Beat a stage, then watch a solution ghost to compare routes.',
-  'Every stage can now show you a solution ghost after ten falls.',];
+  'Beat a stage, then watch a solution ghost to compare routes.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
