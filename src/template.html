@@ -1639,9 +1639,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 177, t: 'the grass of the light world now has small bushes, a few with a flower, and scattered pebbles (scenery only).' };
+const WHATS_NEW = { v: 178, t: 'a new B-side, Three Nights: three walls and three nights, with a last wall below that your sleeping shadow has to hop.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Three Nights (B-side of Two Nights).',
   'Bushes and pebbles on the grass.',
   'All 31 sun medals earns a gold sun on the title.',
   'The gnome blinks when idle.',
@@ -1650,8 +1651,7 @@ const NEWS = [
   'New B-side: Upside Midnight (B-side of Upside Dusk).',
   'The HUD shows the dial\'s hour, as used in hints.',
   'Stage list shows each dial\'s medal.',
-  'Tap an open hint again for the step-by-step version.',
-  'Every dial now has a step-by-step hint after six falls.',];
+  'Tap an open hint again for the step-by-step version.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
