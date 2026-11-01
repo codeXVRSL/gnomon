@@ -903,6 +903,12 @@ function load(i) {
 
   resize();
 }
+// a short buzz: phone vibration and, when a controller is plugged in, its rumble motors (Assist can turn both off)
+function buzz(pat, mag) {
+  if (save.assist && save.assist.noBuzz) return;
+  try { navigator.vibrate && navigator.vibrate(pat); } catch (e) {}
+  try { const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(p => p && p.connected && p.vibrationActuator); if (gp) { const ms = Array.isArray(pat) ? pat.reduce((a, b) => a + b, 0) : pat; const r = gp.vibrationActuator.playEffect('dual-rumble', { duration: Math.max(40, ms * 2), strongMagnitude: mag, weakMagnitude: Math.min(1, mag + .2) }); r && r.catch && r.catch(() => {}); } } catch (e) {}
+}
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
 // a plate goes down: a stream of sparks flies from it to the gate it opens, so the link is visible, not just audible
 function linkSparks(k) {
@@ -926,7 +932,7 @@ const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crus
 function handleEvents(prevP, prevS, prevG) {
   for (const ev of st.events) {
     if (ev === 'jump') { beep(inKey(2, 1), .06, 'square', .03, 1.6); squashP = .72; squashS = .72; }
-    if (ev === 'land') { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} squashP = 1.35; shake = Math.max(shake, 1.5); dust(st.p.x, st.p.y + (st.grav > 0 ? PH : 0), st.grav); beep(inKey(0, -1), .05, 'triangle', .035); }
+    if (ev === 'land') { buzz(8, .25); squashP = 1.35; shake = Math.max(shake, 1.5); dust(st.p.x, st.p.y + (st.grav > 0 ? PH : 0), st.grav); beep(inKey(0, -1), .05, 'triangle', .035); }
     if (ev === 'swim') { beep(420, .05, 'sine', .03, 1.3); for (let i = 0; i < 3; i++) parts.push({ x: st.p.x + Math.random() * 8, y: st.p.y + 4, vx: (Math.random() - .5) * .4, vy: -.4 - Math.random() * .4, life: 20, col: 'rgba(220,240,255,.8)' }); }
     if (ev === 'spring') { beep(300, .18, 'square', .05, 2.5); squashP = .6; squashS = .6; shake = 2; }
     if (ev === 'flip') { toast(st.grav < 0 ? 'WORLD TURNED · THE SUN RUNS BACKWARD' : 'WORLD RESTORED · TIME FLOWS ON'); beep(220, .25, 'sawtooth', .05, st.grav < 0 ? 2.2 : .45); shake = 4; burst(st.p.x + 4, st.p.y + 6, '#9fd0e8', 10, 1); }
@@ -936,13 +942,13 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'hour') hourChime();
     if (ev === 'rewind') beep(990, .06, 'sine', .025, .7);
     if (ev === 'shard') { beep(988, .12, 'sine', .05, 1.5); setTimeout(() => beep(1319, .18, 'sine', .05), 70); burst(st.p.x + 4, st.p.y + 6, '#fff0b0', 8, 1.2); }
-    if (ev === 'eclipse') { toast('ECLIPSE · YOU SWAP WITH YOUR SHADOW'); beep(196, .5, 'triangle', .06, .5); beep(147, .8, 'sine', .05, .6); shake = 5; flash = .5; burst(st.p.x + 4, st.p.y + 6, '#fff6d0', 16, 1.6); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff', 16, 1.6); if (navigator.vibrate) try { navigator.vibrate([30, 60, 30]); } catch (e) {} }
+    if (ev === 'eclipse') { toast('ECLIPSE · YOU SWAP WITH YOUR SHADOW'); beep(196, .5, 'triangle', .06, .5); beep(147, .8, 'sine', .05, .6); shake = 5; flash = .5; burst(st.p.x + 4, st.p.y + 6, '#fff6d0', 16, 1.6); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff', 16, 1.6); buzz([30, 60, 30], .5); }
     if (ev === 'staff') { toast('STAFF PLANTED · ITS SHADOW KEEPS THE HOUR'); beep(392, .12, 'triangle', .05, 1.2); beep(587, .2, 'sine', .04, 1); dust(st.staff.x, st.staff.base, 1); }
     if (ev === 'staffup') { toast('STAFF PULLED BACK'); beep(587, .1, 'triangle', .04, .7); }
     if (ev === 'noplant') { toast('STAND ON THE GROUND TO PLANT'); beep(90, .06, 'square', .03); }
     if (ev === 'reflect') { toast('THE WATER CASTS A SECOND SHADOW'); beep(880, .25, 'sine', .03, 1.2); }
     if (ev === 'crescent') { toast('CRESCENT SUN · TWO SHADOWS'); beep(330, .4, 'sine', .04, 1.5); beep(495, .4, 'sine', .03, 1.5); }
-    if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(inKey(0), .14, 'sawtooth', .05, 2.4); beep(inKey(3, 1), .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+    if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(inKey(0), .14, 'sawtooth', .05, 2.4); beep(inKey(3, 1), .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); buzz(12, .35); }
     if (ev === 'superwall' || ev === 'dashjump') { beep(ev === 'superwall' ? 700 : 420, .14, 'square', .04, 1.8); speedLines = 10; burst(st.p.x + 4, st.p.y + 6, '#ffd25e', 10, 1.6); }
     if (ev === 'walljump') { beep(inKey(1, 1), .06, 'square', .035, 1.4); dust(st.p.x + (st.face > 0 ? 0 : 8), st.p.y + 6, 1); squashP = .75; }
     if (ev === 'refill') { beep(inKey(3, 2), .12, 'triangle', .05, 1.3); burst(st.p.x + 4, st.p.y + 6, '#9fe8ff', 12, 1.2); }
@@ -954,7 +960,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
     if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; { const tot = Object.values(deathCount).reduce((a, b) => a + b, 0); if (tot === 6 && LEVELS[li].hint2) setTimeout(() => { $('hint').textContent = LEVELS[li].hint + ' ' + LEVELS[li].hint2; $('hint').classList.add('open'); toast('A DEEPER HINT IS OPEN BELOW THE GAME'); }, 900); if (tot === 10 && !save.best[li] && !LEVELS[li].demo && !LEVELS[li].custom && !dailyMode && !chRun) setTimeout(skipOffer, 1100); } save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
-      wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
+      wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; buzz(40, .9); const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
 }
@@ -1187,6 +1193,7 @@ function assist() {
     <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
+    <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
@@ -1199,6 +1206,7 @@ function assist() {
   $('aVs').onchange = () => beep(660, .08, 'triangle', .05);
   $('aVm').oninput = e => { VOL().mus = +e.target.value; if (musBus) musBus.gain.value = VOL().mus; persist(); };
   $('aWarn').onchange = e => { a.noWarn = !e.target.checked; persist(); };
+  $('aBuzz').onchange = e => { a.noBuzz = !e.target.checked; persist(); if (!a.noBuzz) buzz(30, .6); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu; $('aKeys').onclick = keysCard;
@@ -1979,7 +1987,7 @@ document.querySelectorAll('.ctl').forEach(b => {
 // ---- d-pad: slide a thumb anywhere on it; the angle from the centre gives 8 directions (left/right move, up/down aim) ----
 { const pad = $('dpad'), knob = pad.querySelector('b'); let pid = null;
   let lastDir = '';
-  const set = (l, r, u, d) => { const dir = '' + (+!!l) + (+!!r) + (+!!u) + (+!!d); if (dir !== lastDir && dir !== '0000') { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } lastDir = dir; if (save.assist && save.assist.upJump) { if (u && !keys.u) jumpEdge = true; keys.j = u ? 1 : 0; } keys.l = l ? 1 : 0; keys.r = r ? 1 : 0; keys.u = u ? 1 : 0; keys.dn = d ? 1 : 0;
+  const set = (l, r, u, d) => { const dir = '' + (+!!l) + (+!!r) + (+!!u) + (+!!d); if (dir !== lastDir && dir !== '0000') { if (!(save.assist && save.assist.noBuzz)) try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } lastDir = dir; if (save.assist && save.assist.upJump) { if (u && !keys.u) jumpEdge = true; keys.j = u ? 1 : 0; } keys.l = l ? 1 : 0; keys.r = r ? 1 : 0; keys.u = u ? 1 : 0; keys.dn = d ? 1 : 0;
     pad.querySelector('.l').classList.toggle('on', !!l); pad.querySelector('.r').classList.toggle('on', !!r); pad.querySelector('.u').classList.toggle('on', !!u); pad.querySelector('.d').classList.toggle('on', !!d); };
   const read = e => { const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), m = Math.hypot(dx, dy);
     if (m < r.width * 0.12) { set(0, 0, 0, 0); knob.style.transform = ''; return; }
@@ -2019,9 +2027,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 132, t: 'a new B-side, Two Locks: the wall holds your shadow on the first plate, but only patience (and the afternoon sun) gets it onto the second.' };
+const WHATS_NEW = { v: 133, t: 'controllers now rumble when you fall, win or land a big moment, like phones already vibrate. Turn both off in Assist mode.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
   'New B-side: Two Locks (B-side of Two Worlds).',
   'Chapter headings show how many dials you have beaten.',
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
@@ -2030,8 +2039,7 @@ const NEWS = [
   'Opened a gate off screen? A blinking tag on the edge points to it.',
   'Pressing a plate sends sparks to the gate it opens.',
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
-  'New B-side: Bright Staff (water shadow + staff).',
-  'New B-side: Plant at Dusk (staff + hour mark).',];
+  'New B-side: Bright Staff (water shadow + staff).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
