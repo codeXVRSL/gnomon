@@ -1620,7 +1620,37 @@ function start(data) {
   if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
   requestAnimationFrame(loop);
-  if (!save.seen && !(data && data.st)) intro();
+  if (!(data && data.st)) title();
+}
+function title() {
+  const cont = save.at && save.best && Object.keys(save.best).length;
+  showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
+    <canvas id="tDial" width="200" height="96" style="width:100%;image-rendering:pixelated;border-radius:4px;background:#1c1636"></canvas>
+    <p>Your shadow is the hand of a sundial. It lives upside-down below you, copies every move, and swings with a sun that only moves when you do.</p>
+    <div class="row"><button class="btn primary" id="tPlay">${cont ? 'Continue' : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
+    <div class="row"><button class="btn" id="tMake">Make a stage</button><button class="btn" id="tDemo">Hard demo</button><button class="btn" id="tHow">How to play</button></div>`);
+  const c = $('tDial'), x = c.getContext('2d'); let on = true;
+  const draw = () => { if (!on || $('overlay').hidden) return; const now = new Date(), hr = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+    x.fillStyle = '#1c1636'; x.fillRect(0, 0, 200, 96);
+    const day = hr >= 6 && hr < 18, k = day ? (hr - 6) / 12 : 0.5, cx = 100, cy = 70;
+    // sun or moon arcing across the sky at your real time of day
+    const sx = 20 + k * 160, sy = 52 - Math.sin(k * Math.PI) * 40; x.fillStyle = day ? '#ffd25e' : '#e8e0ff'; x.beginPath(); x.arc(sx, sy, 5, 0, 6.29); x.fill();
+    // dial face
+    x.fillStyle = '#3a3046'; x.beginPath(); x.ellipse(cx, cy, 80, 18, 0, 0, 6.29); x.fill(); x.fillStyle = '#5a4b3a'; x.beginPath(); x.ellipse(cx, cy - 2, 78, 16, 0, 0, 6.29); x.fill();
+    x.fillStyle = '#c9a86a'; for (let h = 0; h <= 12; h++) { const a = Math.PI + h / 12 * Math.PI; x.fillRect(Math.round(cx + Math.cos(a) * 70), Math.round(cy - 2 + Math.sin(a) * 13), 2, 2); }
+    // the shadow of the gnomon: points away from the sun
+    if (day) { const ex = cx + (0.5 - k) * 2 * 66, ey = cy - 2 + (1 - Math.abs(0.5 - k) * 2) * 12; x.strokeStyle = 'rgba(12,7,25,.85)'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx, cy - 2); x.lineTo(ex, ey); x.stroke(); }
+    // the gnomon itself
+    x.fillStyle = '#f6c85f'; x.beginPath(); x.moveTo(cx - 4, cy - 2); x.lineTo(cx, cy - 34); x.lineTo(cx + 4, cy - 2); x.fill();
+    x.fillStyle = '#e8e0ff'; x.font = '8px monospace'; x.fillText(now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), 4, 10);
+    requestAnimationFrame(draw); };
+  draw();
+  const go = (demoFirst) => { on = false; if (demoFirst != null) save.demoFirst = demoFirst; save.seen = true; persist(); hideCard(); };
+  $('tPlay').onclick = () => { go(); if (!cont) load(order().filter(k => k !== DEMO)[0]); };
+  $('tDaily').onclick = () => { go(); startDaily(); };
+  $('tMake').onclick = () => { on = false; save.seen = true; persist(); editor(); };
+  $('tDemo').onclick = () => { go(); load(DEMO); };
+  $('tHow').onclick = () => { on = false; save.seen = true; persist(); how(); };
 }
 function intro() {
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
@@ -1633,7 +1663,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) window.__S = S; window.__gnomon = { bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } };
+if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
