@@ -632,7 +632,7 @@ function win() {
 // photo: the frame you won on, scaled up crisp, with a caption strip, shared or downloaded
 async function takePhoto(btn) {
   const s = 4, c = document.createElement('canvas'); c.width = cv.width * s; c.height = cv.height * s + 40; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
-  x.drawImage(cv, 0, 0, c.width, cv.height * s); x.fillStyle = '#191529'; x.fillRect(0, cv.height * s, c.width, 40);
+  x.filter = cv.style.filter || 'none'; x.drawImage(cv, 0, 0, c.width, cv.height * s); x.filter = 'none'; x.fillStyle = '#191529'; // photos keep your screen look x.fillRect(0, cv.height * s, c.width, 40);
   x.fillStyle = '#ffd25e'; x.font = 'bold 20px monospace'; x.fillText('GNOMON', 14, cv.height * s + 27); x.fillStyle = '#e8e0ff'; x.font = '16px monospace'; x.fillText(LEVELS[li].name + ' · ' + st.hours.toFixed(1) + 'h · ' + (runFrames / 60).toFixed(1) + 's', 120, cv.height * s + 26);
   const blob = await new Promise(r => c.toBlob(r, 'image/png')); const file = new File([blob], 'gnomon.png', { type: 'image/png' });
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: 'Gnomon · ' + LEVELS[li].name }); return; } } catch (e) {}
@@ -1602,9 +1602,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 160, t: 'a new B-side, Backward Noon: a wall below holds your shadow back, and only running the day backward past noon brings it home.' };
+const WHATS_NEW = { v: 161, t: 'saved and shared photos now keep your Screen look, so a Handheld green run looks green in the picture too.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Photos keep your Screen look.',
   'New B-side: Backward Noon (B-side of Backward Sun).',
   'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
   'Locked dials say what opens them when tapped.',
@@ -1613,8 +1614,7 @@ const NEWS = [
   'Beaten dials show your record when you open them.',
   'A one-time tip points new players to ⟲ BACK.',
   'Controller View/Back or left trigger steps back in time.',
-  '⟲ BACK steps time back one second.',
-  'B-sides have their own minor-key music.',];
+  '⟲ BACK steps time back one second.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
