@@ -367,9 +367,12 @@ function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
     o.connect(gn).connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
   } catch (e) {}
 }
+const cloudWarned = new Set();
+function whoosh() { if (muted) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const n = ac.sampleRate * 1.2 | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(), t0 = ac.currentTime; src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + 0.6); f.frequency.exponentialRampToValueAtTime(250, t0 + 1.2); gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.2); src.connect(f).connect(gn).connect(ac.destination); src.start(); } catch (e) {} }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
 function load(i) {
+  cloudWarned.clear();
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
   deathCount = {}; deathMarks = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
@@ -795,8 +798,10 @@ function render(now) {
   // cloud shadows sweep in across the light world before a cloud reaches the sun, so you can see it coming
   if (!night) for (const [a, b] of (LEVELS[li].clouds || [])) {
     if (t >= b || a - t > 1.4) continue;
+    if (!cloudWarned.has(a)) { cloudWarned.add(a); whoosh(); }
     const x0 = st.p.x + 4 + (a - t) * 150, x1 = st.p.x + 4 + (b - t) * 150 + 40;
     for (let e = 0; e < 3; e++) { g.fillStyle = `rgba(30,34,60,${0.07 + e * 0.045})`; g.fillRect(x0 + e * 8, 0, Math.max(0, x1 - x0 - e * 16), HZ); }
+    g.fillStyle = 'rgba(10,8,30,.10)'; g.fillRect(x0 + 8, HZ, Math.max(0, x1 - x0 - 16), H - HZ);
   }
   // ---- decor: trees and posts, and their shadows sliding with the hour in the world below (just scenery) ----
   if (decor.length) {
@@ -1304,7 +1309,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 41, t: 'you can now see a cloud\'s shadow sweeping toward you before it covers the sun.' };
+const WHATS_NEW = { v: 42, t: 'clouds now announce themselves: a shadow band sweeps across both worlds, with a soft gust of wind.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
