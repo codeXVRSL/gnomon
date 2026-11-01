@@ -1062,7 +1062,7 @@ function skipOffer() {
   if ($('skShow')) $('skShow').onclick = () => { hideCard(); load(li); startGhost(li, unrle(LEVELS[li].solution), 'SOLUTION'); toast('FOLLOW THE GHOST · IT SHOWS ONE WAY THROUGH'); };
   if ($('skGo')) $('skGo').onclick = () => { save.skipped = save.skipped || {}; save.skipped[LEVELS[li].name] = 1; persist(); hideCard(); load(nx); };
 }
-function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast('CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
+function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = k === 6 ? ord : ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast(k === 6 ? 'FULL RUN · ' + ids.length + ' DIALS, ONE CLOCK' : 'CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
 function win() {
   const hrs = st.hours, prev = save.best[li], par = (dailyMode && realPar) || LEVELS[li].par || hrs;
   const medal = hrs <= par * 1.15 ? 3 : hrs <= par * 1.6 ? 2 : 1;
@@ -1080,11 +1080,11 @@ function win() {
     if (chRun.ids[chRun.i] === li && !dailyMode) {
       chRun.f += runFrames; chRun.i++;
       const fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
-      if (chRun.i < chRun.ids.length) { toast(`SPLIT ${chRun.i}/5 · ${fmt(chRun.f / 60)}`); const nx = chRun.ids[chRun.i]; setTimeout(() => { if (chRun) load(nx); }, 650); return; }
+      if (chRun.i < chRun.ids.length) { toast(`SPLIT ${chRun.i}/${chRun.ids.length} · ${fmt(chRun.f / 60)}`); const nx = chRun.ids[chRun.i]; setTimeout(() => { if (chRun) load(nx); }, 650); return; }
       const k = chRun.k, secs = chRun.f / 60; save.chRuns = save.chRuns || {}; const pb = save.chRuns[k], isPB = !pb || secs < pb; if (isPB) save.chRuns[k] = secs; persist(); chRun = null;
-      showCard(`${postcard(k)}<h2>${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run</h2><div class="stat"><span><b>${fmt(secs)}</b>TIME</span><span><b>${fmt(isPB ? secs : pb)}</b>${isPB ? 'NEW BEST' : 'BEST'}</span></div>
+      showCard(`${k === 6 ? '' : postcard(k)}<h2>${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night', 'Full game'][k]} run</h2><div class="stat"><span><b>${fmt(secs)}</b>TIME</span><span><b>${fmt(isPB ? secs : pb)}</b>${isPB ? 'NEW BEST' : 'BEST'}</span></div>
         <div class="row"><button class="btn" id="chShare">Share time</button><button class="btn" id="chAgain">Run again</button><button class="btn primary" id="chDone">Done</button></div>`);
-      $('chShare').onclick = async () => { const txt = `Gnomon · ${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run ${fmt(secs)}${isPB ? ' (new best)' : ''}\n${location.href.split('#')[0].split('?')[0]}`; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) { copyCard('Share', txt); } } };
+      $('chShare').onclick = async () => { const txt = `Gnomon · ${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night', 'Full game'][k]} run ${fmt(secs)}${isPB ? ' (new best)' : ''}\n${location.href.split('#')[0].split('?')[0]}`; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) { copyCard('Share', txt); } } };
       $('chAgain').onclick = () => startChRun(k); $('chDone').onclick = hideCard; return;
     } else chRun = null;
   }
@@ -1205,7 +1205,7 @@ function menu() {
   const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}${chProg(ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside).slice(k, k + 5))}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = `<div class="chap">B-SIDES${chProg(ord.filter(j => LEVELS[j].bside))}</div>`; } if (lv.demo) head = '<div class="chap">DEMO</div>';
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : 'B-SIDE') : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
-  showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">Chapter run in progress (stage ${chRun.i + 1}/5). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
+  showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
@@ -1335,7 +1335,7 @@ function stats() {
     <div class="stat"><span><b>${won}/${main.length}</b>DIALS</span><span><b>${count(3)}</b>☀ SUN</span><span><b>${count(2)}</b>☾ MOON</span>${(() => { const sh = f => [main.filter(i => f(LEVELS[i])).reduce((a, i) => a + (save.shards[i] || 0), 0), main.filter(i => f(LEVELS[i])).reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0)]; const [a, b] = sh(l => !l.bside && !l.demo), [c, d] = sh(l => l.bside); return `<span><b>${a}/${b}</b>SHARDS</span>${d ? `<span><b>${c}/${d}</b>B-SIDE SHARDS</span>` : ''}`; })()}</div>
     ${(() => { const CH = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); let total = 0, full = true; const fmt = s => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
       const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; const won5 = ids.every(i => save.best[i]), cr = save.chRuns && save.chRuns[k]; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}${won5 ? `<button class="btn" data-ch="${k}" style="display:block;padding:3px 6px;font-size:10px;margin-top:4px" title="Play all five ${c} stages back to back">▶ RUN${cr ? ' ' + fmt(cr) : ''}</button>` : ''}</span>`; }).join('');
-      return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
+      return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL${ord.every(i => save.best[i]) ? `<button class="btn" data-ch="6" style="display:block;padding:3px 6px;font-size:10px;margin-top:4px" title="Play all ${ord.length} dials back to back on one clock">▶ FULL RUN${save.chRuns && save.chRuns[6] ? ' ' + fmt(save.chRuns[6]) : ''}</button>` : ''}</span></div>`; })()}
     ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
     ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); if (BSIDES.every(j => save.best[j])) got.push(6); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/7</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5, 6].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT', 'FAR SIDE'][k]}</div>`).join('')}</div>`; })()}
     <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
@@ -1763,7 +1763,7 @@ function render(now) {
   $('pinfill').style.background = st.pin < 30 ? '#e9806e' : 'var(--violet)';
   $('shards').textContent = `✦ ${st.shardsGot}/${L.shards.length}`;
   $('falls').textContent = `☠ ${st.deaths}`;
-  { const sec = (runFrames + (chRun ? chRun.f : 0)) / 60; $('timer').textContent = (chRun ? `RUN ${chRun.i + 1}/5 · ` : '') + Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); $('timer').style.color = chRun ? 'var(--brass)' : ''; }
+  { const sec = (runFrames + (chRun ? chRun.f : 0)) / 60; $('timer').textContent = (chRun ? `RUN ${chRun.i + 1}/${chRun.ids.length} · ` : '') + Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); $('timer').style.color = chRun ? 'var(--brass)' : ''; }
   { const db = document.querySelector('.ctl.dash'), spent = st.dashes === 0 || st.dashT > 0; if (db) db.classList.toggle('spent', spent); const pip = $('dashPip'); if (pip) { pip.textContent = spent ? '○' : '●'; pip.style.color = spent ? '#6aa8ff' : '#ffb347'; pip.title = spent ? 'Dash used: land or touch a crystal' : 'Dash ready'; } }
 }
 
@@ -2093,9 +2093,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 155, t: 'opening a dial you have beaten now shows your record in its title (best hours, best time and medal), so phones get it without hovering.' };
+const WHATS_NEW = { v: 156, t: 'beat every main dial and Stats offers a Full run: all 31 dials back to back on one clock, with splits and a personal best.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Full run: all 31 dials on one clock.',
   'Beaten dials show your record when you open them.',
   'A one-time tip points new players to ⟲ BACK.',
   'Controller View/Back or left trigger steps back in time.',
@@ -2104,8 +2105,7 @@ const NEWS = [
   'B-side wins show your progress toward the Far Side.',
   'Far Side postcard shows on the title screen and journey summary.',
   'Beat every B-side for the Far Side postcard.',
-  'New B-side: Two Lanterns (B-side of Lantern Walk).',
-  'Thorns and resting stones are easier to see.',];
+  'New B-side: Two Lanterns (B-side of Lantern Walk).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
