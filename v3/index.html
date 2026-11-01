@@ -909,7 +909,8 @@ function load(i) {
   save.at = i; save.atName = LEVELS[i].name; if (LEVELS[i].bside) (save.playedB = save.playedB || {})[LEVELS[i].name] = 1; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
-  toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
+  // a beaten stage greets you with your record, since phones have no hover tooltips on the stage list
+  { const b = save.best[i], tm = (save.times || {})[i], md = ['', '✦', '☾', '☀'][(save.medal || {})[i] || 0]; toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase() + (b && !LEVELS[i].custom ? ` · BEST ${b.hours.toFixed(1)}H${tm ? ' · ' + tm.toFixed(1) + 'S' : ''}${md ? ' ' + md : ''}` : '')); }
   // only show the powers this stage actually needs, so the sun stays the star
   const uses = LEVELS[i].uses || { flip: true, pin: true };
   document.querySelector('.ctl.flip').style.visibility = uses.flip ? '' : 'hidden';
@@ -2092,9 +2093,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 154, t: 'after your second fall the game reminds you once that you can undo the last second instead of starting over.' };
+const WHATS_NEW = { v: 155, t: 'opening a dial you have beaten now shows your record in its title (best hours, best time and medal), so phones get it without hovering.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Beaten dials show your record when you open them.',
   'A one-time tip points new players to ⟲ BACK.',
   'Controller View/Back or left trigger steps back in time.',
   '⟲ BACK steps time back one second.',
@@ -2103,8 +2105,7 @@ const NEWS = [
   'Far Side postcard shows on the title screen and journey summary.',
   'Beat every B-side for the Far Side postcard.',
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
-  'Thorns and resting stones are easier to see.',
-  'New B-side: Under the Chime (B-side of Hour Chime).',];
+  'Thorns and resting stones are easier to see.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
