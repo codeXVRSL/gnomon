@@ -725,6 +725,9 @@ function menu() {
   $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; e.target.setAttribute('aria-pressed', MUSIC.on); };
 }
 // Assist mode, after Celeste: slow the game down, never run out of dashes, or ignore hazards (falls still count)
+// screen looks: a CSS filter over the game canvas only (menus keep their colours)
+const LOOKS = { original: ['Original', ''], film: ['Warm film', 'sepia(.45) saturate(1.15) contrast(1.05)'], handheld: ['Handheld green', 'grayscale(1) sepia(1) hue-rotate(45deg) saturate(2.2) brightness(.95) contrast(1.15)'], bright: ['High contrast', 'contrast(1.35) saturate(1.2) brightness(1.05)'], dusk: ['Cool night', 'hue-rotate(-12deg) saturate(.85) brightness(.95)'] };
+function applyLook() { const k = (save.assist && save.assist.look) || 'original', f = (LOOKS[k] || LOOKS.original)[1]; if (cv.style.filter !== f) cv.style.filter = f; }
 function assist() {
   const a = save.assist = save.assist || { speed: 1, dash: false, inv: false };
   const sp = [1, 0.8, 0.6, 0.5];
@@ -740,6 +743,7 @@ function assist() {
     <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
+    <label class="toggle">Screen look <select id="aLook" style="flex:1">${Object.keys(LOOKS).map(k => `<option value="${k}" ${(a.look || 'original') === k ? 'selected' : ''}>${LOOKS[k][0]}</option>`).join('')}</select></label>
     <label class="toggle"><input type="checkbox" id="aCloser" ${a.closer ? 'checked' : ''}> Closer view on tall phones (bigger pixels, the camera follows you)</label>
     <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
@@ -754,6 +758,7 @@ function assist() {
   $('aVs').onchange = () => beep(660, .08, 'triangle', .05);
   $('aVm').oninput = e => { VOL().mus = +e.target.value; if (musBus) musBus.gain.value = VOL().mus; persist(); };
   $('aWarn').onchange = e => { a.noWarn = !e.target.checked; persist(); };
+  $('aLook').onchange = e => { a.look = e.target.value; persist(); applyLook(); };
   $('aCloser').onchange = e => { a.closer = e.target.checked; persist(); resize(); };
   $('aBuzz').onchange = e => { a.noBuzz = !e.target.checked; persist(); if (!a.noBuzz) buzz(30, .6); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
@@ -916,7 +921,7 @@ function drawBody(img, x, y, w, h, sq, anchorBottom) {
 
 function render(now) {
   const t = st.t, night = st.sleeping, flipped = st.grav < 0, v25 = save.view25;
-  document.body.classList.toggle('calm', calm()); document.body.classList.toggle('lefty', !!(save.assist && save.assist.lefty));
+  document.body.classList.toggle('calm', calm()); document.body.classList.toggle('lefty', !!(save.assist && save.assist.lefty)); applyLook();
   const ecl = !night && !!LEVELS[li].eclipse && eclipsed(t);
   if (ecl !== cv.classList.contains('eclipse')) cv.classList.toggle('eclipse', ecl);
   g.setTransform(1, 0, 0, 1, Math.round(shakeX), Math.round(shakeY));
@@ -1597,9 +1602,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 158, t: 'tapping a locked dial on the stage list now says what opens it, like Beat High Noon first.' };
+const WHATS_NEW = { v: 159, t: 'Assist mode has a Screen look option: Warm film, Handheld green, High contrast or Cool night tint the game screen (menus keep their colours).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
   'Locked dials say what opens them when tapped.',
   'Opening a dial shows the hour to beat for its sun medal.',
   'Full run: all 31 dials on one clock.',
@@ -1608,8 +1614,7 @@ const NEWS = [
   'Controller View/Back or left trigger steps back in time.',
   '⟲ BACK steps time back one second.',
   'B-sides have their own minor-key music.',
-  'B-side wins show your progress toward the Far Side.',
-  'Far Side postcard shows on the title screen and journey summary.',];
+  'B-side wins show your progress toward the Far Side.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
