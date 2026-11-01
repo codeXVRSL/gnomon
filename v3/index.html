@@ -981,7 +981,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; { const tot = Object.values(deathCount).reduce((a, b) => a + b, 0); if (tot === 6 && LEVELS[li].hint2) setTimeout(() => { $('hint').textContent = LEVELS[li].hint + ' ' + LEVELS[li].hint2; $('hint').classList.add('open'); toast('A DEEPER HINT IS OPEN BELOW THE GAME'); }, 900); if (tot === 10 && !save.best[li] && !LEVELS[li].demo && !LEVELS[li].custom && !dailyMode && !chRun) setTimeout(skipOffer, 1100); } save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
+    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; { const tot = Object.values(deathCount).reduce((a, b) => a + b, 0); if (tot === 2 && !save.tipRew) { save.tipRew = 1; persist(); setTimeout(() => toast(matchMedia('(pointer: coarse)').matches ? 'TIP · ⟲ BACK UNDOES THE LAST SECOND' : 'TIP · PRESS T TO UNDO THE LAST SECOND'), 1900); } if (tot === 6 && LEVELS[li].hint2) setTimeout(() => { $('hint').textContent = LEVELS[li].hint + ' ' + LEVELS[li].hint2; $('hint').classList.add('open'); toast('A DEEPER HINT IS OPEN BELOW THE GAME'); }, 900); if (tot === 10 && !save.best[li] && !LEVELS[li].demo && !LEVELS[li].custom && !dailyMode && !chRun) setTimeout(skipOffer, 1100); } save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
       wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; buzz(40, .9); const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') { say('Dial reached.'); setTimeout(win, 450); }
   }
@@ -2092,9 +2092,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 153, t: 'controllers can step back too: View/Back or the left trigger rewinds a second, and holding it keeps going; each step back now flashes a soft violet wash (off with Reduce motion).' };
+const WHATS_NEW = { v: 154, t: 'after your second fall the game reminds you once that you can undo the last second instead of starting over.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'A one-time tip points new players to ⟲ BACK.',
   'Controller View/Back or left trigger steps back in time.',
   '⟲ BACK steps time back one second.',
   'B-sides have their own minor-key music.',
@@ -2103,8 +2104,7 @@ const NEWS = [
   'Beat every B-side for the Far Side postcard.',
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
   'Thorns and resting stones are easier to see.',
-  'New B-side: Under the Chime (B-side of Hour Chime).',
-  'Assist: Closer view gives tall phones bigger pixels.',];
+  'New B-side: Under the Chime (B-side of Hour Chime).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
