@@ -839,6 +839,11 @@ function render(now) {
     g.fillStyle = 'rgba(239,231,255,.10)'; g.beginPath(); g.arc(mx, my, 8, 0, 6.29); g.fill(); // soft halo over the pixel crescent
   } else {
     const k = t / DUSK, sx = 14 + k * (W - 28), sy = 46 - Math.sin(k * Math.PI) * 38;
+    if (t < 1.6 && !calm()) { // a small flock crosses the dawn sky
+      const a = Math.min(1, (1.6 - t) / 0.4) * 0.55;
+      for (let i = 0; i < 5; i++) { const bx = ((now / 60 + i * 23 + ((i * 0.618) % 1) * 40) % (W + 80)) - 40, by = 18 + ((i * 0.754) % 1) * 18 + Math.sin(now / 500 + i) * 2, fl = Math.floor(now / 180 + i) % 2;
+        g.fillStyle = `rgba(60,40,70,${a.toFixed(2)})`; g.fillRect(bx | 0, by | 0, 1, 1); g.fillRect((bx - 2) | 0, (by - (fl ? 1 : 0)) | 0, 2, 1); g.fillRect((bx + 1) | 0, (by - (fl ? 1 : 0)) | 0, 2, 1); }
+    }
     g.fillStyle = 'rgba(255,240,180,.35)'; g.fillRect(sx - 8, sy - 6, 16, 12); g.fillRect(sx - 6, sy - 8, 12, 16);
     g.fillStyle = '#fff2b0'; g.fillRect(sx - 5, sy - 4, 10, 8); g.fillRect(sx - 4, sy - 5, 8, 10);
     g.fillStyle = '#ffd25e'; g.fillRect(sx - 3, sy - 3, 6, 6);
@@ -1457,7 +1462,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 95, t: 'watch the night sky: a shooting star crosses it now and then.' };
+const WHATS_NEW = { v: 97, t: 'a small flock crosses the dawn sky, and a shooting star the night.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
