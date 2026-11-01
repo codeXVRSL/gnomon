@@ -1052,12 +1052,13 @@ function win() {
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
-    <div class="row"><button class="btn" id="ghostBtn">Send a ghost to a friend</button><button class="btn" id="photoBtn">📷 Photo</button></div>
+    <div class="row"><button class="btn" id="ghostBtn">Send a ghost to a friend</button><button class="btn" id="photoBtn">📷 Photo</button></div>${LEVELS[li].solution ? '<div class="row"><button class="btn" id="solBtn">Watch a solution</button></div>' : ''}
     <div class="row"><button class="btn" id="again">Replay</button>
     ${lastLv ? '<button class="btn primary" id="toMenu">All dials</button>' : '<button class="btn primary" id="next">Next dial</button>'}</div>`);
   $('again').onclick = () => { hideCard(); load(li); };
   $('ghostBtn').onclick = () => shareGhost($('ghostBtn'));
   $('photoBtn').onclick = () => takePhoto($('photoBtn'));
+  if ($('solBtn')) $('solBtn').onclick = () => { hideCard(); load(li); startGhost(li, LEVELS[li].solution, 'SOLUTION'); toast('ONE WAY THROUGH · YOURS MAY BE BETTER'); };
   if ($('bsideGo')) $('bsideGo').onclick = () => { hideCard(); load(LEVELS.findIndex(l => l.bside === LEVELS[li].name)); };
   if (LEVELS[li].custom && !edTestInv && !(save.assist && save.assist.inv)) { save.edVerified = edEncode(); persist(); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
@@ -1970,9 +1971,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 108, t: 'every stage can now show you a solution ghost after ten falls.' };
+const WHATS_NEW = { v: 109, t: 'after you beat a stage, you can watch a solution ghost to compare routes.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Beat a stage, then watch a solution ghost to compare routes.',
   'Every stage can now show you a solution ghost after ten falls.',
   'Stuck on a hard stage? After ten falls a ghost can show you one way through.',
   'Every B-side now has a step-by-step hint after six falls.',
@@ -1981,8 +1983,7 @@ const NEWS = [
   'Fireflies at dusk, a flock at dawn, stars, a crescent moon and shooting stars at night.',
   'Fixed a randomness bug: flowers, mortar and water sparkles now appear.',
   'Beat a friend\'s stage and send it back with your time; verified stages.',
-  'Save codes to move progress between devices; reset progress (keeps settings).',
-  'Stage maker: undo, safe test run, shadow-start preview, number keys.',];
+  'Save codes to move progress between devices; reset progress (keeps settings).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
