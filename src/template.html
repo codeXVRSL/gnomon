@@ -58,6 +58,8 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .ctl.pin{grid-area:1/2;height:32px;font-size:10px;background:#3d2f66;flex-direction:row;gap:4px}
 .ctl.dash{grid-area:2/2;height:32px;font-size:12px;background:#b84a5a;color:#fff4e8;letter-spacing:.06em}
 .ctl.dash.on{background:#d86070}
+@keyframes glow{0%,100%{box-shadow:inset 0 -4px 0 rgba(0,0,0,.35),0 0 0 0 rgba(255,210,94,.0)}50%{box-shadow:inset 0 -4px 0 rgba(0,0,0,.35),0 0 0 4px rgba(255,210,94,.75)}}
+.ctl.teach{animation:glow 1s ease-in-out 6}
 .ctl.dash.spent{background:#3a5a8a}
 .ctl.pin small{color:#c7b4ff}
 .ctl.pin.on{background:var(--violet);color:#1a1230}
@@ -217,11 +219,17 @@ function sprite(map, pal, flipX, flipY) {
   return c;
 }
 const walk2 = SPR_WALK;
+// more poses: a 4-step run (contact, stride, pass, stride), a fall, a swept-back dash, a wall-slide crouch
+const legs = (a, b) => SPR.map((r, i) => i === 13 ? a : i === 14 ? b : r);
+const SPR_PASS = legs("......oYYo......", "......oYYo......");
+const SPR_FALL = SPR.map((r, i) => i === 1 ? "........o......." : i === 2 ? ".......oyo......" : i === 13 ? "....oYo..oYo...." : i === 14 ? "................" : r);
+const SPR_DASH = SPR.map((r, i) => i === 1 ? "....o..........." : i === 2 ? "....oyo........." : i === 3 ? "...oyyYo........" : i === 4 ? "...oyyyYYo......" : i === 5 ? "...oyyyyYYYo...." : i === 13 ? ".....oYYYYo....." : i === 14 ? "................" : r);
+const SPR_SLIDE = SPR.map((r, i) => i >= 1 && i <= 5 ? '.' + r.slice(0, 15) : i === 13 ? "......oYo.......": i === 14 ? "......oYYYo....." : r);
 const sleepMap = SPR.map((r, i) => i === 8 ? r.replace(/k/g, 'b') : i === 9 ? "...obooboobobo..".replace(/./g, (c, j) => j >= 3 && j <= 12 ? (j === 5 || j === 10 ? 'o' : 'b') : c) : r);
 const shPal = { o:'#8a6fe6', y:'#0c0719', Y:'#0c0719', b:'#0c0719', B:'#0c0719', k:'#e4d8ff', r:'#0c0719' };
 const pinPal = { o:'#c7b4ff', y:'#2a1c4a', Y:'#2a1c4a', b:'#2a1c4a', B:'#2a1c4a', k:'#ffffff', r:'#2a1c4a' };
 const S = {};
-for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
+for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P], ['pf', SPR_FALL, P], ['pd', SPR_DASH, P], ['pw', SPR_SLIDE, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
@@ -341,6 +349,12 @@ function load(i) {
   const uses = LEVELS[i].uses || { flip: true, pin: true };
   document.querySelector('.ctl.flip').style.visibility = uses.flip ? '' : 'hidden';
   document.querySelector('.ctl.pin').style.visibility = uses.pin ? '' : 'hidden';
+  // teach without words: the first time a stage needs a button, that button glows
+  save.taught = save.taught || {};
+  for (const [cls, need] of [['flip', uses.flip], ['pin', uses.pin], ['dash', LEVELS[i].sunRate || LEVELS[i].bside], ['wait', /wait|hold the hourglass|hourglass/i.test(LEVELS[i].hint)]]) {
+    const b = document.querySelector('.ctl.' + cls); if (!b) continue; b.classList.remove('teach');
+    if (need && !save.taught[cls]) { void b.offsetWidth; b.classList.add('teach'); save.taught[cls] = true; persist(); }
+  }
   if (friendGhost && friendGhost.li === i) startGhost(i, friendGhost.data, 'FRIEND');
   else { const gs = save.ghost && save.ghost[i]; if (gs && !dailyMode) startGhost(i, unrle(gs.d), 'BEST'); }
 
@@ -802,7 +816,9 @@ function render(now) {
     g.globalAlpha = .7; g.fillStyle = ghost.label === 'FRIEND' ? '#9fe8ff' : '#ffd25e'; g.font = '5px monospace'; g.fillText(ghost.label, Math.round(gp.x) - 4, Math.round(gp.y) - 6); g.globalAlpha = 1;
   }
   const airborne = !p.ground && !night;
-  const fr = airborne ? 'j' : moving && Math.floor(now / 140) % 2 ? '2' : '';
+  const runPh = Math.floor(now / 90) % 4, falling = airborne && p.vy * (flipped ? -1 : 1) > 1.2;
+  const fr = st.dashT > 0 && !night ? 'd' : st.sliding ? 'w' : airborne ? (falling ? 'f' : 'j') : moving ? ['', '2', '3', '2'][runPh] : '';
+  const bob = moving && !airborne && (runPh === 1 || runPh === 3) ? (flipped ? 1 : -1) : 0;
   const fx = st.face > 0 ? 0 : 1, fy = flipped ? 1 : 0;
   const ppx = Math.round(p.x) - 4, ppy = Math.round(p.y) - 4;
   if (dawnTimer > 0) { g.globalAlpha = 1 - dawnTimer / 30; }
@@ -819,7 +835,7 @@ function render(now) {
     const scol = st.dashes > 0 && st.dashT === 0 ? '#ffb347' : '#6aa8ff', sdir = -st.face, sway = Math.sin(now / 120) * 1.5;
     const neckY = flipped ? ppy + 10 : ppy + 9;
     for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? scol : (st.dashes > 0 ? '#ff8a3d' : '#4a7fd8'); g.fillRect(ppx + 8 + sdir * (3 + k * 2) - 1, neckY + Math.round(sway * k / 3 + (Math.abs(p.vx) > 1 ? 0 : k * .6)), 2, 2); }
-    drawBody(S['p' + fr + fx + fy], ppx, ppy, 16, 16, squashP, !flipped);
+    drawBody(S['p' + fr + (fr === 'w' ? (st.sliding > 0 ? 0 : 1) : fx) + fy], ppx, ppy + bob, 16, 16, squashP, !flipped);
     if (st.sliding) { if (Math.random() < .5) parts.push({ x: p.x + (st.sliding > 0 ? 8 : 0), y: p.y + 4 + Math.random() * 6, vx: -st.sliding * .3, vy: (flipped ? -1 : 1) * -.2, life: 12, col: 'rgba(230,220,200,.7)' }); }
   }
   g.globalAlpha = 1;
@@ -1070,7 +1086,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) window.__gnomon = { get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } };
+if (/[?&]test/.test(location.search)) window.__S = S; window.__gnomon = { get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } };
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
