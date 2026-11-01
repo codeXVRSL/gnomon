@@ -449,6 +449,19 @@ function win() {
   const ord = order(), pos = ord.indexOf(li), lastLv = pos === ord.length - 1;
   { const key = [0, 2, 4, 5, 7, -3, 9][Math.max(0, Math.min(6, Math.floor(pos / 5)))]; [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f * Math.pow(2, key / 12), .14, 'triangle', .06), i * 90)); } // the win tune rises chapter by chapter
   if (dailyMode) { dailyWin(hrs, par, medal); return; }
+  if (LEVELS[li].epilogue) {
+    const won = LEVELS.filter((l, i) => save.best[i] && !l.custom).length;
+    [392, 494, 587, 784, 988, 1175].forEach((f, i) => setTimeout(() => beep(f, .3, 'triangle', .05), i * 160));
+    showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
+      <h2>Home at last</h2>
+      <p>You and your shadow are back on the dial, together. The sun can rest.</p>
+      <div class="stat"><span><b>${won}</b>DIALS</span><span><b>${hrs.toFixed(1)}h</b>THIS RUN</span><span><b>${st.deaths}</b>FALLS</span></div>
+      <p class="sub">There is more: B-sides in the level list, the Daily Sundial every day, and your own stages in Make a stage.</p>
+      <p class="sub">Made by Save, with Claude.</p>
+      <div class="row"><button class="btn primary" id="endMenu">Level list</button><button class="btn" id="endDaily">Daily Sundial</button></div>`);
+    $('endMenu').onclick = menu; $('endDaily').onclick = startDaily;
+    return;
+  }
   showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
@@ -1165,7 +1178,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) title();
 }
-const WHATS_NEW = { v: 16, t: 'a Night chapter, three new B-sides, ghost races, a stage maker, and a how-to that fits one screen.' };
+const WHATS_NEW = { v: 18, t: 'an Epilogue with an ending, a Night chapter, four B-sides, ghost races and a stage maker.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
