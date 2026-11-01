@@ -3,7 +3,7 @@
 // * lamp  c crumble block  m morning stone (solid before noon)  e evening stone (solid after noon)  ^ spring  o sun shard
 const LEVELS = [
   { name: 'The Hour Hand', startHour: 0,
-    hint: 'The sun only moves while you move, or while you hold the hourglass. At dawn your shadow stands far east of you. Hold the hourglass and watch it swing west onto the plate, then walk through before noon takes it away.',
+    hint: 'The sun only moves when you move, or while you hold the hourglass. Hold it, watch your shadow swing west onto the plate, then walk through before noon.',
     map: [
       '.#..................',
       '.#..................',
@@ -20,7 +20,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Tower Clock', startHour: 2, cast: true,
-    hint: 'In this land every stone casts a real shadow into the world below, and it slides with the sun like yours. The plate lies behind a wall your shadow cannot cross, but the tower\'s shadow can. Read the clock: wait until the tower\'s shadow swings onto the plate, then walk through.',
+    hint: 'Stones cast real shadows below, sliding with the sun. Your shadow can\'t reach the plate, but the tower\'s can. Wait until it covers the plate, then go.',
     map: [
       '....................',
       '....................',
@@ -37,7 +37,7 @@ const LEVELS = [
       '...#................',
       '...#................'] },
   { name: 'High Noon', startHour: 2,
-    hint: 'A wall in the shadow world catches your shadow. Keep walking anyway. At noon the sun stands overhead and your shadow vanishes, then it is reborn right beneath you, on the far side of the wall.',
+    hint: 'A wall below blocks your shadow. Keep walking: at noon your shadow vanishes and is reborn right beneath you, past the wall.',
     map: [
       '....................',
       '....................',
@@ -54,7 +54,7 @@ const LEVELS = [
       '.....#..............',
       '.....#..............'] },
   { name: 'In the Shade', startHour: 0, cast: true,
-    hint: 'A lamp burns in the world below. Its light can\'t reach your shadow while your shadow stands in shade, and the tower casts the only shade here. Walk the tower\'s top at the hour its shadow covers the lamp.',
+    hint: 'Lamplight can\'t reach your shadow while it stands in shade. Cross the tower top at the hour its shadow covers the lamp.',
     map: [
       '....................',
       '....................',
@@ -71,7 +71,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Passing Cloud', startHour: 0, clouds: [[1.5, 1.9]],
-    hint: 'A wall below holds your shadow back, and the plate lies far east, past the gate. Noon would bring your shadow back too late and too far west. Watch the sky: when a cloud crosses the sun your shadow fades, and it is reborn beneath you when the cloud moves on.',
+    hint: 'A wall holds your shadow back and noon comes too late. When a cloud crosses the sun your shadow fades, then it is reborn beneath you.',
     map: [
       '....................',
       '....................',
@@ -88,7 +88,7 @@ const LEVELS = [
       '........#...........',
       '........#...........'] },
   { name: 'Meet at Dusk', startHour: 0.5,
-    hint: 'Your shadow has its own finish line: a violet hour mark that slides east across the world below as the day goes on, like the numbers on a sundial. Reach your dial, then wait until your shadow and its hour mark meet.',
+    hint: 'Your shadow has its own finish: a violet hour mark sliding east below. Reach your dial, then wait for shadow and mark to meet.',
     map: [
       '....................',
       '....................',
