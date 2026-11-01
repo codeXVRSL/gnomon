@@ -225,6 +225,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['pj', SPR_JUMP, P
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
+let decor = [];
 let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0, runFrames = 0, trail = [], touchJump = false, speedLines = 0;
 let save = { best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false };
 try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false }, JSON.parse(localStorage.getItem('gnomon-v5')) || {}); } catch (e) {}
@@ -321,7 +322,9 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
   runFrames = 0; trail = [];
-  li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
+  decor = [];
+  li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
+  for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; persist();
   $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint;
@@ -357,6 +360,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'reflect') { toast('THE WATER CASTS A SECOND SHADOW'); beep(880, .25, 'sine', .03, 1.2); }
     if (ev === 'crescent') { toast('CRESCENT SUN · TWO SHADOWS'); beep(330, .4, 'sine', .04, 1.5); beep(495, .4, 'sine', .03, 1.5); }
     if (ev === 'dash') { hitStop = 3; shake = Math.max(shake, 2.5); speedLines = 14; beep(260, .14, 'sawtooth', .05, 2.4); beep(740, .08, 'square', .025, .6); burst(st.p.x + 4, st.p.y + 6, '#ff9a6a', 8, 1.4); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+    if (ev === 'superwall' || ev === 'dashjump') { beep(ev === 'superwall' ? 700 : 420, .14, 'square', .04, 1.8); speedLines = 10; burst(st.p.x + 4, st.p.y + 6, '#ffd25e', 10, 1.6); }
     if (ev === 'walljump') { beep(560, .06, 'square', .035, 1.4); dust(st.p.x + (st.face > 0 ? 0 : 8), st.p.y + 6, 1); squashP = .75; }
     if (ev === 'refill') { beep(988, .12, 'triangle', .05, 1.3); burst(st.p.x + 4, st.p.y + 6, '#9fe8ff', 12, 1.2); }
     if (ev === 'flag') { toast('FLAG · YOUR SPOT IS SAVED'); beep(660, .1, 'triangle', .05, 1.5); beep(990, .14, 'triangle', .04, 1); }
@@ -377,6 +381,7 @@ function tick() {
   update(L, st, { l: keys.l, r: keys.r, jump: jumpEdge, jumpHeld: keys.j, wait: keys.w, pin: keys.p, flip: flipEdge, dash: dashEdge, up: keys.u || (touchJump && keys.j), down: keys.w });
   jumpEdge = flipEdge = dashEdge = false;
   if (!st.won) runFrames++;
+  if (save.assist && save.assist.dash && st.dashT === 0) st.dashes = 1;
   if (st.dashT > 0) { trail.push({ x: st.p.x, y: st.p.y, sx: st.s.x, sy: st.s.y, life: 14, face: st.face }); }
   for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
@@ -459,14 +464,30 @@ function menu() {
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
+    <div class="row"><button class="btn" id="assistBtn">Assist mode</button></div>
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn" id="musicBtn">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
-  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how;
+  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist;
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
   $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; };
+}
+// Assist mode, after Celeste: slow the game down, never run out of dashes, or ignore hazards (falls still count)
+function assist() {
+  const a = save.assist = save.assist || { speed: 1, dash: false, inv: false };
+  const sp = [1, 0.8, 0.6, 0.5];
+  showCard(`<h2>Assist mode</h2>
+    <p class="sub">Gnomon is meant to be tough but fair. If it is getting in the way of your fun, change how it plays. Medals still count.</p>
+    <div class="row">${sp.map(v => `<button class="btn ${a.speed === v ? 'primary' : ''}" data-sp="${v}">${Math.round(v * 100)}%</button>`).join('')}</div>
+    <label class="toggle"><input type="checkbox" id="aDash" ${a.dash ? 'checked' : ''}> Infinite dashes</label>
+    <label class="toggle"><input type="checkbox" id="aInv" ${a.inv ? 'checked' : ''}> Invincible (spikes, lamps and hawks can't hurt you)</label>
+    <div class="row"><button class="btn primary" id="aDone">Done</button></div>`);
+  document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
+  $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
+  $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
+  $('aDone').onclick = menu;
 }
 function how() {
   showCard(`<h2>How to play</h2>
@@ -474,7 +495,7 @@ function how() {
     <ul class="rules">
       <li><span>☀</span><span><b>Time only moves when you move.</b> Hold ⧗ to let it pass. Your shadow is long at dawn and dusk, short at midday, and gone at noon.</span></li>
       <li><span>➶</span><span><b>DASH</b> (X / Shift, or the red button): a quick burst in any of 8 directions (hold ↑ or ↓ to aim; on touch, hold JUMP to dash up). It refills when you land or touch a <b>sun crystal</b>, and <b>each dash burns half an hour</b>, so your shadow swings with it. Your scarf turns blue when it's spent.</span></li>
-      <li><span>⇄</span><span><b>Wall jump</b>: jump while touching a wall to kick off it. Climb shafts by bouncing between two walls. Press into a wall while falling to slide.</span></li>
+      <li><span>⇄</span><span><b>Wall jump</b>: jump while touching a wall to kick off it. Climb shafts by bouncing between two walls. Press into a wall while falling to slide. Tricks: <b>jump during an up-dash next to a wall</b> for a super wall jump, and <b>jump during a dash along the ground</b> to keep the speed.</span></li>
       <li><span>⚑</span><span><b>Sunset runs</b>: the sun sinks on its own. Reach your dial before night or start over. Flags save your spot.</span></li>
       <li><span>✎</span><span><b>STAFF</b>: tap to plant your gnomon staff in front of you, tap again to pull it back. Its thin shadow falls into the world below and swings with the sun. <b>Shade presses violet plates</b>, so you can set it to press a plate at a chosen hour.</span></li>
       <li><span>▮</span><span>In <b>cast lands</b>, every stone above the ground throws a real shadow into the world below, sliding with the sun like yours. Your shadow can walk on it, and it can press plates.</span></li>
@@ -552,6 +573,7 @@ function render(now) {
   drawBackdrop(now, t, night, top, low);
   if (!night && eclipsed(t)) { g.fillStyle = 'rgba(20,14,48,.55)'; g.fillRect(0, 0, W, HZ); for (let i = 0; i < 14; i++) { const x = hash(i, 7) * W | 0, y = hash(i, 5) * 50 | 0; g.fillStyle = '#e8e0ff'; g.fillRect(x, y, 1, 1); } }
   if (!night && overcast(t)) { g.fillStyle = 'rgba(70,80,110,.22)'; g.fillRect(0, 0, W, HZ); }
+  // hour-of-day colour grade (drawn after the world, see below)
   for (let y = HZ; y < H; y += 6) { const k = (y - HZ) / (H - HZ); g.fillStyle = mix(night ? '#3b2b6e' : '#2c2350', '#140f26', k); g.fillRect(-4, y, W + 8, 6); }
   // camera follows whoever is awake
   const tgt = (night ? st.s.x : st.p.x) + 4 - W / 2;
@@ -559,6 +581,16 @@ function render(now) {
   g.setTransform(1, 0, 0, 1, Math.round(shakeX - camX), Math.round(shakeY));
   const pr = pressedSet(L, st), ch = chimeState(t);
   if (v25) drawExtrusions(now, t, night, pr);
+  // ---- decor: trees and posts, and their shadows sliding with the hour in the world below (just scenery) ----
+  if (decor.length) {
+    const showSh = !night && t < DUSK && !isGone(t) && !eclipsed(t), dxs = showSh ? castDx(t) : 0;
+    for (const d of decor) {
+      const base = HZ - TS, x = d.x;
+      if (showSh) { g.fillStyle = 'rgba(8,4,20,.24)'; if (d.kind === 'tree') { g.fillRect(Math.round(x + dxs) + 2, HZ + TS, 2, Math.round(d.h * .45)); g.beginPath(); g.arc(Math.round(x + dxs) + 3, HZ + TS + d.h * .6, d.h * .33, 0, 6.29); g.fill(); } else { g.fillRect(Math.round(x + dxs) + 1, HZ + TS, 2, d.h); g.fillRect(Math.round(x + dxs) - 1, HZ + TS + d.h - 2, 6, 2); } }
+      if (d.kind === 'tree') { g.fillStyle = '#5a4030'; g.fillRect(x + 2, base - d.h * .45, 2, d.h * .45); g.fillStyle = '#3f6a48'; g.beginPath(); g.arc(x + 3, base - d.h * .62, d.h * .33, 0, 6.29); g.fill(); g.fillStyle = '#5c8f5e'; g.fillRect(x, base - d.h * .8, 3, 2); }
+      else { g.fillStyle = '#6b5a48'; g.fillRect(x + 1, base - d.h, 2, d.h); g.fillStyle = '#c9a86a'; g.fillRect(x - 1, base - d.h, 6, 2); }
+    }
+  }
   // ---- tiles ----
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < L.W; x++) {
     const c = L.grid[y][x], px = x * TS, py = y * TS, topW = y < HALF;
@@ -782,6 +814,7 @@ function render(now) {
     g.fillRect(Math.round(p.x) + 3, HZ + 3 + k, 2, 2); g.fillRect(Math.round(p.x) - 1, HZ + 8 - k / 2, 1, 1); g.fillRect(Math.round(p.x) + 8, HZ + 6 + k / 3, 1, 1);
   }
   drawEnemies(now, night);
+  { const tt = st.t; let c = null; if (night) c = 'rgba(40,40,130,.20)'; else if (tt < 1) c = `rgba(255,140,150,${.10 * (1 - tt)})`; else if (tt > 5.2) c = `rgba(255,120,50,${Math.min(.16, (tt - 5.2) * .09)})`; if (c) { g.fillStyle = c; g.fillRect(camX - 4, -4, W + 8, HZ + 4); } }
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
   g.globalAlpha = 1;
   if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
@@ -932,7 +965,7 @@ function drawDial() {
 
 function loop(now) {
   if (!last) last = now;
-  acc += Math.min(100, now - last); last = now;
+  acc += Math.min(100, now - last) * ((save.assist && save.assist.speed) || 1); last = now;
   while (acc >= 1000 / 60) { tick(); acc -= 1000 / 60; }
   render(now);
   requestAnimationFrame(loop);

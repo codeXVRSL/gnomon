@@ -3,7 +3,7 @@ const TS = 12, ROWS = 14, HALF = 7, HZ = HALF * TS;
 const PHYS = { g: 0.3, gFall: 0.42, gHang: 0.14, hangV: 0.9, jump: 4.6, run: 1.65, accel: 0.42, decel: 0.55, airAccel: 0.3, airDecel: 0.1, maxFall: 5.5, coyote: 6, buffer: 6, spring: 7.2, corner: 3 };
 // Celeste-style moves: wall slide + wall jump (alternate walls to climb), and the Sun Dash: 8 directions, refills on the ground, costs half an hour
 const WALL = { slide: 1.3, jumpX: 2.3, jumpY: 4.3, lock: 9 };
-const DASH = { v: 3.6, frames: 9, cost: 0.5, endUp: 0.45, refillCd: 150 };
+const DASH = { v: 3.6, frames: 9, cost: 0.5, endUp: 0.45, refillCd: 150, corner: 4, superWall: 5, superWallY: 5.4, hyperX: 2.7 };
 const HOUR_PX = 60, WAIT_RATE = 1 / 40, NOON = 3.5, NOON_GAP = 0.25, DUSK = 7, DAY_TOTAL = 10, FLIP_COST = 0.5;
 const WATER = { g: 0.08, maxFall: 1.0, run: 0.8, stroke: 1.6, strokeCd: 8, exit: 3.3 };
 const PW = 8, PH = 11, SW = 8, SH = 11, NIGHT_H = 11;
@@ -233,13 +233,24 @@ function update(L, st, inp) {
     st.events.push('dash');
   }
   if (st.dashT > 0 && !st.sleeping) {
-    st.dashT--;
+    st.dashT--; p.coyote = p.ground ? PHYS.coyote : Math.max(0, p.coyote - 1);
     const [vx, vy] = st.dashV;
     p.vx = vx; p.vy = vy;
     const rp = tryMove(L, st, 'top', p, PW, PH, vx, vy, pr);
     if (rp.hitY && vy * pgn < 0) cornerCorrect(L, st, 'top', p, PW, PH, vy, pr);
+    // dash corner correction: clip a ledge while dashing sideways and you pop up onto it
+    if (rp.hitX && Math.abs(vy) < 0.5) for (let k = 1; k <= DASH.corner; k++) { if (!overlap(L, st, 'top', p.x + Math.sign(vx), p.y - k * pgn, PW, PH, pr)) { p.y -= k * pgn; tryMove(L, st, 'top', p, PW, PH, vx, 0, pr); break; } }
+    if (st.jumpBuf > 0) {
+      const side = vy * pgn < 0 ? (overlap(L, st, 'top', p.x + DASH.superWall, p.y, PW, PH, pr) ? 1 : overlap(L, st, 'top', p.x - DASH.superWall, p.y, PW, PH, pr) ? -1 : 0) : 0;
+      if (side) { // super wall jump: kick off a wall during an up-dash, from further away, and fly higher
+        st.dashT = 0; p.vx = -side * WALL.jumpX; p.vy = -DASH.superWallY * pgn; p.jumping = true; st.wallLock = WALL.lock; st.lastWall = side; st.face = -side; st.jumpBuf = 0; st.events.push('superwall');
+      } else if (p.coyote > 0 && Math.abs(vy) < 0.5) { // dash jump: jump out of a ground dash and keep the speed
+        st.dashT = 0; p.vx = Math.sign(vx) * DASH.hyperX; p.vy = -PHYS.jump * pgn; p.jumping = true; p.coyote = 0; st.jumpBuf = 0; st.dashes = 1; st.events.push('dashjump');
+        if (!s.gone && !st.pinned && s.coyote > 0) { s.vy = -PHYS.jump * sgn; s.jumping = true; }
+      }
+    }
     if (!s.gone && !st.pinned) { s.vx = vx; s.vy = -vy; tryMove(L, st, 'bot', s, SW, s.h, vx, -vy, pr); }
-    if (st.dashT === 0) { if (vy * pgn < 0) p.vy = vy * DASH.endUp; else p.vy = vy * 0.6; p.vx = Math.sign(vx) * Math.min(Math.abs(vx), PHYS.run * 1.15); s.vy = -p.vy; }
+    if (st.dashT === 0 && !st.events.includes('superwall') && !st.events.includes('dashjump')) { if (vy * pgn < 0) p.vy = vy * DASH.endUp; else p.vy = vy * 0.6; p.vx = Math.sign(vx) * Math.min(Math.abs(vx), PHYS.run * 1.15); s.vy = -p.vy; }
   } else if (!st.sleeping) {
     if (p.ground && st.dashT === 0) { st.dashes = 1; st.lastWall = 0; }
   }
@@ -408,6 +419,7 @@ function update(L, st, inp) {
       if (!s.gone && !st.sleeping && st.t < DUSK && !eclipsed(st.t)) { const bx = e.x + castDx(st.t), by = ROWS * TS - e.y - EH; if (s.x + 1 < bx + EW - 1 && s.x + SW - 1 > bx + 1 && s.y + 1 < by + EH - 1 && s.y + s.h - 1 > by + 1) { die = 'bird shadow'; break; } }
     } else if (!s.gone && hit(s, SW, s.h)) { die = 'shadow hound'; break; }
   }
+  if (die && L.invincible && !/fell|dusk/.test(die)) die = null;
   if (die) { restore(st); st.events.push(die); return; }
   if (st.pendingCheck && safeToCheckpoint(L, st)) { st.pendingCheck = false; st.check = snapshot(st); st.events.push('checkpoint'); }
   // finish: you on your dial; if the stage has a shadow dial (g), your shadow must stand on it at the same moment
