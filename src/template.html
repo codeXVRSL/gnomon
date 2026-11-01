@@ -259,7 +259,7 @@ const S = {};
 for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P], ['pf', SPR_FALL, P], ['pd', SPR_DASH, P], ['pw', SPR_SLIDE, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
-let rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
+let rewFx = 0, rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let decor = [], roots = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
@@ -392,7 +392,7 @@ function rewind() {
   if (!st || st.won || !$('overlay').hidden || rewindBuf.length < 2) { beep(160, .05, 'sine', .02); return; }
   rewindBuf.splice(-Math.min(6, rewindBuf.length - 1)); const snap = rewindBuf[rewindBuf.length - 1];
   st = cloneSt(snap.st); rec.length = snap.n; parts = []; trail = []; gateCue = null;
-  beep(990, .06, 'sine', .025, .7); toast('⟲ ONE SECOND BACK'); say('One second back.');
+  beep(990, .06, 'sine', .025, .7); toast('⟲ ONE SECOND BACK'); say('One second back.'); rewFx = calm() ? 0 : 16;
 }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
@@ -1243,6 +1243,8 @@ function render(now) {
   drawEnemies(now, night);
   { const tt = st.t; let c = null; if (night) c = 'rgba(40,40,130,.20)'; else if (tt < 1) c = `rgba(255,140,150,${.10 * (1 - tt)})`; else if (tt > 5.2) c = `rgba(255,120,50,${Math.min(.16, (tt - 5.2) * .09)})`; if (c) { g.fillStyle = c; g.fillRect(camX - 4, -4, W + 8, HZ + 4); } }
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
+  // stepping back in time: a brief violet wash with drifting scanlines
+  if (rewFx > 0) { rewFx--; const a = rewFx / 16; g.globalAlpha = 1; g.fillStyle = `rgba(120,90,220,${.22 * a})`; g.fillRect(camX, 0, W, H); g.fillStyle = `rgba(230,220,255,${.18 * a})`; for (let yy = (rewFx * 3) % 6; yy < H; yy += 6) g.fillRect(camX, yy, W, 1); }
   // the gate you just opened is off screen: a blinking tag on that edge shows which way it is, with its dots
   if (gateCue && Math.floor(gateCue.life / 8) % 2) { const right = gateCue.x > camX + W / 2, bx = right ? camX + W - 15 : camX + 3, by = Math.max(2, Math.min(H - 14, gateCue.y - 6));
     g.globalAlpha = 1; g.fillStyle = 'rgba(16,12,30,.85)'; g.fillRect(bx, by, 12, 12); pips(gateCue.k, bx, by, '#c7b4ff');
@@ -1462,7 +1464,7 @@ function applyKeymap() { for (const [k, a] of Object.entries((save.keymap) || {}
 applyKeymap();
 // ---- controllers (standard mapping): stick/d-pad move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start = levels ----
 let padPrev = {};
-let padRep = 0;
+let padRep = 0, padBackT = 0;
 function padNav(k) {
   const a = document.activeElement, key = { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown' }[k];
   if (a && a.classList && a.classList.contains('lv-btn')) { window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return; }
@@ -1477,7 +1479,9 @@ function readPad() {
   const b = k => !!(gp.buttons[k] && gp.buttons[k].pressed), ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
   o.l = b(14) || ax < -0.4; o.r = b(15) || ax > 0.4; o.u = b(12) || ay < -0.5; o.d = b(13) || ay > 0.5;
   o.j = b(0); o.w = b(3) || o.d; o.p = b(4);
-  const dash = b(1) || b(2), flip = b(5), start = b(9);
+  const dash = b(1) || b(2), flip = b(5), start = b(9), back = b(8) || b(6);
+  // View/Back or the left trigger steps back a second; keep holding to keep going back
+  if (back && $('overlay').hidden && (!padPrev.back || performance.now() - padBackT > 280)) { padBackT = performance.now(); rewind(); }
   o.jumpE = o.j && !padPrev.j; o.dashE = dash && !padPrev.dash; o.flipE = flip && !padPrev.flip;
   if (start && !padPrev.start) { $('overlay').hidden ? menu() : hideCard(); }
   const open = !$('overlay').hidden, dirs = { l: o.l, r: o.r, u: o.u, d: o.d };
@@ -1488,7 +1492,7 @@ function readPad() {
     if (dash && !padPrev.dash) hideCard();
     o.jumpE = o.dashE = false;
   }
-  padPrev = { j: o.j, dash, flip, start, ...dirs };
+  padPrev = { j: o.j, dash, flip, start, back, ...dirs };
   return o;
 }
 window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED · A JUMP · X DASH'); const k = document.querySelector('.keys'); if (k) k.textContent = 'Ⓐ jump · Ⓧ/Ⓑ dash · Ⓨ hourglass · LB staff · RB flip · stick to move and aim · Start levels'; });
@@ -1588,9 +1592,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 152, t: 'made a mistake? Press ⟲ BACK (or T, or Backspace) to step back one second: the sun, your shadow and every enemy return to where they were.' };
+const WHATS_NEW = { v: 153, t: 'controllers can step back too: View/Back or the left trigger rewinds a second, and holding it keeps going; each step back now flashes a soft violet wash (off with Reduce motion).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Controller View/Back or left trigger steps back in time.',
   '⟲ BACK steps time back one second.',
   'B-sides have their own minor-key music.',
   'B-side wins show your progress toward the Far Side.',
@@ -1599,8 +1604,7 @@ const NEWS = [
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
   'Thorns and resting stones are easier to see.',
   'New B-side: Under the Chime (B-side of Hour Chime).',
-  'Assist: Closer view gives tall phones bigger pixels.',
-  'B-sides show which dial they belong to, and NEW until you try them.',];
+  'Assist: Closer view gives tall phones bigger pixels.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
