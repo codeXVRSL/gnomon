@@ -1873,11 +1873,12 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 58, t: 'a new B-side, Plant the Hour B: a cloud hides your staff\'s shadow too.' };
+const WHATS_NEW = { v: 59, t: 'the title screen shows a colour stripe for each chapter postcard you have earned.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
     <canvas id="tDial" width="200" height="96" style="width:100%;image-rendering:pixelated;border-radius:4px;background:#1c1636"></canvas>
+    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const N = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const got = N.map((_, k) => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return got.some(Boolean) ? `<div style="display:flex;gap:4px;margin:6px 0 2px" aria-label="Chapter postcards">${N.map((n, k) => `<span title="${n}${got[k] ? ' postcard' : ''}" style="flex:1;height:6px;border-radius:3px;background:${got[k] ? window.CHC[k] : 'transparent'};border:1px solid ${got[k] ? window.CHC[k] : 'var(--ink-3)'}"></span>`).join('')}</div>` : ''; })()}
     ${save.seenVer !== WHATS_NEW.v && save.seen ? `<p class="sub" style="color:var(--brass)">New: ${WHATS_NEW.t}</p>` : ''}
     <p>Your shadow is the hand of a sundial. It lives upside-down below you, copies every move, and swings with a sun that only moves when you do.</p>
     <div class="row"><button class="btn primary" id="tPlay">${cont ? `Continue<small style="display:block;font-size:10px;opacity:.75;margin-top:2px">${LEVELS[li].name} · ${LEVELS.filter((l, i) => !l.custom && save.best[i]).length}/${LEVELS.filter(l => !l.custom).length} dials</small>` : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
