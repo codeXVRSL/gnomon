@@ -256,6 +256,15 @@ function startGhost(i, data, label) { const gl = parse(startOverride != null ? {
 let squashP = 1, squashS = 1, dawnTimer = 0, camX = 0, hitStop = 0, runFrames = 0, trail = [], touchJump = false, speedLines = 0;
 let save = { best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false };
 try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen: false, view25: false }, JSON.parse(localStorage.getItem('gnomon-v5')) || {}); } catch (e) {}
+// ---- progress is stored by stage NAME, so adding stages in an update never shuffles anyone's medals ----
+const V2_ORDER = ["The Hour Hand","High Noon","Passing Cloud","Meet at Dusk","Two Worlds","Mirror Steps","Hold Still","Turn the Dial","Backward Sun","Yesterday's Cloud","Eclipse","Stone Hours","Still Water","Sunstones","Hour Chime","Lantern Walk","Falling Stones","Spring Tide","Upside Dusk","Gnomon","The Deep Dial"];
+const RENAMED = { 'Hold Still': 'Plant the Hour', 'Still Water': 'Bright Water' };
+if (!save.byName) { // one-time migration from index-keyed saves (written by the version on the main link)
+  for (const f of ['best', 'medal', 'shards', 'times', 'ghost']) { const o = save[f] || {}, n = {}; for (const k in o) { const nm = /^\d+$/.test(k) ? V2_ORDER[+k] : k; if (nm) n[RENAMED[nm] || nm] = o[k]; } save[f] = n; }
+  save.atName = V2_ORDER[save.at] ? (RENAMED[V2_ORDER[save.at]] || V2_ORDER[save.at]) : null; save.byName = true;
+}
+const byName = obj => new Proxy(obj, { get: (o, k) => (typeof k === 'string' && /^\d+$/.test(k) && LEVELS[+k]) ? o[LEVELS[+k].name] : o[k], set: (o, k, v) => { o[(typeof k === 'string' && /^\d+$/.test(k) && LEVELS[+k]) ? LEVELS[+k].name : k] = v; return true; } });
+for (const f of ['best', 'medal', 'shards', 'times', 'ghost']) save[f] = byName(save[f] || {});
 const DEMO = LEVELS.findIndex(l => l.demo);
 // ---- Daily Sundial: one stage per calendar day, same for everyone ----
 const DAILY_EPOCH = Date.UTC(2026, 10, 1);
@@ -354,7 +363,7 @@ function load(i) {
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
-  save.at = i; persist();
+  save.at = i; save.atName = LEVELS[i].name; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open');
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
@@ -1169,7 +1178,7 @@ $('rotBtn').onclick = async () => {
 window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('viewBtn').classList.toggle('on', save.view25);
 
 function start(data) {
-  const i = data && Number.isInteger(data.li) ? data.li : (save.at || 0);
+  const i = data && Number.isInteger(data.li) ? data.li : Math.max(0, save.atName ? LEVELS.findIndex(l => l.name === save.atName) : 0);
   load(Math.min(i, LEVELS.length - 1));
   { const em = location.hash.match(/^#e=(.+)$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); playCustom(); toast('A FRIEND\'S STAGE'); return; } catch (e) {} } }
   { const m = location.hash.match(/^#g=(\d+)~([\d.]*)~([0-9a-z._]+)$/); if (m && LEVELS[+m[1]]) { const gi = +m[1]; friendGhost = { li: gi, data: unrle(m[3]) }; save.seen = true; requestAnimationFrame(loop); if (m[2] !== '') { dailyMode = true; startOverride = +m[2]; } hideCard(); load(gi); toast('RACE YOUR FRIEND\'S GHOST'); return; } }
