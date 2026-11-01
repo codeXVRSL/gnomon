@@ -1081,8 +1081,8 @@ function win() {
     if (chRun.ids[chRun.i] === li && !dailyMode) {
       chRun.f += runFrames; chRun.i++;
       const fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
-      if (chRun.i < chRun.ids.length) { toast(`SPLIT ${chRun.i}/${chRun.ids.length} · ${fmt(chRun.f / 60)}`); const nx = chRun.ids[chRun.i]; setTimeout(() => { if (chRun) load(nx); }, 650); return; }
-      const k = chRun.k, secs = chRun.f / 60; save.chRuns = save.chRuns || {}; const pb = save.chRuns[k], isPB = !pb || secs < pb; if (isPB) save.chRuns[k] = secs; persist(); chRun = null;
+      if (chRun.i < chRun.ids.length) { (() => { const cur = chRun.f / 60, best = ((save.chSplits || {})[chRun.k] || [])[chRun.i - 1]; chRun.splits = chRun.splits || []; chRun.splits.push(cur); const d = best != null ? cur - best : null; toast(`SPLIT ${chRun.i}/${chRun.ids.length} · ${fmt(cur)}${d != null ? ` (${d <= 0 ? '−' : '+'}${Math.abs(d).toFixed(1)})` : ''}`); })(); const nx = chRun.ids[chRun.i]; setTimeout(() => { if (chRun) load(nx); }, 650); return; }
+      const k = chRun.k, secs = chRun.f / 60; save.chRuns = save.chRuns || {}; const pb = save.chRuns[k], isPB = !pb || secs < pb; if (isPB) { save.chRuns[k] = secs; save.chSplits = save.chSplits || {}; save.chSplits[k] = (chRun.splits || []).concat([secs]); } persist(); chRun = null;
       showCard(`${k === 6 ? '' : postcard(k)}<h2>${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night', 'Full game'][k]} run</h2><div class="stat"><span><b>${fmt(secs)}</b>TIME</span><span><b>${fmt(isPB ? secs : pb)}</b>${isPB ? 'NEW BEST' : 'BEST'}</span></div>
         <div class="row"><button class="btn" id="chShare">Share time</button><button class="btn" id="chAgain">Run again</button><button class="btn primary" id="chDone">Done</button></div>`);
       $('chShare').onclick = async () => { const txt = `Gnomon · ${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night', 'Full game'][k]} run ${fmt(secs)}${isPB ? ' (new best)' : ''}\n${location.href.split('#')[0].split('?')[0]}`; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) { copyCard('Share', txt); } } };
@@ -2103,9 +2103,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 162, t: 'stepping back several times in a row now counts up (⟲ 3 SECONDS BACK), and Stats shows how many seconds you have rewound in total.' };
+const WHATS_NEW = { v: 163, t: 'chapter runs and the Full run now compare every split with your best run: SPLIT 3/5 · 0:41.2 (−1.8).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Run splits show + or − against your best.',
   'Rewinds count up, and Stats totals the seconds rewound.',
   'Photos keep your Screen look.',
   'New B-side: Backward Noon (B-side of Backward Sun).',
@@ -2114,8 +2115,7 @@ const NEWS = [
   'Opening a dial shows the hour to beat for its sun medal.',
   'Full run: all 31 dials on one clock.',
   'Beaten dials show your record when you open them.',
-  'A one-time tip points new players to ⟲ BACK.',
-  'Controller View/Back or left trigger steps back in time.',];
+  'A one-time tip points new players to ⟲ BACK.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
