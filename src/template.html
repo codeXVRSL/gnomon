@@ -36,6 +36,9 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 #game{image-rendering:pixelated;image-rendering:crisp-edges;display:block;touch-action:none;transition:transform .9s cubic-bezier(.65,-.25,.3,1.25)}
 #stage{perspective:600px}
 #game.eclipse{transform:rotate(180deg)}
+body.lefty .controls{flex-direction:row-reverse}
+@media (orientation: landscape){body.lefty .move{grid-area:right;justify-self:end}body.lefty .right{grid-area:left;justify-self:start}body.lefty #app{grid-template-columns:minmax(200px,220px) 1fr minmax(120px,170px)!important}}
+@media (orientation: landscape) and (max-height: 460px){body.lefty #app{grid-template-columns:minmax(186px,200px) 1fr minmax(110px,150px)!important}}
 body.calm #game{transition:none}
 #toast{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-family:var(--display);font-size:12px;background:rgba(25,21,41,.9);color:var(--brass);padding:6px 10px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
 #toast.show{opacity:1}
@@ -362,6 +365,7 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
+  if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
   wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
@@ -566,10 +570,14 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aDash" ${a.dash ? 'checked' : ''}> Infinite dashes</label>
     <label class="toggle"><input type="checkbox" id="aInv" ${a.inv ? 'checked' : ''}> Invincible (spikes, lamps and hawks can't hurt you)</label>
     <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
+    <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
+    <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
   $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
+  $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
+  $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu;
 }
@@ -688,7 +696,7 @@ function drawBody(img, x, y, w, h, sq, anchorBottom) {
 
 function render(now) {
   const t = st.t, night = st.sleeping, flipped = st.grav < 0, v25 = save.view25;
-  document.body.classList.toggle('calm', calm());
+  document.body.classList.toggle('calm', calm()); document.body.classList.toggle('lefty', !!(save.assist && save.assist.lefty));
   const ecl = !night && !!LEVELS[li].eclipse && eclipsed(t);
   if (ecl !== cv.classList.contains('eclipse')) cv.classList.toggle('eclipse', ecl);
   g.setTransform(1, 0, 0, 1, Math.round(shakeX), Math.round(shakeY));
@@ -1187,8 +1195,8 @@ window.addEventListener('keyup', e => { const k = KMAP[e.key]; if (UPKEYS.has(e.
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = 0; });
 document.querySelectorAll('.ctl').forEach(b => {
   const k = b.dataset.k;
-  b.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') touchJump = true; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} if (k === 'j') jumpEdge = true; if (k === 'f') flipEdge = true; if (k === 'x') dashEdge = true; keys[k] = 1; b.classList.add('on'); });
-  const up = () => { keys[k] = 0; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', e => { if (k === 'w' && save.assist && save.assist.waitToggle) { e.preventDefault(); keys.w = keys.w ? 0 : 1; b.classList.toggle('on', !!keys.w); return; } if (e.pointerType !== 'mouse') touchJump = true; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} if (k === 'j') jumpEdge = true; if (k === 'f') flipEdge = true; if (k === 'x') dashEdge = true; keys[k] = 1; b.classList.add('on'); });
+  const up = () => { if (k === 'w' && save.assist && save.assist.waitToggle) return; keys[k] = 0; b.classList.remove('on'); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
   b.addEventListener('contextmenu', e => e.preventDefault());
 });
@@ -1216,7 +1224,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 21, t: 'an Epilogue with an ending, a Night chapter, five B-sides (new: Night Walk B), ghost races and a stage maker.' };
+const WHATS_NEW = { v: 25, t: 'controller support, speedrun splits in Stats, a left-handed layout and tap-to-toggle hourglass (Assist), plus Night Walk B.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
