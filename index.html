@@ -1330,6 +1330,7 @@ function render(now) {
   for (let y = 0; y < HZ; y += 6) { g.fillStyle = mix(top, low, y / HZ); g.fillRect(-4, y, W + 8, 6); }
   if (night) {
     { const fade = Math.min(1, Math.max(0, (t - 7.1) / 0.5)); for (let i = 0; i < 34; i++) { const x = ((i * 0.6180339887) % 1) * W | 0, y = ((i * 0.7548776662) % 1) * 62 + 2 | 0, tw = (0.35 + 0.6 * Math.abs(Math.sin(now / 1100 + i * 1.7))) * fade; g.fillStyle = `rgba(232,224,255,${tw.toFixed(2)})`; g.fillRect(x, y, 1, 1); } }
+    { const per = 19000, ph = now % per, n = Math.floor(now / per); if (ph < 700 && t > 7.4 && !calm()) { const q = ph / 700, x0 = ((n * 0.618) % 1) * W * 0.7 + W * 0.15, y0 = 6 + ((n * 0.754) % 1) * 20, x = x0 + q * 46, y = y0 + q * 16; for (let k = 0; k < 8; k++) { g.fillStyle = `rgba(240,234,255,${((1 - k / 8) * (1 - q) * 0.9).toFixed(2)})`; g.fillRect(Math.round(x - k * 2.6), Math.round(y - k * 0.9), 1, 1); } } } // a shooting star now and then
     const k = (t - DUSK) / (DAY_TOTAL - DUSK), mx = 20 + k * (W - 40), my = 30 - Math.sin(k * Math.PI) * 18;
     g.fillStyle = '#efe7ff'; g.fillRect(mx - 2, my - 4, 4, 8); g.fillRect(mx - 4, my - 2, 8, 4); g.fillRect(mx - 3, my - 3, 6, 6); g.fillStyle = mix(top, low, my / HZ); g.fillRect(mx, my - 3, 3, 6); g.fillRect(mx - 1, my - 2, 5, 4);
     g.fillStyle = 'rgba(239,231,255,.10)'; g.beginPath(); g.arc(mx, my, 8, 0, 6.29); g.fill(); // soft halo over the pixel crescent
@@ -1953,7 +1954,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 94, t: 'fixed a randomness bug: grass flowers, brick mortar and water sparkles now show up as intended.' };
+const WHATS_NEW = { v: 95, t: 'watch the night sky: a shooting star crosses it now and then.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
