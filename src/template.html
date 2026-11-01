@@ -404,6 +404,16 @@ function load(i) {
   resize();
 }
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
+// a plate goes down: a stream of sparks flies from it to the gate it opens, so the link is visible, not just audible
+function linkSparks(k) {
+  const pl = [], ga = [];
+  for (let y = 0; y < L.grid.length; y++) for (let x = 0; x < L.grid[y].length; x++) { const c = L.grid[y][x]; if (c === k.toLowerCase()) pl.push([x, y]); else if (c === k) ga.push([x, y]); }
+  if (!pl.length || !ga.length) return;
+  const [qx, qy] = pl.reduce((b, q) => Math.hypot(q[0] * TS - st.p.x, q[1] * TS - st.p.y) < Math.hypot(b[0] * TS - st.p.x, b[1] * TS - st.p.y) ? q : b);
+  const [gx, gy] = ga.reduce((b, q) => Math.hypot(q[0] - qx, q[1] - qy) < Math.hypot(b[0] - qx, b[1] - qy) ? q : b);
+  const sx = qx * TS + 5, sy = qy * TS + 5, dx = gx * TS + 5 - sx, dy = gy * TS + 5 - sy, col = qy < HALF ? 'rgba(255,224,140,.95)' : 'rgba(199,180,255,.95)';
+  for (let i = 0; i < 10; i++) { const f = (.55 + i * .05) / 14.07; parts.push({ x: sx, y: sy, vx: dx * f, vy: dy * f, life: 36, col, link: 1 }); }
+}
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
 // stuck? after the third death of the same kind on a stage, a one-line tip (and the full hint opens)
@@ -469,6 +479,7 @@ function tick() {
   for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
   if ([...pr].some(k => !prevPr.has(k))) beep(660, .08, 'triangle', .05);
+  for (const k of pr) if (!prevPr.has(k)) linkSparks(k);
   handleEvents(prevP, prevS, prevG);
   for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vx *= .94; p.vy *= .94; p.life--; }
   parts = parts.filter(p => p.life > 0);
@@ -1489,9 +1500,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 125, t: 'gates and plates now carry matching dots: one dot opens one dot, two dots open two, so stages with several gates are easy to read.' };
+const WHATS_NEW = { v: 126, t: 'when a plate goes down, a stream of sparks flies to the gate it opens.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Pressing a plate sends sparks to the gate it opens.',
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
   'New B-side: Bright Staff (water shadow + staff).',
   'New B-side: Plant at Dusk (staff + hour mark).',
@@ -1500,8 +1512,7 @@ const NEWS = [
   'Race the solution ghost: the win card says who got there first.',
   'Beat a stage, then watch a solution ghost to compare routes.',
   'Every stage can now show you a solution ghost after ten falls.',
-  'Stuck on a hard stage? After ten falls a ghost can show you one way through.',
-  'Every B-side now has a step-by-step hint after six falls.',];
+  'Stuck on a hard stage? After ten falls a ghost can show you one way through.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
@@ -1578,7 +1589,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
+if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { linkSparks, keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
