@@ -990,6 +990,8 @@ function postcard(k) {
     <text x="10" y="18" font-family="monospace" font-size="9" fill="#fff" opacity=".8">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] || ''} · COMPLETE</text>
   </svg>`;
 }
+let chRun = null;
+function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast('CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
 function win() {
   const hrs = st.hours, prev = save.best[li], par = (dailyMode && realPar) || LEVELS[li].par || hrs;
   const medal = hrs <= par * 1.15 ? 3 : hrs <= par * 1.6 ? 2 : 1;
@@ -1003,6 +1005,17 @@ function win() {
   persist();
   const ord = order(), pos = ord.indexOf(li), lastLv = pos === ord.length - 1;
   { const key = [0, 2, 4, 5, 7, -3, 9][Math.max(0, Math.min(6, Math.floor(pos / 5)))]; [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f * Math.pow(2, key / 12), .14, 'triangle', .06), i * 90)); } // the win tune rises chapter by chapter
+  if (chRun) { // chapter run: five stages back to back on one clock
+    if (chRun.ids[chRun.i] === li && !dailyMode) {
+      chRun.f += runFrames; chRun.i++;
+      const fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
+      if (chRun.i < chRun.ids.length) { toast(`SPLIT ${chRun.i}/5 · ${fmt(chRun.f / 60)}`); const nx = chRun.ids[chRun.i]; setTimeout(() => { if (chRun) load(nx); }, 650); return; }
+      const k = chRun.k, secs = chRun.f / 60; save.chRuns = save.chRuns || {}; const pb = save.chRuns[k], isPB = !pb || secs < pb; if (isPB) save.chRuns[k] = secs; persist(); chRun = null;
+      showCard(`${postcard(k)}<h2>${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run</h2><div class="stat"><span><b>${fmt(secs)}</b>TIME</span><span><b>${fmt(isPB ? secs : pb)}</b>${isPB ? 'NEW BEST' : 'BEST'}</span></div>
+        <div class="row"><button class="btn" id="chAgain">Run again</button><button class="btn primary" id="chDone">Done</button></div>`);
+      $('chAgain').onclick = () => startChRun(k); $('chDone').onclick = hideCard; return;
+    } else chRun = null;
+  }
   if (dailyMode) { dailyWin(hrs, par, medal); return; }
   if (LEVELS[li].epilogue) {
     const won = LEVELS.filter((l, i) => save.best[i] && !l.custom).length;
@@ -1204,7 +1217,7 @@ function stats() {
   showCard(`<h2>Stats</h2>
     <div class="stat"><span><b>${won}/${main.length}</b>DIALS</span><span><b>${count(3)}</b>☀ SUN</span><span><b>${count(2)}</b>☾ MOON</span>${(() => { const sh = f => [main.filter(i => f(LEVELS[i])).reduce((a, i) => a + (save.shards[i] || 0), 0), main.filter(i => f(LEVELS[i])).reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0)]; const [a, b] = sh(l => !l.bside && !l.demo), [c, d] = sh(l => l.bside); return `<span><b>${a}/${b}</b>SHARDS</span>${d ? `<span><b>${c}/${d}</b>B-SIDE SHARDS</span>` : ''}`; })()}</div>
     ${(() => { const CH = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); let total = 0, full = true; const fmt = s => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
-      const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}</span>`; }).join('');
+      const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; const won5 = ids.every(i => save.best[i]), cr = save.chRuns && save.chRuns[k]; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}${won5 ? `<button class="btn" data-ch="${k}" style="padding:3px 6px;font-size:10px;margin-top:4px" title="Play all five ${c} stages back to back">▶ RUN${cr ? ' ' + fmt(cr) : ''}</button>` : ''}</span>`; }).join('');
       return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
     ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
     ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/6</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k]}</div>`).join('')}</div>`; })()}
@@ -1212,6 +1225,7 @@ function stats() {
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
   $('stDone').onclick = menu;
+  document.querySelectorAll('#card [data-ch]').forEach(b => b.onclick = () => startChRun(+b.dataset.ch));
 }
 // rebind keys: pick an action, press a key; the defaults keep working too
 function keysCard() {
@@ -1905,7 +1919,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 64, t: 'volume sliders for effects and music, in Assist.' };
+const WHATS_NEW = { v: 65, t: 'chapter runs: play a whole chapter back to back on one clock, from Stats.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
