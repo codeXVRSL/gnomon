@@ -446,8 +446,8 @@ function win() {
   save.medal = save.medal || {}; save.medal[li] = Math.max(save.medal[li] || 0, medal);
   save.shards[li] = Math.max(save.shards[li] || 0, st.shardsGot);
   persist();
-  [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
   const ord = order(), pos = ord.indexOf(li), lastLv = pos === ord.length - 1;
+  { const key = [0, 2, 4, 5, 7, -3, 9][Math.max(0, Math.min(6, Math.floor(pos / 5)))]; [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f * Math.pow(2, key / 12), .14, 'triangle', .06), i * 90)); } // the win tune rises chapter by chapter
   if (dailyMode) { dailyWin(hrs, par, medal); return; }
   showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
