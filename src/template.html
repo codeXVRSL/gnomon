@@ -1264,6 +1264,14 @@ function applyKeymap() { for (const [k, a] of Object.entries((save.keymap) || {}
 applyKeymap();
 // ---- controllers (standard mapping): stick/d-pad move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start = levels ----
 let padPrev = {};
+let padRep = 0;
+function padNav(k) {
+  const a = document.activeElement, key = { l: 'ArrowLeft', r: 'ArrowRight', u: 'ArrowUp', d: 'ArrowDown' }[k];
+  if (a && a.classList && a.classList.contains('lv-btn')) { window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return; }
+  const f = [...$('card').querySelectorAll('button:not([disabled]), input, select')].filter(x => x.offsetParent !== null);
+  if (!f.length) return; const i = f.indexOf(a), step = k === 'l' || k === 'u' ? -1 : 1;
+  const n = f[i < 0 ? 0 : (i + step + f.length) % f.length]; n.focus(); n.scrollIntoView({ block: 'nearest' });
+}
 function readPad() {
   const o = { l: false, r: false, u: false, d: false, j: false, w: false, p: false, jumpE: false, dashE: false, flipE: false };
   const pads = navigator.getGamepads ? navigator.getGamepads() : []; const gp = pads && [...pads].find(p => p && p.connected);
@@ -1274,8 +1282,15 @@ function readPad() {
   const dash = b(1) || b(2), flip = b(5), start = b(9);
   o.jumpE = o.j && !padPrev.j; o.dashE = dash && !padPrev.dash; o.flipE = flip && !padPrev.flip;
   if (start && !padPrev.start) { $('overlay').hidden ? menu() : hideCard(); }
-  if (o.j && !padPrev.j && !$('overlay').hidden) { const btn = document.querySelector('#card .btn.primary'); if (btn) btn.click(); }
-  padPrev = { j: o.j, dash, flip, start };
+  const open = !$('overlay').hidden, dirs = { l: o.l, r: o.r, u: o.u, d: o.d };
+  if (open) { // menus: d-pad / stick moves focus, A presses, B backs out
+    const now = performance.now();
+    for (const k of ['l', 'r', 'u', 'd']) if (dirs[k] && (!padPrev[k] || now - padRep > 260)) { padRep = now; padNav(k); break; }
+    if (o.j && !padPrev.j) { const a = document.activeElement, btn = a && $('card').contains(a) && a.matches('button,input') ? a : document.querySelector('#card .btn.primary'); if (btn) btn.click(); }
+    if (dash && !padPrev.dash) hideCard();
+    o.jumpE = o.dashE = false;
+  }
+  padPrev = { j: o.j, dash, flip, start, ...dirs };
   return o;
 }
 window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED · A JUMP · X DASH'); const k = document.querySelector('.keys'); if (k) k.textContent = 'Ⓐ jump · Ⓧ/Ⓑ dash · Ⓨ hourglass · LB staff · RB flip · stick to move and aim · Start levels'; });
@@ -1360,7 +1375,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 54, t: 'use the arrow keys to pick a stage in the Dials list.' };
+const WHATS_NEW = { v: 55, t: 'controllers can now drive the menus: d-pad to move, A to pick, B to back out.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
