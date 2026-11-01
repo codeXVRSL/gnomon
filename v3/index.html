@@ -1224,6 +1224,9 @@ let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#', edZoo
 const edBlank = () => { const m = []; for (let y = 0; y < ROWS; y++) m.push((y === HALF - 1 || y === HALF ? '#' : '.').repeat(20).split('')); m[HALF - 2][1] = 'S'; m[HALF - 2][18] = 'G'; return m; };
 const edEncode = () => { const s = edMap.map(r => r.join('')).join('|'); let o = ''; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i]) j++; o += (j - i > 1 ? (j - i) : '') + s[i]; i = j; } return edOpts.h + '!' + (edOpts.cast ? 1 : 0) + (edOpts.sun ? 1 : 0) + '!' + o; };
 const edDecode = str => { const [h, fl, body] = str.split('!'); let s = ''; for (const m of body.matchAll(/(\d*)(\D)/g)) s += m[2].repeat(m[1] ? +m[1] : 1); const rows = s.split('|'); if (rows.length !== ROWS) throw 0; return { map: rows.map(r => r.split('')), opts: { h: +h, cast: fl[0] === '1', sun: fl[1] === '1' } }; };
+// official stages that fit the stage maker (20 wide, only maker tiles, no special skies), once you have beaten them
+const REMIX_BAN = ['clouds', 'eclipse', 'partial', 'sunRate', 'hourPx', 'lampR', 'duskFail', 'epilogue', 'demo', 'custom'];
+function remixable() { const ok = new Set(ED_TILES.map(t => t[0])); return LEVELS.map((_, i) => i).filter(i => { const l = LEVELS[i]; return save.best[i] && l.map.length === ROWS && l.map.every(r => r.length === 20 && [...r].every(c => ok.has(c))) && !REMIX_BAN.some(k => k in l); }); }
 function customDef() { const d = { name: 'Your stage', custom: true, startHour: edOpts.h, cast: edOpts.cast, hint: 'A stage made in the stage maker. Press LEVELS to go back and edit it.', map: edMap.map(r => r.join('')) }; if (edOpts.sun) { d.sunRate = 0.06; d.duskFail = true; d.hourPx = 400; } return d; }
 function playCustom() {
   const m = edMap.map(r => r.join('')).join('');
@@ -1249,6 +1252,7 @@ function editor(fromLink) {
     <div class="row" style="justify-content:space-between"><button class="btn" id="edZoom">${edZoom < 0 ? 'Zoom in' : 'Whole map'}</button>${edZoom < 0 ? '' : `<button class="btn" id="edSide">${edZoom === 0 ? 'Right half ▶' : '◀ Left half'}</button>`}</div>
     <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(${x1 - x0},1fr)">${cells}</div>
     <div class="ed-pal">${ED_TILES.map(([c, n, col], k) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}" title="${n}${k < 10 ? ' (key ' + ((k + 1) % 10) + ')' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
+    ${(() => { const r = remixable(); return r.length ? `<label class="toggle">Remix <select id="edFrom" style="flex:1"><option value="">a dial you have beaten…</option>${r.map(i => `<option value="${i}">${LEVELS[i].name}</option>`).join('')}</select></label>` : ''; })()}
     <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
     <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
@@ -1273,6 +1277,7 @@ function editor(fromLink) {
   if ($('edSide')) $('edSide').onclick = () => { edZoom = 1 - edZoom; editor(); };
   $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()) + (save.edVerified === edEncode() ? '!v' : ''); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage' + (save.edVerified === edEncode() ? ' (verified: I beat it)' : ''), url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { copyCard('Your stage link', url, () => editor()); } };
   $('edUndo').onclick = () => { if (!edUndo.length) return; edMap = edUndo.pop(); save.edit = edEncode(); persist(); editor(); };
+  if ($('edFrom')) $('edFrom').onchange = e => { const i = +e.target.value; if (!e.target.value) return; edSnap(); const lv = LEVELS[i]; edMap = lv.map.map(r => r.split('')); edOpts = { h: lv.startHour, cast: !!lv.cast, sun: false }; save.edit = edEncode(); persist(); editor(); toast('REMIXING ' + lv.name.toUpperCase()); };
   $('edClear').onclick = () => { edSnap(); edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
   $('edBack').onclick = menu;
 }
@@ -2031,9 +2036,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 135, t: 'a new B-side, Stone Nights: pale stones, dark stones, then a wall only your sleeping shadow can get past.' };
+const WHATS_NEW = { v: 136, t: 'the stage maker can remix any dial you have beaten: pick it from the Remix list, change it, share it.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Stage maker: remix any dial you have beaten.',
   'New B-side: Stone Nights (B-side of Stone Hours).',
   'Screen readers announce stages, gates opening and closing, falls and wins.',
   'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
@@ -2042,8 +2048,7 @@ const NEWS = [
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
   'Switching tabs or locking your phone hushes the music until you return.',
   'Stage maker: a second gate and plate pair, for stages with two locks.',
-  'Opened a gate off screen? A blinking tag on the edge points to it.',
-  'Pressing a plate sends sparks to the gate it opens.',];
+  'Opened a gate off screen? A blinking tag on the edge points to it.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
