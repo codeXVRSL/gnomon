@@ -1395,10 +1395,11 @@ function render(now) {
   // ---- decor: trees and posts, and their shadows sliding with the hour in the world below (just scenery) ----
   if (decor.length) {
     const showSh = !night && t < DUSK && !isGone(t) && !eclipsed(t), dxs = showSh ? castDx(t) : 0;
+    const windy = !calm() && !night && (LEVELS[li].clouds || []).some(([a, b]) => t > a - 0.5 && t < b + 0.2); // trees sway as a cloud's wind passes
     for (const d of decor) {
       const base = HZ - TS, x = d.x;
       if (showSh) { const sx = Math.round(x + dxs), len = Math.round(d.h * (0.5 + Math.abs(dxs) / 90)); g.fillStyle = 'rgba(10,6,24,.16)'; g.fillRect(sx + 1, HZ + TS, 3, len); if (d.kind === 'tree') g.fillRect(sx - 1, HZ + TS + len - Math.round(d.h * .3), 7, Math.round(d.h * .3)); }
-      if (d.kind === 'tree') { g.fillStyle = '#5a4030'; g.fillRect(x + 2, base - d.h * .45, 2, d.h * .45); g.fillStyle = '#3f6a48'; g.beginPath(); g.arc(x + 3, base - d.h * .62, d.h * .33, 0, 6.29); g.fill(); g.fillStyle = '#5c8f5e'; g.fillRect(x, base - d.h * .8, 3, 2); }
+      if (d.kind === 'tree') { const sw = windy ? Math.round(Math.sin(now / 260 + x * 0.3) * 1.6) : 0; g.fillStyle = '#5a4030'; g.fillRect(x + 2, base - d.h * .45, 2, d.h * .45); g.fillStyle = '#3f6a48'; g.beginPath(); g.arc(x + 3 + sw, base - d.h * .62, d.h * .33, 0, 6.29); g.fill(); g.fillStyle = '#5c8f5e'; g.fillRect(x + sw, base - d.h * .8, 3, 2); }
       else { g.fillStyle = '#6b5a48'; g.fillRect(x + 1, base - d.h, 2, d.h); g.fillStyle = '#c9a86a'; g.fillRect(x - 1, base - d.h, 6, 2); }
     }
   }
@@ -1964,7 +1965,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 98, t: 'fireflies come out in the last hour before night.' };
+const WHATS_NEW = { v: 100, t: 'round 100: trees sway in the wind as a cloud passes, fireflies at dusk, birds at dawn, stars at night.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
