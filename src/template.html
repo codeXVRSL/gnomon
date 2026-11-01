@@ -1097,7 +1097,7 @@ function render(now) {
     const gp = ghost.st.p, gs = ghost.st.s;
     g.globalAlpha = .38; g.drawImage(S['p' + (ghost.st.face > 0 ? 0 : 1) + (ghost.st.grav < 0 ? 1 : 0)], Math.round(gp.x) - 4, Math.round(gp.y) - 4);
     if (!gs.gone) { g.globalAlpha = .22; g.drawImage(S['s' + (ghost.st.face > 0 ? 0 : 1) + (ghost.st.grav < 0 ? 0 : 1)], 0, 0, 16, 15, Math.round(gs.x) - 4, Math.round(gs.y) - 1, 16, 14); }
-    g.globalAlpha = .7; g.fillStyle = ghost.label === 'FRIEND' ? '#9fe8ff' : '#ffd25e'; g.font = '5px monospace'; g.fillText(ghost.label, Math.round(gp.x) - 4, Math.round(gp.y) - 6); g.globalAlpha = 1;
+    g.globalAlpha = .7; g.fillStyle = ghost.label === 'FRIEND' ? '#9fe8ff' : ghost.label === 'SOLUTION' ? '#c7b4ff' : '#ffd25e'; g.font = '5px monospace'; g.fillText(ghost.label, Math.round(gp.x) - 4, Math.round(gp.y) - 6); g.globalAlpha = 1;
   }
   const airborne = !p.ground && !night;
   const runPh = Math.floor(now / 90) % 4, falling = airborne && p.vy * (flipped ? -1 : 1) > 1.2;
