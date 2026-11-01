@@ -205,7 +205,7 @@ body.calm #game{transition:none}
   </div>
   <div class="meta">
     <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
-    <div class="metaR"><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
+    <div class="metaR"><span id="dashPip" title="Dash ready" style="color:#ffb347">●</span><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
   <div id="stage"><canvas id="game" width="240" height="168" aria-label="Game screen"></canvas><div id="toast"></div></div>
@@ -1550,7 +1550,7 @@ function render(now) {
   $('shards').textContent = `✦ ${st.shardsGot}/${L.shards.length}`;
   $('falls').textContent = `☠ ${st.deaths}`;
   { const sec = runFrames / 60; $('timer').textContent = Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); }
-  { const db = document.querySelector('.ctl.dash'); if (db) db.classList.toggle('spent', st.dashes === 0 || st.dashT > 0); }
+  { const db = document.querySelector('.ctl.dash'), spent = st.dashes === 0 || st.dashT > 0; if (db) db.classList.toggle('spent', spent); const pip = $('dashPip'); if (pip) { pip.textContent = spent ? '○' : '●'; pip.style.color = spent ? '#6aa8ff' : '#ffb347'; pip.title = spent ? 'Dash used: land or touch a crystal' : 'Dash ready'; } }
 }
 
 // ---------- 2.5D camera: cabinet extrusion of every solid block ----------
