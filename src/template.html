@@ -295,7 +295,10 @@ const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0, dn: 0 }; let jump
 function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').classList.toggle('on', save.view25); toast(save.view25 ? 'CAMERA · 2.5D' : 'CAMERA · FLAT'); beep(520, .08, 'sine', .04, 1.4); }
 
 // ---------- audio ----------
-let ac = null, muted = false;
+let ac = null, muted = false, sfxBus = null, musBus = null;
+const VOL = () => (save.vol = save.vol || { sfx: 1, mus: 1 });
+function sfxOut() { if (!sfxBus) { sfxBus = ac.createGain(); sfxBus.connect(ac.destination); } sfxBus.gain.value = VOL().sfx; return sfxBus; }
+function musOut() { if (!musBus) { musBus = ac.createGain(); musBus.connect(ac.destination); } musBus.gain.value = VOL().mus; return musBus; }
 // ---------- adaptive music: one loop, four layers that follow the game's time of day ----------
 // Key of D major pentatonic by day; the night layer bends to D minor. Tempo 84 BPM, 8th-note grid.
 const MUSIC = { bpm: 84, on: true, started: false, step: 0, next: 0, bus: null, layers: {} };
@@ -307,7 +310,7 @@ function musicInit() {
   if (MUSIC.bus || !ac) return;
   MUSIC.bus = ac.createGain(); MUSIC.bus.gain.value = 0.0;
   const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
-  MUSIC.bus.connect(lp).connect(ac.destination); MUSIC.lp = lp;
+  MUSIC.bus.connect(lp).connect(musOut()); MUSIC.lp = lp;
   for (const k of ['pad', 'bass', 'arp', 'bell']) { const g = ac.createGain(); g.gain.value = 0; g.connect(MUSIC.bus); MUSIC.layers[k] = g; }
   MUSIC.bus.gain.setTargetAtTime(0.55, ac.currentTime, 1.5);
   MUSIC.next = ac.currentTime + 0.1;
@@ -349,7 +352,7 @@ function musicTick() {
     MUSIC.step++; MUSIC.next += spb;
   }
 }
-function hourChime() { if (!ac || muted || !MUSIC.on) return; const now = ac.currentTime; [74, 81, 86].forEach((n, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = NOTE(n); g.gain.setValueAtTime(0.0001, now + i * 0.09); g.gain.exponentialRampToValueAtTime(0.05, now + i * 0.09 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 1.6); o.connect(g).connect(ac.destination); o.start(now + i * 0.09); o.stop(now + i * 0.09 + 1.7); }); }
+function hourChime() { if (!ac || muted || !MUSIC.on) return; const now = ac.currentTime; [74, 81, 86].forEach((n, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = NOTE(n); g.gain.setValueAtTime(0.0001, now + i * 0.09); g.gain.exponentialRampToValueAtTime(0.05, now + i * 0.09 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 1.6); o.connect(g).connect(musOut()); o.start(now + i * 0.09); o.stop(now + i * 0.09 + 1.7); }); }
 function audioUnlock() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); musicInit(); } catch (e) {} }
 ['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, audioUnlock, { passive: true }));
 setInterval(musicTick, 100);
@@ -365,11 +368,11 @@ function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
     o.type = type; o.frequency.value = f;
     if (slide) o.frequency.exponentialRampToValueAtTime(f * slide, ac.currentTime + d);
     gn.gain.setValueAtTime(v, ac.currentTime); gn.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d);
-    o.connect(gn).connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+    o.connect(gn).connect(sfxOut()); o.start(); o.stop(ac.currentTime + d);
   } catch (e) {}
 }
 const cloudWarned = new Set();
-function whoosh() { if (muted) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const n = ac.sampleRate * 1.2 | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(), t0 = ac.currentTime; src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + 0.6); f.frequency.exponentialRampToValueAtTime(250, t0 + 1.2); gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.2); src.connect(f).connect(gn).connect(ac.destination); src.start(); } catch (e) {} }
+function whoosh() { if (muted) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const n = ac.sampleRate * 1.2 | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(), t0 = ac.currentTime; src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + 0.6); f.frequency.exponentialRampToValueAtTime(250, t0 + 1.2); gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.2); src.connect(f).connect(gn).connect(sfxOut()); src.start(); } catch (e) {} }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
 function load(i) {
@@ -624,6 +627,8 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
     <label class="toggle"><input type="checkbox" id="aSwipe" ${a.noSwipe ? '' : 'checked'}> Swipe the game screen to dash (phones)</label>
     <label class="toggle"><input type="checkbox" id="aUpJump" ${a.upJump ? 'checked' : ''}> Up on the d-pad also jumps</label>
+    <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
+    <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
@@ -633,6 +638,9 @@ function assist() {
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
   $('aSwipe').onchange = e => { a.noSwipe = !e.target.checked; persist(); };
   $('aUpJump').onchange = e => { a.upJump = e.target.checked; persist(); };
+  $('aVs').oninput = e => { VOL().sfx = +e.target.value; if (sfxBus) sfxBus.gain.value = VOL().sfx; persist(); };
+  $('aVs').onchange = () => beep(660, .08, 'triangle', .05);
+  $('aVm').oninput = e => { VOL().mus = +e.target.value; if (musBus) musBus.gain.value = VOL().mus; persist(); };
   $('aWarn').onchange = e => { a.noWarn = !e.target.checked; persist(); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
@@ -1400,7 +1408,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 63, t: 'sound effects and music now switch separately, and your choice is remembered.' };
+const WHATS_NEW = { v: 64, t: 'volume sliders for effects and music, in Assist.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
