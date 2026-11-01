@@ -839,6 +839,10 @@ function render(now) {
     g.fillStyle = 'rgba(239,231,255,.10)'; g.beginPath(); g.arc(mx, my, 8, 0, 6.29); g.fill(); // soft halo over the pixel crescent
   } else {
     const k = t / DUSK, sx = 14 + k * (W - 28), sy = 46 - Math.sin(k * Math.PI) * 38;
+    if (Math.abs(t - NOON) < 0.45 && !calm()) { // heat shimmer on the far horizon around noon
+      const a = (1 - Math.abs(t - NOON) / 0.45) * 0.22;
+      for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < W; xx += 4) { const off = Math.sin(now / 160 + xx * 0.15 + yy) * 1.2; g.fillStyle = `rgba(255,250,230,${(a * (1 - yy / 4)).toFixed(3)})`; g.fillRect(xx, (HZ - 26 + yy * 2 + off) | 0, 3, 1); }
+    }
     if (t > 6 && t < 7 && !calm()) { // fireflies wake in the last hour before night
       const a = Math.min(1, (t - 6) / 0.4, (7 - t) / 0.15);
       for (let i = 0; i < 14; i++) { const fx = ((i * 0.618) % 1) * W + Math.sin(now / 900 + i * 2.1) * 6, fy = HZ - 30 + ((i * 0.754) % 1) * 22 + Math.cos(now / 700 + i) * 3, gl = 0.5 + 0.5 * Math.sin(now / 260 + i * 1.3);
@@ -1468,7 +1472,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 100, t: 'round 100: trees sway in the wind as a cloud passes, fireflies at dusk, birds at dawn, stars at night.' };
+const WHATS_NEW = { v: 101, t: 'the far horizon shimmers with heat around noon.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
