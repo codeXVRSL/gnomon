@@ -982,7 +982,8 @@ function win() {
     $('endMenu').onclick = menu; $('endDaily').onclick = startDaily;
     return;
   }
-  showCard(`<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
+  const CHN = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'], mainPos = ord.filter(k => k !== DEMO && !LEVELS[k].bside).indexOf(li), chapEnd = mainPos >= 0 && mainPos % 5 === 4 && CHN[Math.floor(mainPos / 5)];
+  showCard(`${chapEnd ? `<p class="sub" style="color:var(--brass);letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
@@ -1075,14 +1076,14 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
-    <div class="row"><button class="btn primary" id="aDone">Done</button></div>`);
+    <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
   $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
-  $('aDone').onclick = menu;
+  $('aDone').onclick = menu; $('aKeys').onclick = keysCard;
 }
 // ---------- stage maker: paint a 20 x 14 map, set the hour, play it, share it as a link ----------
 const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Start', '#f6c85f'], ['G', 'Dial', '#ffd25e'], ['g', 'Shadow dial', '#9d7cff'], ['x', 'Spikes', '#e9806e'], ['v', 'Chime', '#f0a04e'],
@@ -1150,6 +1151,21 @@ function stats() {
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
   $('stDone').onclick = menu;
+}
+// rebind keys: pick an action, press a key; the defaults keep working too
+function keysCard() {
+  const km = save.keymap = save.keymap || {};
+  const label = a => { const ks = Object.entries(KMAP).filter(([k, v]) => v === a).map(([k]) => k === ' ' ? 'Space' : k); return [...new Set(ks)].slice(-4).join(' · '); };
+  showCard(`<h2>Keyboard keys</h2><p class="sub">Tap an action, then press the key you want. The default keys keep working.</p>
+    ${ACTIONS.map(([a, n]) => `<div class="row" style="justify-content:space-between;align-items:center"><span>${n}</span><button class="btn" data-act="${a}" style="min-width:160px">${label(a)}</button></div>`).join('')}
+    <div class="row"><button class="btn" id="kReset">Reset</button><button class="btn primary" id="kDone">Done</button></div>`);
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+    b.textContent = 'Press a key…';
+    const h = e => { e.preventDefault(); e.stopPropagation(); window.removeEventListener('keydown', h, true); if (e.key !== 'Escape') { KMAP[e.key] = b.dataset.act; km[e.key] = b.dataset.act; persist(); } keysCard(); };
+    window.addEventListener('keydown', h, true);
+  });
+  $('kReset').onclick = () => { for (const k in km) delete KMAP[k]; save.keymap = {}; persist(); location.reload(); };
+  $('kDone').onclick = assist;
 }
 function how() {
   const sec = (title, open, items) => `<details class="howsec" ${open ? 'open' : ''}><summary>${title}</summary><ul class="rules">${items.map(([i, h]) => `<li><span>${i}</span><span>${h}</span></li>`).join('')}</ul></details>`;
@@ -1669,6 +1685,9 @@ document.fonts && document.fonts.ready.then(resize);
 // ---------- input ----------
 const KMAP = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'j', w: 'j', W: 'j', ' ': 'j', z: 'j', Z: 'j', ArrowDown: 'w', s: 'w', S: 'w', e: 'p', E: 'p', q: 'p', Q: 'p', x: 'x', X: 'x', k: 'x', K: 'x', Shift: 'x', f: 'f', F: 'f', c: 'f', C: 'f' };
 const UPKEYS = new Set(['ArrowUp', 'w', 'W']);
+const ACTIONS = [['l', 'Left'], ['r', 'Right'], ['j', 'Jump'], ['x', 'Dash'], ['w', 'Hourglass'], ['p', 'Staff'], ['f', 'Flip']];
+function applyKeymap() { for (const [k, a] of Object.entries((save.keymap) || {})) KMAP[k] = a; }
+applyKeymap();
 // ---- controllers (standard mapping): stick/d-pad move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start = levels ----
 let padPrev = {};
 function readPad() {
