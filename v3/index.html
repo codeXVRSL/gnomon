@@ -1289,6 +1289,12 @@ function render(now) {
   g.setTransform(1, 0, 0, 1, Math.round(shakeX - camX), Math.round(shakeY));
   const pr = pressedSet(L, st), ch = chimeState(t);
   if (v25) drawExtrusions(now, t, night, pr);
+  // cloud shadows sweep in across the light world before a cloud reaches the sun, so you can see it coming
+  if (!night) for (const [a, b] of (LEVELS[li].clouds || [])) {
+    if (t >= b || a - t > 1.4) continue;
+    const x0 = st.p.x + 4 + (a - t) * 150, x1 = st.p.x + 4 + (b - t) * 150 + 40;
+    for (let e = 0; e < 3; e++) { g.fillStyle = `rgba(30,34,60,${0.07 + e * 0.045})`; g.fillRect(x0 + e * 8, 0, Math.max(0, x1 - x0 - e * 16), HZ); }
+  }
   // ---- decor: trees and posts, and their shadows sliding with the hour in the world below (just scenery) ----
   if (decor.length) {
     const showSh = !night && t < DUSK && !isGone(t) && !eclipsed(t), dxs = showSh ? castDx(t) : 0;
@@ -1795,7 +1801,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 40, t: 'two new B-sides (In the Shade B, Passing Cloud B), a fairer Passing Cloud, chapter colours, and shorter hints.' };
+const WHATS_NEW = { v: 41, t: 'you can now see a cloud\'s shadow sweeping toward you before it covers the sun.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
