@@ -263,7 +263,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let rewStreak = 0, rewLast = 0, rewFx = 0, rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
-let decor = [], roots = [], lookX = 0, wipe = 0;
+let decor = [], bits = [], roots = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
 const BITS = ['l', 'r', 'jump', 'jumpHeld', 'wait', 'pin', 'flip', 'dash', 'up', 'down'];
@@ -413,9 +413,11 @@ function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
   deathCount = {}; deathMarks = []; gateCue = null; rewindBuf = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
-  decor = []; roots = [];
+  decor = []; bits = []; roots = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv) || !!(LEVELS[i].custom && edTestInv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
+  // small bushes and pebbles on the grass (scenery only, kept off the start, the dial and gate columns)
+  for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && hash(x, i + 77) < 0.2 && !'SG'.includes(L.grid[HALF - 2][x - 1]) && !'SG'.includes(L.grid[HALF - 2][x + 1]) && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 10)) bits.push({ x: x * TS + 1 + Math.round(hash(x, 61) * 8), kind: hash(x, 63) < 0.55 ? 'bush' : 'rock', v: hash(x, 67) }); }
   // the shadow world's ceiling grows a few hanging roots, some tipped with a faint violet glow (scenery only)
   for (let x = 1; x < L.W - 1; x++) if (L.grid[HALF][x] === '#' && L.grid[HALF + 1][x] === '.' && L.grid[HALF + 2][x] === '.' && hash(x, i + 41) < 0.22 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !roots.some(r => Math.abs(r.x - x * TS) < 18)) roots.push({ x: x * TS + 2 + Math.round(hash(x, 17) * 7), len: 3 + Math.round(hash(x, 23) * 6), glow: hash(x, 29) < 0.35, ph: hash(x, 31) * 6.28 });
   save.at = i; save.atName = LEVELS[i].name; if (LEVELS[i].bside) (save.playedB = save.playedB || {})[LEVELS[i].name] = 1; persist();
@@ -1037,6 +1039,9 @@ function render(now) {
   for (const r of roots) { const top = (HALF + 1) * TS, sw = calm() ? 0 : Math.round(Math.sin(now / 900 + r.ph) * .6);
     g.fillStyle = 'rgba(70,52,110,.75)'; g.fillRect(r.x, top, 1, r.len); g.fillRect(r.x + sw, top + r.len, 1, 2); if (r.len > 5) g.fillRect(r.x + 2, top, 1, r.len - 3);
     if (r.glow) { const a = .35 + .25 * Math.sin(now / 700 + r.ph); g.fillStyle = `rgba(199,180,255,${calm() ? .45 : a})`; g.fillRect(r.x + sw, top + r.len + 2, 1, 1); } }
+  for (const b of bits) { const base = HZ - TS, x = b.x;
+    if (b.kind === 'bush') { g.fillStyle = night ? '#2f4a44' : '#4f8a52'; g.fillRect(x, base - 3, 6, 3); g.fillRect(x + 1, base - 4, 4, 1); g.fillStyle = night ? '#3d5c54' : '#6fae64'; g.fillRect(x + 1, base - 3, 2, 1); if (b.v > .6 && !night) { g.fillStyle = '#f2a6b4'; g.fillRect(x + 4, base - 4, 1, 1); } }
+    else { g.fillStyle = night ? '#5a5070' : '#9a8c7a'; g.fillRect(x, base - 2, 3, 2); g.fillStyle = night ? '#6c6284' : '#b8aa94'; g.fillRect(x, base - 2, 2, 1); } }
   // ---- tiles ----
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < L.W; x++) {
     const c = L.grid[y][x], px = x * TS, py = y * TS, topW = y < HALF;
@@ -1634,9 +1639,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 176, t: 'earn the sun medal on every main dial and the win card says so, and a small gold sun joins the GNOMON title for good.' };
+const WHATS_NEW = { v: 177, t: 'the grass of the light world now has small bushes, a few with a flower, and scattered pebbles (scenery only).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Bushes and pebbles on the grass.',
   'All 31 sun medals earns a gold sun on the title.',
   'The gnome blinks when idle.',
   'Next unbeaten: one tap to the next dial left to beat.',
@@ -1645,8 +1651,7 @@ const NEWS = [
   'The HUD shows the dial\'s hour, as used in hints.',
   'Stage list shows each dial\'s medal.',
   'Tap an open hint again for the step-by-step version.',
-  'Every dial now has a step-by-step hint after six falls.',
-  'New B-side: Lamplit Night (B-side of Moonlamps).',];
+  'Every dial now has a step-by-step hint after six falls.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
