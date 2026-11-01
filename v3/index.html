@@ -757,7 +757,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
 let gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
-let decor = [], lookX = 0, wipe = 0;
+let decor = [], roots = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
 const BITS = ['l', 'r', 'jump', 'jumpHeld', 'wait', 'pin', 'flip', 'dash', 'up', 'down'];
@@ -884,9 +884,11 @@ function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
   deathCount = {}; deathMarks = []; gateCue = null; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
-  decor = [];
+  decor = []; roots = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv) || !!(LEVELS[i].custom && edTestInv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
+  // the shadow world's ceiling grows a few hanging roots, some tipped with a faint violet glow (scenery only)
+  for (let x = 1; x < L.W - 1; x++) if (L.grid[HALF][x] === '#' && L.grid[HALF + 1][x] === '.' && L.grid[HALF + 2][x] === '.' && hash(x, i + 41) < 0.22 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !roots.some(r => Math.abs(r.x - x * TS) < 18)) roots.push({ x: x * TS + 2 + Math.round(hash(x, 17) * 7), len: 3 + Math.round(hash(x, 23) * 6), glow: hash(x, 29) < 0.35, ph: hash(x, 31) * 6.28 });
   save.at = i; save.atName = LEVELS[i].name; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
@@ -1456,6 +1458,9 @@ function render(now) {
       else { g.fillStyle = '#6b5a48'; g.fillRect(x + 1, base - d.h, 2, d.h); g.fillStyle = '#c9a86a'; g.fillRect(x - 1, base - d.h, 6, 2); }
     }
   }
+  for (const r of roots) { const top = (HALF + 1) * TS, sw = calm() ? 0 : Math.round(Math.sin(now / 900 + r.ph) * .6);
+    g.fillStyle = 'rgba(70,52,110,.75)'; g.fillRect(r.x, top, 1, r.len); g.fillRect(r.x + sw, top + r.len, 1, 2); if (r.len > 5) g.fillRect(r.x + 2, top, 1, r.len - 3);
+    if (r.glow) { const a = .35 + .25 * Math.sin(now / 700 + r.ph); g.fillStyle = `rgba(199,180,255,${calm() ? .45 : a})`; g.fillRect(r.x + sw, top + r.len + 2, 1, 1); } }
   // ---- tiles ----
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < L.W; x++) {
     const c = L.grid[y][x], px = x * TS, py = y * TS, topW = y < HALF;
@@ -2036,9 +2041,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 136, t: 'the stage maker can remix any dial you have beaten: pick it from the Remix list, change it, share it.' };
+const WHATS_NEW = { v: 137, t: 'the shadow world grows hanging roots from its ceiling, a few tipped with a faint violet glow (scenery only; still with Reduce motion).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Hanging roots and glow tips in the shadow world.',
   'Stage maker: remix any dial you have beaten.',
   'New B-side: Stone Nights (B-side of Stone Hours).',
   'Screen readers announce stages, gates opening and closing, falls and wins.',
@@ -2047,8 +2053,7 @@ const NEWS = [
   'Chapter headings show how many dials you have beaten.',
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
   'Switching tabs or locking your phone hushes the music until you return.',
-  'Stage maker: a second gate and plate pair, for stages with two locks.',
-  'Opened a gate off screen? A blinking tag on the edge points to it.',];
+  'Stage maker: a second gate and plate pair, for stages with two locks.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
