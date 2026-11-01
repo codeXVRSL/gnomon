@@ -602,6 +602,7 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
     <label class="toggle"><input type="checkbox" id="aSwipe" ${a.noSwipe ? '' : 'checked'}> Swipe the game screen to dash (phones)</label>
     <label class="toggle"><input type="checkbox" id="aUpJump" ${a.upJump ? 'checked' : ''}> Up on the d-pad also jumps</label>
+    <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
@@ -610,6 +611,7 @@ function assist() {
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
   $('aSwipe').onchange = e => { a.noSwipe = !e.target.checked; persist(); };
   $('aUpJump').onchange = e => { a.upJump = e.target.checked; persist(); };
+  $('aWarn').onchange = e => { a.noWarn = !e.target.checked; persist(); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu; $('aKeys').onclick = keysCard;
@@ -1116,7 +1118,7 @@ function drawExtrusions(now, t, night, pr) {
 }
 // blinking corner brackets around your shadow: something is about to get it (red: hawk, amber: lamplight)
 function warnBrackets(now, col) {
-  const ss = st.s; if (ss.gone || !(Math.floor(now / 110) % 2)) return;
+  const ss = st.s; if (ss.gone || !(Math.floor(now / 110) % 2) || (save.assist && save.assist.noWarn)) return;
   g.fillStyle = col; const bx = Math.round(ss.x) - 2, by = Math.round(ss.y) - 2, bw = SW + 4, bh = Math.round(ss.h) + 4;
   g.fillRect(bx, by, 3, 1); g.fillRect(bx, by, 1, 3); g.fillRect(bx + bw - 3, by, 3, 1); g.fillRect(bx + bw - 1, by, 1, 3);
   g.fillRect(bx, by + bh - 1, 3, 1); g.fillRect(bx, by + bh - 3, 1, 3); g.fillRect(bx + bw - 3, by + bh - 1, 3, 1); g.fillRect(bx + bw - 1, by + bh - 3, 1, 3);
@@ -1146,6 +1148,7 @@ function drawEnemies(now, night) {
       const ly = ROWS * TS - (y + EH / 2), fl = Math.sin(now / 120) * .03;
       for (const [r, a] of [[LANTERN_R + 2, .12 + fl], [LANTERN_R * .6, .18]]) { g.fillStyle = `rgba(255,205,110,${a})`; g.beginPath(); g.arc(x + 4, ly, r, 0, 6.29); g.fill(); }
       g.fillStyle = '#ffd36b'; g.fillRect(x + 3, ly - 1, 2, 2);
+      { const ss = st.s; if (!ss.gone) { const lx = x + 4, cx = Math.max(ss.x, Math.min(lx, ss.x + SW)), cy = Math.max(ss.y, Math.min(ly, ss.y + ss.h)); if (Math.hypot(cx - lx, cy - ly) < LANTERN_R + 10 && !inWater(L, 'bot', ss, SW, ss.h)) warnBrackets(now, 'rgba(255,200,90,.9)'); } }
       // hooded figure
       g.fillStyle = '#3a2f4a'; g.fillRect(x + 2, y, 4, 2); g.fillRect(x + 1, y + 2, 6, 6 - step); g.fillStyle = '#5a4a6e'; g.fillRect(x + 2, y + 2, 4, 1);
       g.fillStyle = '#efe3c8'; g.fillRect(x + 3, y + 2, 2, 1);
@@ -1321,7 +1324,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 44, t: 'lamplight warning on your shadow, and Stats now shows what got you most.' };
+const WHATS_NEW = { v: 45, t: 'lantern light warnings too, and a switch in Assist to turn the danger warnings off.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
