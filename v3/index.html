@@ -1192,6 +1192,7 @@ function playCustom() {
   let ci = LEVELS.findIndex(l => l.custom); const d = customDef(); if (ci < 0) { LEVELS.push(d); ci = LEVELS.length - 1; } else LEVELS[ci] = d;
   dailyMode = false; hideCard(); load(ci);
 }
+const edUndo = []; const edSnap = () => { edUndo.push(edMap.map(r => r.slice())); if (edUndo.length > 20) edUndo.shift(); };
 function editor(fromLink) {
   if (save.edTipSeen) { save.edTip = 1; } save.edTipSeen = 1; persist();
   if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
@@ -1208,13 +1209,13 @@ function editor(fromLink) {
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
     <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
     <div class="row"><button class="btn primary" id="edPlay">Play</button><button class="btn" id="edShare">Share link</button></div>
-    <div class="row"><button class="btn" id="edClear">Clear</button><button class="btn" id="edBack">Back</button></div>`);
+    <div class="row"><button class="btn" id="edUndo" ${edUndo.length ? '' : 'disabled'}>Undo${edUndo.length ? ' (' + edUndo.length + ')' : ''}</button><button class="btn" id="edClear">Clear</button><button class="btn" id="edBack">Back</button></div>`);
   const grid = $('edGrid'); let painting = false;
   const paint = e => { const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !el.dataset || el.dataset.x == null) return; const x = +el.dataset.x, y = +el.dataset.y;
     if (edSel === 'S' || edSel === 'G') for (const r of edMap) for (let k = 0; k < r.length; k++) if (r[k] === edSel) r[k] = '.';
     edMap[y][x] = edSel; save.edit = edEncode(); persist(); el.style.background = y >= HALF && edSel === '.' ? '#241c40' : edColor(edSel); el.textContent = edSel === '.' || edSel === '#' ? '' : edSel;
     if (edSel === 'S' || edSel === 'G') editor(); };
-  grid.addEventListener('pointerdown', e => { painting = true; try { grid.setPointerCapture(e.pointerId); } catch (_) {} paint(e); });
+  grid.addEventListener('pointerdown', e => { edSnap(); const u = $('edUndo'); if (u) { u.disabled = false; u.textContent = 'Undo (' + edUndo.length + ')'; } painting = true; try { grid.setPointerCapture(e.pointerId); } catch (_) {} paint(e); });
   grid.addEventListener('pointermove', e => { if (painting) paint(e); });
   grid.addEventListener('pointerup', () => { painting = false; });
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { edSel = b.dataset.t; document.querySelectorAll('[data-t]').forEach(q => q.classList.toggle('sel', q === b)); });
@@ -1225,7 +1226,8 @@ function editor(fromLink) {
   $('edZoom').onclick = () => { edZoom = edZoom < 0 ? 0 : -1; editor(); };
   if ($('edSide')) $('edSide').onclick = () => { edZoom = 1 - edZoom; editor(); };
   $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage', url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
-  $('edClear').onclick = () => { edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
+  $('edUndo').onclick = () => { if (!edUndo.length) return; edMap = edUndo.pop(); save.edit = edEncode(); persist(); editor(); };
+  $('edClear').onclick = () => { edSnap(); edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
   $('edBack').onclick = menu;
 }
 function stats() {
@@ -1941,7 +1943,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 74, t: 'the stage maker now catches a start or dial placed in the shadow world, and warns if your start has no floor.' };
+const WHATS_NEW = { v: 75, t: 'the stage maker has Undo now (up to 20 steps, Clear too).' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
