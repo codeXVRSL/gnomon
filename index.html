@@ -973,8 +973,8 @@ function postcard(k) {
   const ang = night ? 0 : (120 - sx) * 0.9, len = night ? 0 : 26 + Math.abs(120 - sx) * 0.35;
   const sky0 = night ? '#1a1638' : '#2a2350';
   return `<svg viewBox="0 0 240 96" width="100%" style="display:block;border-radius:6px;margin:0 0 10px;image-rendering:pixelated" aria-hidden="true">
-    <defs><linearGradient id="pc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky0}"/><stop offset="1" stop-color="${c}" stop-opacity=".55"/></linearGradient></defs>
-    <rect width="240" height="96" fill="url(#pc)"/>
+    <defs><linearGradient id="pc${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky0}"/><stop offset="1" stop-color="${c}" stop-opacity=".55"/></linearGradient></defs>
+    <rect width="240" height="96" fill="url(#pc${k})"/>
     ${night ? [[30, 14], [70, 30], [180, 12], [210, 34], [150, 22], [100, 10]].map(([x, y]) => `<rect x="${x}" y="${y}" width="2" height="2" fill="#e8e0ff"/>`).join('') + `<circle cx="${sx}" cy="${sy}" r="8" fill="#e8e0ff"/><circle cx="${sx + 4}" cy="${sy - 2}" r="7" fill="${sky0}"/>` : `<circle cx="${sx}" cy="${sy}" r="9" fill="${c}"/><circle cx="${sx}" cy="${sy}" r="14" fill="${c}" opacity=".25"/>`}
     <ellipse cx="120" cy="80" rx="86" ry="12" fill="#3a2f4a"/><ellipse cx="120" cy="78" rx="80" ry="10" fill="#6e5a3a"/>
     ${Array.from({ length: 11 }, (_, i) => { const a = Math.PI * (i / 10); return `<rect x="${(120 - Math.cos(a) * 70).toFixed(0)}" y="${(78 - Math.sin(a) * 7).toFixed(0)}" width="2" height="2" fill="#f6c85f"/>`; }).join('')}
@@ -1194,6 +1194,7 @@ function stats() {
       const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}</span>`; }).join('');
       return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
     ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
+    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/6</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k]}</div>`).join('')}</div>`; })()}
     <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
@@ -1839,7 +1840,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 49, t: 'finishing a chapter now earns a little sundial postcard at that hour.' };
+const WHATS_NEW = { v: 50, t: 'collect all six chapter postcards: see them in Stats.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
