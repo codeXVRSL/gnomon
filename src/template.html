@@ -1559,9 +1559,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 146, t: 'light-world thorns have a dark edge so they show against a bright sky, resting hour stones in the shadow world are outlined, and the stage maker keeps hawks, crystals and flags in the world of light.' };
+const WHATS_NEW = { v: 147, t: 'a new B-side, Two Lanterns: two lantern-bearers on the road, and the old trick of jumping late will not save your shadow from the first.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Two Lanterns (B-side of Lantern Walk).',
   'Thorns and resting stones are easier to see.',
   'New B-side: Under the Chime (B-side of Hour Chime).',
   'Assist: Closer view gives tall phones bigger pixels.',
@@ -1570,8 +1571,7 @@ const NEWS = [
   'Cast-shadow stages run lighter on slow phones.',
   'Daily Sundial picks stay put when new stages are added.',
   'Hear which gate moved: each pair has its own note.',
-  'Hanging roots and glow tips in the shadow world.',
-  'Stage maker: remix any dial you have beaten.',];
+  'Hanging roots and glow tips in the shadow world.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
