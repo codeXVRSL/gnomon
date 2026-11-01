@@ -1208,6 +1208,7 @@ function assist() {
     <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
+    <label class="toggle"><input type="checkbox" id="aCloser" ${a.closer ? 'checked' : ''}> Closer view on tall phones (bigger pixels, the camera follows you)</label>
     <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
@@ -1221,6 +1222,7 @@ function assist() {
   $('aVs').onchange = () => beep(660, .08, 'triangle', .05);
   $('aVm').oninput = e => { VOL().mus = +e.target.value; if (musBus) musBus.gain.value = VOL().mus; persist(); };
   $('aWarn').onchange = e => { a.noWarn = !e.target.checked; persist(); };
+  $('aCloser').onchange = e => { a.closer = e.target.checked; persist(); resize(); };
   $('aBuzz').onchange = e => { a.noBuzz = !e.target.checked; persist(); if (!a.noBuzz) buzz(30, .6); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
@@ -1908,7 +1910,9 @@ function resize() {
   const stg = $('stage'), aw = stg.clientWidth, ah = stg.clientHeight;
   // landscape screens get a wider window onto wide stages
   const landscape = window.innerWidth > window.innerHeight;
-  const want = landscape && L ? Math.min(336, Math.max(240, L.PX)) : 240;
+  // tall phones can trade a little of the stage's width for bigger pixels (Assist: Closer view)
+  const closer = !landscape && save.assist && save.assist.closer && L && L.PX > 180;
+  const want = landscape && L ? Math.min(336, Math.max(240, L.PX)) : closer ? 180 : 240;
   if (want !== W) { W = want; cv.width = W; }
   let sc = Math.min(aw / W, ah / H);
   const isc = Math.floor(sc);
@@ -2050,9 +2054,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 143, t: 'B-sides on the stage list are now labelled after their dial (B7 is the B-side of dial 7), and ones you have not tried yet say NEW.' };
+const WHATS_NEW = { v: 144, t: 'tall phones can turn on Closer view in Assist mode: bigger pixels, with the camera following you across the stage.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Assist: Closer view gives tall phones bigger pixels.',
   'B-sides show which dial they belong to, and NEW until you try them.',
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
   'Cast-shadow stages run lighter on slow phones.',
@@ -2061,8 +2066,7 @@ const NEWS = [
   'Hanging roots and glow tips in the shadow world.',
   'Stage maker: remix any dial you have beaten.',
   'New B-side: Stone Nights (B-side of Stone Hours).',
-  'Screen readers announce stages, gates opening and closing, falls and wins.',
-  'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',];
+  'Screen readers announce stages, gates opening and closing, falls and wins.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
