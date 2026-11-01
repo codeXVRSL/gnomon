@@ -119,6 +119,7 @@ body.calm #game{transition:none}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
 .lv-btn[disabled],.lv-btn[data-locked]{opacity:.35;cursor:default}
+#card select{background:var(--ink-3);color:var(--parch);border:0;border-radius:6px;padding:6px 8px;font:inherit;box-shadow:inset 0 -3px 0 rgba(0,0,0,.3)}
 .lv-btn.cur{box-shadow:0 0 0 2px var(--brass)}
 .lv-btn.demo{background:#5a2e4a;color:var(--brass)}
 .ed-grid{display:grid;gap:1px;background:#0c0719;padding:1px;touch-action:none;user-select:none;width:100%;box-sizing:border-box}
@@ -1234,20 +1235,23 @@ function assist() {
   const sp = [1, 0.8, 0.6, 0.5];
   showCard(`<h2>Assist mode</h2>
     <p class="sub">Gnomon is meant to be tough but fair. If it is getting in the way of your fun, change how it plays. Medals still count.</p>
+    <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">CHALLENGE</p>
     <div class="row">${sp.map(v => `<button class="btn ${a.speed === v ? 'primary' : ''}" data-sp="${v}">${Math.round(v * 100)}%</button>`).join('')}</div>
     <label class="toggle"><input type="checkbox" id="aDash" ${a.dash ? 'checked' : ''}> Infinite dashes</label>
     <label class="toggle"><input type="checkbox" id="aInv" ${a.inv ? 'checked' : ''}> Invincible (spikes, lamps and hawks can't hurt you)</label>
-    <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
+    <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
+    <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">CONTROLS</p>
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
     <label class="toggle"><input type="checkbox" id="aSwipe" ${a.noSwipe ? '' : 'checked'}> Swipe the game screen to dash (phones)</label>
     <label class="toggle"><input type="checkbox" id="aUpJump" ${a.upJump ? 'checked' : ''}> Up on the d-pad also jumps</label>
-    <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
-    <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
-    <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
+    <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
+    <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
+    <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">SCREEN AND SOUND</p>
     <label class="toggle">Screen look <select id="aLook" style="flex:1">${Object.keys(LOOKS).map(k => `<option value="${k}" ${(a.look || 'original') === k ? 'selected' : ''}>${LOOKS[k][0]}</option>`).join('')}</select></label>
     <label class="toggle"><input type="checkbox" id="aCloser" ${a.closer ? 'checked' : ''}> Closer view on tall phones (bigger pixels, the camera follows you)</label>
-    <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
-    <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
+    <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
+    <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
+    <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
@@ -2103,9 +2107,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 163, t: 'chapter runs and the Full run now compare every split with your best run: SPLIT 3/5 · 0:41.2 (−1.8).' };
+const WHATS_NEW = { v: 164, t: 'the Assist card is now grouped into Challenge, Controls, and Screen and sound, so its many options are easier to find.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Assist options grouped into three sections.',
   'Run splits show + or − against your best.',
   'Rewinds count up, and Stats totals the seconds rewound.',
   'Photos keep your Screen look.',
@@ -2114,8 +2119,7 @@ const NEWS = [
   'Locked dials say what opens them when tapped.',
   'Opening a dial shows the hour to beat for its sun medal.',
   'Full run: all 31 dials on one clock.',
-  'Beaten dials show your record when you open them.',
-  'A one-time tip points new players to ⟲ BACK.',];
+  'Beaten dials show your record when you open them.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
