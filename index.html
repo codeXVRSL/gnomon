@@ -4,10 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#191529">
+<meta name="description" content="Your shadow is the hand of a sundial. A free puzzle-platformer in two worlds that plays in your browser.">
+<meta property="og:title" content="Gnomon">
+<meta property="og:description" content="Your shadow is the hand of a sundial. A free puzzle-platformer in two worlds that plays in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://codexvrsl.github.io/gnomon/v3/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Gnomon — a two-world pixel platformer on a sundial clock.">
 <title>Gnomon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;600&display=swap">
@@ -1692,5 +1700,6 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 })();
 </script>
 
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body>
 </html>
