@@ -2053,6 +2053,7 @@ window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
 const WHATS_NEW = { v: 143, t: 'B-sides on the stage list are now labelled after their dial (B7 is the B-side of dial 7), and ones you have not tried yet say NEW.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'B-sides show which dial they belong to, and NEW until you try them.',
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
   'Cast-shadow stages run lighter on slow phones.',
   'Daily Sundial picks stay put when new stages are added.',
@@ -2061,8 +2062,7 @@ const NEWS = [
   'Stage maker: remix any dial you have beaten.',
   'New B-side: Stone Nights (B-side of Stone Hours).',
   'Screen readers announce stages, gates opening and closing, falls and wins.',
-  'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
-  'New B-side: Two Locks (B-side of Two Worlds).',];
+  'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
