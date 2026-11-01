@@ -76,6 +76,11 @@ body.calm #game{transition:none}
 .ctl.on{transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35);background:#463c72}
 .move{display:flex;gap:8px}
 .move .ctl{width:64px;height:94px;font-size:22px}
+.dpad{position:relative;width:144px;height:144px;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:50%;background:radial-gradient(circle,rgba(70,60,114,.35) 0 30%,transparent 72%)}
+.dpad i{position:absolute;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:18px;color:var(--parch);background:var(--ink-3);border-radius:10px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.35);pointer-events:none}
+.dpad .u{left:47px;top:0}.dpad .d{left:47px;bottom:0}.dpad .l{left:0;top:47px}.dpad .r{right:0;top:47px}
+.dpad i.on{background:#463c72;transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
+.dpad b{position:absolute;left:62px;top:62px;width:20px;height:20px;border-radius:50%;background:rgba(199,180,255,.35);pointer-events:none;transition:transform .05s}
 .right{display:grid;grid-template-columns:52px 66px 80px;grid-template-rows:44px 44px;gap:6px;align-items:end}
 .ctl.flip{grid-area:1/1;height:44px;font-size:10px;background:#2d3a4a}
 .icon-btn.on{background:#4a3a2d;color:var(--brass)}
@@ -94,7 +99,7 @@ body.calm #game{transition:none}
 .ctl.jump.on{background:#d79c34}
 .keys{font-size:11px;color:var(--mute);font-family:var(--display);text-align:center;width:100%}
 @media (hover:none){.keys{display:none}}
-@media (max-width:380px){.move .ctl{width:50px}.right{grid-template-columns:46px 60px 70px}}
+@media (max-width:380px){.dpad{transform:scale(.9);transform-origin:left bottom}.move .ctl{width:50px}.right{grid-template-columns:46px 60px 70px}}
 .overlay{position:fixed;inset:0;background:rgba(15,12,26,.86);display:flex;align-items:center;justify-content:center;z-index:20;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .card{background:var(--ink-2);border-radius:6px;padding:20px;max-width:390px;width:100%;box-shadow:0 0 0 2px var(--ink-3),0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px;max-height:90%;overflow:auto;box-sizing:border-box}
@@ -174,6 +179,8 @@ body.calm #game{transition:none}
   .ctl.jump{width:72px}
   .move .ctl{width:52px}
   .move .ctl{height:84px}
+  .dpad{transform:scale(.85);transform-origin:left bottom}
+  body.lefty .dpad{transform-origin:right bottom}
 }
 @media (orientation: landscape) and (min-height: 600px) {
   #app{max-width:1500px;margin:0 auto;grid-template-columns:minmax(120px,150px) 1fr minmax(150px,180px)}
@@ -205,8 +212,7 @@ body.calm #game{transition:none}
   <div class="hint" id="hint"></div>
   <div class="controls">
     <div class="move">
-      <button class="ctl" data-k="l" aria-label="Left">◀</button>
-      <button class="ctl" data-k="r" aria-label="Right">▶</button>
+      <div class="dpad" id="dpad" aria-label="Move and aim: slide your thumb, diagonals work"><i class="u">▲</i><i class="l">◀</i><i class="r">▶</i><i class="d">▼</i><b></b></div>
     </div>
     <div class="right">
       <button class="ctl flip" data-k="f" aria-label="Flip gravity">FLIP</button>
@@ -782,7 +788,7 @@ const SHARE_URL = location.origin && location.origin.startsWith('http') && !loca
 const BSIDES = LEVELS.map((_, i) => i).filter(i => LEVELS[i].bside);
 const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO && !LEVELS[i].bside && !LEVELS[i].custom); return save.demoFirst ? [DEMO, ...rest, ...BSIDES] : [...rest, ...BSIDES, DEMO]; };
 const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
-const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0 }; let jumpEdge = false, flipEdge = false, dashEdge = false;
+const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0, dn: 0 }; let jumpEdge = false, flipEdge = false, dashEdge = false;
 function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').classList.toggle('on', save.view25); toast(save.view25 ? 'CAMERA · 2.5D' : 'CAMERA · FLAT'); beep(520, .08, 'sine', .04, 1.4); }
 
 // ---------- audio ----------
@@ -935,7 +941,7 @@ function tick() {
   if (hitStop > 0) { hitStop--; return; }
   const prevP = { ...st.p }, prevS = { ...st.s }, prevPr = pressedSet(L, st), prevG = st.grav;
   const pad = readPad();
-  const inp = { l: keys.l || pad.l, r: keys.r || pad.r, jump: jumpEdge || pad.jumpE, jumpHeld: keys.j || pad.j, wait: keys.w || pad.w, pin: keys.p || pad.p, flip: flipEdge || pad.flipE, dash: dashEdge || pad.dashE, up: keys.u || (touchJump && keys.j) || pad.u, down: keys.w || pad.d };
+  const inp = { l: keys.l || pad.l, r: keys.r || pad.r, jump: jumpEdge || pad.jumpE, jumpHeld: keys.j || pad.j, wait: keys.w || pad.w, pin: keys.p || pad.p, flip: flipEdge || pad.flipE, dash: dashEdge || pad.dashE, up: keys.u || pad.u, down: keys.w || keys.dn || pad.d };
   if (ghost && !ghost.st.won && ghost.i < ghost.data.length) update(ghost.L, ghost.st, unpackInp(ghost.data[ghost.i++]));
   rec.push(packInp(inp));
   update(L, st, inp);
@@ -1186,7 +1192,7 @@ function how() {
       ['☀', '<b>The sun only moves when you move.</b> Hold ⧗ to let time pass.'],
       ['◐', 'Your shadow sits <b>east at dawn</b>, under you at noon, <b>west at dusk</b>. At <b>noon</b> it vanishes and comes back under you.'],
       ['▲', '<b>Jump</b> up and your shadow jumps down. Shade presses <b>violet plates</b>, your feet press brass ones.'],
-      ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
+      ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button; on phones aim with the <b>d-pad</b>, diagonals too). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
       ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
       ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
     ${sec('Sun tricks', false, [
@@ -1735,6 +1741,20 @@ document.querySelectorAll('.ctl').forEach(b => {
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
   b.addEventListener('contextmenu', e => e.preventDefault());
 });
+// ---- d-pad: slide a thumb anywhere on it; the angle from the centre gives 8 directions (left/right move, up/down aim) ----
+{ const pad = $('dpad'), knob = pad.querySelector('b'); let pid = null;
+  const set = (l, r, u, d) => { keys.l = l ? 1 : 0; keys.r = r ? 1 : 0; keys.u = u ? 1 : 0; keys.dn = d ? 1 : 0;
+    pad.querySelector('.l').classList.toggle('on', !!l); pad.querySelector('.r').classList.toggle('on', !!r); pad.querySelector('.u').classList.toggle('on', !!u); pad.querySelector('.d').classList.toggle('on', !!d); };
+  const read = e => { const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), m = Math.hypot(dx, dy);
+    if (m < r.width * 0.12) { set(0, 0, 0, 0); knob.style.transform = ''; return; }
+    const a = Math.atan2(dy, dx), oct = Math.round(a / (Math.PI / 4)); // -4..4, 0 = right, 2 = down
+    const dirs = { 0: [0, 1, 0, 0], 1: [0, 1, 0, 1], 2: [0, 0, 0, 1], 3: [1, 0, 0, 1], 4: [1, 0, 0, 0], '-4': [1, 0, 0, 0], '-3': [1, 0, 1, 0], '-2': [0, 0, 1, 0], '-1': [0, 1, 1, 0] };
+    set(...dirs[oct]); const k = Math.min(1, m / (r.width / 2)) * 22; knob.style.transform = `translate(${Math.cos(a) * k}px,${Math.sin(a) * k}px)`; };
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); pid = e.pointerId; touchJump = false; try { pad.setPointerCapture(pid); } catch (_) {} read(e); });
+  pad.addEventListener('pointermove', e => { if (e.pointerId === pid) read(e); });
+  const end = e => { if (e.pointerId !== pid) return; pid = null; set(0, 0, 0, 0); knob.style.transform = ''; };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end); pad.addEventListener('lostpointercapture', end);
+  pad.addEventListener('contextmenu', e => e.preventDefault()); }
 $('menuBtn').onclick = menu;
 $('resetBtn').onclick = () => { load(li); beep(240, .06, 'triangle', .04); };
 $('hint').onclick = () => $('hint').classList.toggle('open');
@@ -1759,7 +1779,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 30, t: 'Crescent B, chapter-complete moments, death markers, custom keyboard keys, and tips when you get stuck.' };
+const WHATS_NEW = { v: 32, t: 'a d-pad on phones (up, down and diagonals for aiming dashes), a photo button, footsteps, Crescent B and death markers.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
@@ -1803,7 +1823,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
+if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { keys, bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
