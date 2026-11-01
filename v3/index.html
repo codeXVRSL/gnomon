@@ -1202,6 +1202,8 @@ const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (L
 // how much of a chapter you have beaten, shown at the end of its heading line
 const chProg = ids => { const d = ids.filter(j => save.best[j]).length; return d ? `<span class="chp${d === ids.length ? ' all' : ''}">${d === ids.length ? '✓ ' : ''}${d}/${ids.length}</span>` : ''; };
 // B-sides are labelled after their A-side's number (B7 = the B-side of dial 7), with a prime for a second one
+// what a beaten dial's button shows under its number: its medal (sun or moon) and the shards you found
+function btnTag(i) { const m = (save.medal || {})[i] || 0; return ((m === 3 ? '<span style="color:#ffd25e">☀</span>' : m === 2 ? '<span style="color:#c7b4ff">☾</span>' : '') + '✦'.repeat(save.shards[i] || 0)) || '·'; }
 function bLabel(i, ord) { const mains = ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside), a = LEVELS.findIndex(l => l.name === LEVELS[i].bside), n = mains.indexOf(a) + 1; const sib = BSIDES.filter(j => LEVELS[j].bside === LEVELS[i].bside); return 'B' + (n || '') + (sib.indexOf(i) > 0 ? '′'.repeat(sib.indexOf(i)) : ''); }
 // tapping a locked dial says what opens it (phones have no hover tooltips)
 function lockedWhy(i) { const lv = LEVELS[i]; let nice; if (lv.bside) nice = `Beat ${lv.bside} to open this B-side.`; else { const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i), prev = LEVELS[ord[p - 1]]; nice = prev ? `Beat ${prev.name} first.` : 'Locked.'; }
@@ -1211,7 +1213,7 @@ function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
   const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}${chProg(ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside).slice(k, k + 5))}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = `<div class="chap">B-SIDES${chProg(ord.filter(j => LEVELS[j].bside))}</div>`; } if (lv.demo) head = '<div class="chap">DEMO</div>';
-    return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'data-locked="1" aria-disabled="true"'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : 'B-SIDE') : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
+    return head + (() => { const label = lv.demo ? '★' : lv.bside ? bLabel(i, ord) : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'data-locked="1" aria-disabled="true"'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? (unlocked(i) && !save.best[i] && !(save.playedB || {})[lv.name] ? '<span style="color:var(--brass)">NEW</span>' : save.best[i] ? btnTag(i) : 'B-SIDE') : save.best[i] ? btnTag(i) : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
@@ -2114,9 +2116,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 169, t: 'no need to fall six times for the step-by-step hint: open the hint, then tap it again to see one way through.' };
+const WHATS_NEW = { v: 170, t: 'the stage list now shows each beaten dial\'s medal under its number, ☀ sun or ☾ moon, next to the shards you found.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Stage list shows each dial\'s medal.',
   'Tap an open hint again for the step-by-step version.',
   'Every dial now has a step-by-step hint after six falls.',
   'New B-side: Lamplit Night (B-side of Moonlamps).',
@@ -2125,8 +2128,7 @@ const NEWS = [
   'Assist options grouped into three sections.',
   'Run splits show + or − against your best.',
   'Rewinds count up, and Stats totals the seconds rewound.',
-  'Photos keep your Screen look.',
-  'New B-side: Backward Noon (B-side of Backward Sun).',];
+  'Photos keep your Screen look.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
