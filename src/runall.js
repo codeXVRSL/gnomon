@@ -3,7 +3,9 @@ function rep(a,b,n){const o=[];for(let i=0;i<n;i++){o.push(a,b)}return o}
 const E_ = require('./engine.js');
 const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground && Math.abs(b.x + E_.castDx(s.t) - s.s.x) < 14; };
 const fr_ = s => s.t - Math.floor(s.t);
+const hawkNear2 = s => s.enemies.some(b => { const bx = b.x + E_.castDx(s.t), by = 168 - b.y - 8; return !s.s.gone && s.s.ground && Math.abs(bx - s.s.x) < 14 && Math.abs(by - s.s.y) < 14; });
 const S = {
+ 'Hawk Hours B': [['R',s=>s.p.x>=132],['RJ',8],['RJX',1],['RJ',8],['RX',1],...Array.from({length:4},()=>[['R',s=>hawkNear2(s)||s.won],['RJ',24]]).flat(),['R',600]],
  'High Noon B': [['R',s=>s.p.x>=22],['RJ',30],['R',s=>s.p.x>=70],['RJ',10],['UX',1],['',8],['R',s=>s.p.ground],['R',s=>s.p.x>=100],['RJ',30],['R',s=>s.p.x>=150],['',s=>!s.s.gone&&s.t>3.76||s.t>6.9],['R',s=>s.p.x>=171||s.t>6.9],['',s=>s.t>=3.9],['R',600]],
  'Two Nights': [['W',s=>s.sleeping],['R',s=>s.s.x>=120],['RJ',30],['R',s=>s.s.x>=180],['W',s=>s.day==2],['W',s=>s.sleeping],['R',s=>s.s.x>=250],['RJ',30],['R',s=>s.s.x>=324],['W',s=>s.day==3||s.won],['',30]],
  'Night Flip': [['W',s=>s.sleeping],['R',s=>s.s.x>=70],['F',1],['',40],['R',s=>s.s.x>=110],['F',1],['',40],['R',s=>s.s.x>=206],['W',s=>s.day==2||s.won],['',30]],

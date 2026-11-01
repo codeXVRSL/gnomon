@@ -261,7 +261,7 @@ const DEMO = LEVELS.findIndex(l => l.demo);
 const DAILY_EPOCH = Date.UTC(2026, 10, 1);
 function dailyInfo() {
   const now = new Date(); const day = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 86400000);
-  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo && !LEVELS[i].custom);
+  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo && !LEVELS[i].custom && (LEVELS[i].par || 0) <= 8); // no multi-day epics as a daily
   let h = Math.imul(Math.max(0, day) + 1, 2654435761) >>> 0; h = (h ^ (h >>> 15)) >>> 0;
   return { n: day + 1, li: pool[h % pool.length], key: 'd' + (day + 1) };
 }
@@ -1165,10 +1165,12 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) title();
 }
+const WHATS_NEW = { v: 16, t: 'a Night chapter, three new B-sides, ghost races, a stage maker, and a how-to that fits one screen.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
     <canvas id="tDial" width="200" height="96" style="width:100%;image-rendering:pixelated;border-radius:4px;background:#1c1636"></canvas>
+    ${save.seenVer !== WHATS_NEW.v && save.seen ? `<p class="sub" style="color:var(--brass)">New: ${WHATS_NEW.t}</p>` : ''}
     <p>Your shadow is the hand of a sundial. It lives upside-down below you, copies every move, and swings with a sun that only moves when you do.</p>
     <div class="row"><button class="btn primary" id="tPlay">${cont ? 'Continue' : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
     <div class="row"><button class="btn" id="tMake">Make a stage</button><button class="btn" id="tDemo">Hard demo</button><button class="btn" id="tHow">How to play</button></div>`);
@@ -1188,6 +1190,7 @@ function title() {
     x.fillStyle = '#e8e0ff'; x.font = '8px monospace'; x.fillText(now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), 4, 10);
     requestAnimationFrame(draw); };
   draw();
+  save.seenVer = WHATS_NEW.v;
   const go = (demoFirst) => { on = false; if (demoFirst != null) save.demoFirst = demoFirst; save.seen = true; persist(); hideCard(); };
   $('tPlay').onclick = () => { go(); if (!cont) load(order().filter(k => k !== DEMO)[0]); };
   $('tDaily').onclick = () => { go(); startDaily(); };
