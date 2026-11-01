@@ -934,7 +934,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
+    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
       wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
@@ -1173,6 +1173,7 @@ function stats() {
     ${(() => { const CH = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); let total = 0, full = true; const fmt = s => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
       const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}</span>`; }).join('');
       return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
+    ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
     <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
@@ -1444,6 +1445,7 @@ function render(now) {
     const fl = Math.sin(now / 130) * .03;
     for (const [r, a] of [[L.lampR, .1], [L.lampR * .75, .12], [L.lampR * .45, .16]]) { g.fillStyle = `rgba(255,205,110,${a + fl})`; g.beginPath(); g.arc(lx, ly, r, 0, 6.29); g.fill(); }
     g.fillStyle = '#2b2440'; g.fillRect(lx - 4, ly - 4, 8, 8); g.fillStyle = '#ffd36b'; g.fillRect(lx - 2, ly - 2, 4, 4); g.fillStyle = '#fff4c2'; g.fillRect(lx - 1, ly - 1, 2, 2);
+    { const ss = st.s; if (!ss.gone) { const cx = Math.max(ss.x, Math.min(lx, ss.x + SW)), cy = Math.max(ss.y, Math.min(ly, ss.y + ss.h)), d = Math.hypot(cx - lx, cy - ly); if (d < L.lampR + 10 && !inShade(L, st) && !inWater(L, 'bot', ss, SW, ss.h)) warnBrackets(now, 'rgba(255,200,90,.9)'); } }
   }
   g.fillStyle = night ? 'rgba(199,180,255,.5)' : 'rgba(255,236,180,.55)'; g.fillRect(0, HZ, L.PX, 1);
 
@@ -1609,6 +1611,13 @@ function drawExtrusions(now, t, night, pr) {
   // sun slabs get a sliver of depth too
   for (const r of slabs(L, st)) { const rx = Math.round(r.x); g.fillStyle = 'rgba(60,40,100,.85)'; g.fillRect(rx + 2, r.y + r.h, r.w, EX); }
 }
+// blinking corner brackets around your shadow: something is about to get it (red: hawk, amber: lamplight)
+function warnBrackets(now, col) {
+  const ss = st.s; if (ss.gone || !(Math.floor(now / 110) % 2)) return;
+  g.fillStyle = col; const bx = Math.round(ss.x) - 2, by = Math.round(ss.y) - 2, bw = SW + 4, bh = Math.round(ss.h) + 4;
+  g.fillRect(bx, by, 3, 1); g.fillRect(bx, by, 1, 3); g.fillRect(bx + bw - 3, by, 3, 1); g.fillRect(bx + bw - 1, by, 1, 3);
+  g.fillRect(bx, by + bh - 1, 3, 1); g.fillRect(bx, by + bh - 3, 1, 3); g.fillRect(bx + bw - 3, by + bh - 1, 3, 1); g.fillRect(bx + bw - 1, by + bh - 3, 1, 3);
+}
 // ---------- enemies ----------
 function drawEnemies(now, night) {
   for (const e of st.enemies) {
@@ -1626,11 +1635,7 @@ function drawEnemies(now, night) {
         g.fillStyle = '#ff6b5a'; g.fillRect(sx2 + (dirx > 0 ? 7 : 0), sy2 + 4, 1, 1);
         // warning: the hawk's shadow is closing in on yours, so your shadow's outline blinks red
         const ss = st.s, dxw = sx2 + EW / 2 - (ss.x + SW / 2), coming = dxw * -e.dir > -6;
-        if (!ss.gone && coming && Math.abs(dxw) < 34 && Math.abs(sy2 - ss.y) < 18 && Math.floor(now / 110) % 2) {
-          g.fillStyle = 'rgba(255,90,110,.85)'; const bx = Math.round(ss.x) - 2, by = Math.round(ss.y) - 2, bw = SW + 4, bh = Math.round(ss.h) + 4;
-          g.fillRect(bx, by, 3, 1); g.fillRect(bx, by, 1, 3); g.fillRect(bx + bw - 3, by, 3, 1); g.fillRect(bx + bw - 1, by, 1, 3);
-          g.fillRect(bx, by + bh - 1, 3, 1); g.fillRect(bx, by + bh - 3, 1, 3); g.fillRect(bx + bw - 3, by + bh - 1, 3, 1); g.fillRect(bx + bw - 1, by + bh - 3, 1, 3);
-        }
+        if (!ss.gone && coming && Math.abs(dxw) < 34 && Math.abs(sy2 - ss.y) < 18) warnBrackets(now, 'rgba(255,90,110,.85)');
       }
     } else if (e.kind === 'lantern') {
       // warm glow around the bearer, and its light falling into the shadow world
@@ -1813,7 +1818,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 43, t: 'your shadow now blinks red when a hawk\'s shadow is about to reach it.' };
+const WHATS_NEW = { v: 44, t: 'lamplight warning on your shadow, and Stats now shows what got you most.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
