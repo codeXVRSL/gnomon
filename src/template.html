@@ -1522,9 +1522,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 131, t: 'each chapter heading on the stage list now shows how many of its dials you have beaten (✓ when it is all done).' };
+const WHATS_NEW = { v: 132, t: 'a new B-side, Two Locks: the wall holds your shadow on the first plate, but only patience (and the afternoon sun) gets it onto the second.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Two Locks (B-side of Two Worlds).',
   'Chapter headings show how many dials you have beaten.',
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
   'Switching tabs or locking your phone hushes the music until you return.',
@@ -1533,8 +1534,7 @@ const NEWS = [
   'Pressing a plate sends sparks to the gate it opens.',
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
   'New B-side: Bright Staff (water shadow + staff).',
-  'New B-side: Plant at Dusk (staff + hour mark).',
-  'How to play lists every keyboard shortcut.',];
+  'New B-side: Plant at Dusk (staff + hour mark).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
