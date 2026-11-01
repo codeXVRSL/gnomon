@@ -879,7 +879,7 @@ function load(i) {
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
   deathCount = {}; deathMarks = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
-  li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
+  li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv) || !!(LEVELS[i].custom && edTestInv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; save.atName = LEVELS[i].name; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
@@ -1190,9 +1190,9 @@ function playCustom() {
   { const bad = edMap.slice(HALF).some(r => r.includes('S') || r.includes('G')); if (bad) { toast('S AND G GO IN THE TOP HALF (THE WORLD OF LIGHT)'); return; } }
   { const sy = edMap.findIndex(r => r.includes('S')), sx = edMap[sy].indexOf('S'); let fl = false; for (let y = sy + 1; y < HALF + 1 && !fl; y++) if ('#=_'.includes((edMap[y] || [])[sx])) fl = true; if (!fl) toast('HEADS UP: NOTHING UNDER YOUR START, YOU WILL FALL'); }
   let ci = LEVELS.findIndex(l => l.custom); const d = customDef(); if (ci < 0) { LEVELS.push(d); ci = LEVELS.length - 1; } else LEVELS[ci] = d;
-  dailyMode = false; hideCard(); load(ci);
+  dailyMode = false; hideCard(); load(ci); if (edTestInv) toast('TEST RUN · NOTHING CAN HURT YOU');
 }
-const edUndo = []; const edSnap = () => { edUndo.push(edMap.map(r => r.slice())); if (edUndo.length > 20) edUndo.shift(); };
+let edTestInv = false; const edUndo = []; const edSnap = () => { edUndo.push(edMap.map(r => r.slice())); if (edUndo.length > 20) edUndo.shift(); };
 function editor(fromLink) {
   if (save.edTipSeen) { save.edTip = 1; } save.edTipSeen = 1; persist();
   if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
@@ -1210,7 +1210,7 @@ function editor(fromLink) {
     <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
     <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
-    <div class="row"><button class="btn primary" id="edPlay">Play</button><button class="btn" id="edShare">Share link</button></div>
+    <div class="row"><button class="btn primary" id="edPlay">Play</button><button class="btn" id="edTest" title="Play without dying, to explore your stage">Test (safe)</button><button class="btn" id="edShare">Share link</button></div>
     <div class="row"><button class="btn" id="edUndo" ${edUndo.length ? '' : 'disabled'}>Undo${edUndo.length ? ' (' + edUndo.length + ')' : ''}</button><button class="btn" id="edClear">Clear</button><button class="btn" id="edBack">Back</button></div>`);
   const grid = $('edGrid'); let painting = false;
   const paint = e => { const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !el.dataset || el.dataset.x == null) return; const x = +el.dataset.x, y = +el.dataset.y;
@@ -1225,7 +1225,8 @@ function editor(fromLink) {
   $('edH').onchange = () => editor();
   $('edCast').onchange = e => { edOpts.cast = e.target.checked; save.edit = edEncode(); persist(); };
   $('edSun').onchange = e => { edOpts.sun = e.target.checked; save.edit = edEncode(); persist(); };
-  $('edPlay').onclick = playCustom;
+  $('edPlay').onclick = () => { edTestInv = false; playCustom(); };
+  $('edTest').onclick = () => { edTestInv = true; playCustom(); };
   $('edZoom').onclick = () => { edZoom = edZoom < 0 ? 0 : -1; editor(); };
   if ($('edSide')) $('edSide').onclick = () => { edZoom = 1 - edZoom; editor(); };
   $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage', url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
@@ -1948,7 +1949,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 78, t: 'the Daily button now shows your streak.' };
+const WHATS_NEW = { v: 79, t: 'the stage maker has a safe Test run where nothing can hurt you, to explore your stage.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
