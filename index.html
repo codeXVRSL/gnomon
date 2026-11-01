@@ -1975,7 +1975,7 @@ function drawDial() {
   else { const k = (t - DUSK) / (DAY_TOTAL - DUSK), sx = Math.round(dayW + 4 + k * (w - dayW - 8)), sy = Math.round(h - 4 - Math.sin(k * Math.PI) * (h - 7)); dg.fillStyle = '#efe7ff'; dg.fillRect(sx - 1, sy - 1, 3, 3); dg.fillStyle = '#26214a'; dg.fillRect(sx, sy - 1, 2, 2); }
   $('phase').textContent = (st.grav < 0 && !st.sleeping ? '◀ ' : '') + PHASE(t);
   // the dial's own clock, the same o'clock the hints talk about (night shows no hour)
-  { const ht = st.sleeping ? '' : Math.floor(t) + ':' + String(Math.floor((t % 1) * 60 / 15) * 15).padStart(2, '0'); const el = $('hourTxt'); if (el.textContent !== ht) el.textContent = ht; }
+  { const left = Math.max(0, DAY_TOTAL - t), ht = st.sleeping ? `· dawn in ${Math.floor(left)}:${String(Math.floor((left % 1) * 60 / 15) * 15).padStart(2, '0')}` : Math.floor(t) + ':' + String(Math.floor((t % 1) * 60 / 15) * 15).padStart(2, '0'); const el = $('hourTxt'); if (el.textContent !== ht) el.textContent = ht; }
   $('day').textContent = st.day;
 }
 
@@ -2139,9 +2139,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 178, t: 'a new B-side, Three Nights: three walls and three nights, with a last wall below that your sleeping shadow has to hop.' };
+const WHATS_NEW = { v: 179, t: 'at night the sun clock now counts down to dawn (Night · dawn in 2:45), so you know how long your shadow has to walk.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Nights count down to dawn.',
   'New B-side: Three Nights (B-side of Two Nights).',
   'Bushes and pebbles on the grass.',
   'All 31 sun medals earns a gold sun on the title.',
@@ -2150,8 +2151,7 @@ const NEWS = [
   'Crickets at night, birdsong at dawn.',
   'New B-side: Upside Midnight (B-side of Upside Dusk).',
   'The HUD shows the dial\'s hour, as used in hints.',
-  'Stage list shows each dial\'s medal.',
-  'Tap an open hint again for the step-by-step version.',];
+  'Stage list shows each dial\'s medal.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
