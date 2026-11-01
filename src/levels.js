@@ -173,6 +173,7 @@ const LEVELS = [
       '..........o.........',
       '..xxxx..............'] },
   { name: 'Backward Sun', startHour: 4.5,
+    hint2: 'Step by step: FLIP at once, then pace back and forth on the ceiling near the gate until the clock reads about 2 o\'clock. FLIP back by the gate and walk through.',
     hint: 'Your shadow trails west, but the plate is east. Flip the world: upside down, the sun runs backwards. Walk the ceiling until your shadow swings east, then flip home.',
     map: [
       '.........A..........',
@@ -190,6 +191,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Yesterday\'s Cloud', startHour: 4.5, clouds: [[1.0, 1.3]],
+    hint2: 'Step by step: FLIP at once, then pace back and forth on the ceiling; upside down every step rewinds the clock. Back at the gate, hold the hourglass until your shadow is reborn past the wall, then FLIP home and go.',
     hint: 'A reborn shadow can appear past any wall. Flip the world and hold the hourglass by the gate: upside down, the day rewinds back through this morning\'s cloud. Then flip home.',
     map: [
       '.........A..........',
@@ -428,6 +430,7 @@ const LEVELS = [
       '........................................................',
       '....................xxxxxx..............................'] },
   { name: 'Chime Run', startHour: 0.3, sunRate: 0.12, duskFail: true, hourPx: 600,
+    hint2: 'Step by step: stop before each spike row and watch the clock; cross right after the hour turns. At the chimney, wall-jump left and right instead of dashing.',
     hint: 'The sun runs fast and chime spikes rise late each hour: cross on the safe part of the clock. Wall-jump up the chimney; an up-dash would drive your shadow into spikes.',
     map: [
       '....................................................',
@@ -496,6 +499,7 @@ const LEVELS = [
       '..............................',
       '..............................'] },
   { name: 'Night Flip', startHour: 6.4, hourPx: 120,
+    hint2: 'Step by step: wait for night, walk your shadow to the hanging wall, FLIP, walk under it along the deep floor, FLIP back, and stop under your dial.',
     hint: 'A wall hangs below and blocks your shadow. At night it can still FLIP: slip under the wall along the deep floor, flip back, and stop under your dial.',
     map: [
       '............#...........',
@@ -513,6 +517,7 @@ const LEVELS = [
       '.....o..................',
       '........................'] },
   { name: 'Epilogue', startHour: 0.5, epilogue: true,
+    hint2: 'Step by step: plant the staff about halfway to the gate, wait at the gate until its shadow presses the plate, slip through, then let night fall and walk your shadow past the last wall.',
     hint: 'Everything at once. Plant the staff so its thin shadow holds the boxed plate at the gate. Then let night fall, steer your shadow past the last wall, and wake there.',
     map: [
       '.............A....#...........',
