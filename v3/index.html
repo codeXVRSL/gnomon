@@ -1128,7 +1128,7 @@ function menu() {
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">Chapter run in progress (stage ${chRun.i + 1}/5). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
-    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
+    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
@@ -1948,7 +1948,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 77, t: 'stage maker on desktop: number keys pick tiles, Ctrl+Z undoes, ◆ shows where your shadow starts.' };
+const WHATS_NEW = { v: 78, t: 'the Daily button now shows your streak.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
