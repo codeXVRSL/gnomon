@@ -779,7 +779,7 @@ try { save = Object.assign({ best: {}, at: 0, shards: {}, demoFirst: false, seen
 // ---- progress is stored by stage NAME, so adding stages in an update never shuffles anyone's medals ----
 const V2_ORDER = ["The Hour Hand","High Noon","Passing Cloud","Meet at Dusk","Two Worlds","Mirror Steps","Hold Still","Turn the Dial","Backward Sun","Yesterday's Cloud","Eclipse","Stone Hours","Still Water","Sunstones","Hour Chime","Lantern Walk","Falling Stones","Spring Tide","Upside Dusk","Gnomon","The Deep Dial"];
 const RENAMED = { 'Hold Still': 'Plant the Hour', 'Still Water': 'Bright Water' };
-if (save.assist && 'dash' in save.assist) delete save.assist.dash; // the dash was removed (loop 186)
+if (save.assist) { delete save.assist.dash; delete save.assist.noSwipe; } // the dash was removed (loop 186)
 if (!save.byName) { // one-time migration from index-keyed saves (written by the version on the main link)
   for (const f of ['best', 'medal', 'shards', 'times', 'ghost']) { const o = save[f] || {}, n = {}; for (const k in o) { const nm = /^\d+$/.test(k) ? V2_ORDER[+k] : k; if (nm) n[RENAMED[nm] || nm] = o[k]; } save[f] = n; }
   save.atName = V2_ORDER[save.at] ? (RENAMED[V2_ORDER[save.at]] || V2_ORDER[save.at]) : null; save.byName = true;
@@ -962,7 +962,7 @@ function linkSparks(k) {
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
 // stuck? after the third death of the same kind on a stage, a one-line tip (and the full hint opens)
-let deathCount = {}, deathMarks = [], stepAcc = 0, swipeDash = null;
+let deathCount = {}, deathMarks = [], stepAcc = 0;
 const TIPS = { spikes: 'TIP · JUMP OVER SPIKES · CHIME SPIKES ARE SAFE EARLY IN EACH HOUR', 'shadow spikes': 'TIP · WHEN YOU JUMP UP, YOUR SHADOW JUMPS DOWN · WATCH THE WORLD BELOW', 'shadow fell': 'TIP · YOUR SHADOW FALLS IF ITS FLOOR ENDS · STOP IT AGAINST A WALL OR WAIT',
   fell: 'TIP · HOLD JUMP FOR A HIGHER, LONGER LEAP', lamplight: 'TIP · LAMPS BURN YOUR SHADOW · JUMP DEEP UNDER THEM OR STAND IN SHADE', 'bird shadow': 'TIP · HOP WHEN THE HAWK\'S SHADOW REACHES YOURS', dusk: 'TIP · EACH DASH BURNS HALF AN HOUR · DASH ONLY WHERE YOU MUST',
   crushed: 'TIP · STONES APPEAR AND VANISH WITH THE HOUR · WATCH THE CLOCK', 'shadow crushed': 'TIP · MOVING SHADE CAN PIN YOUR SHADOW · KEEP IT CLEAR', 'lantern light': 'TIP · JUMP LATE OVER THE LANTERN SO YOUR SHADOW CLEARS ITS LIGHT', lantern: 'TIP · LANTERNS MOVE ONLY AS HOURS PASS · STAND STILL TO FREEZE THEM' };
@@ -1007,7 +1007,6 @@ function tick() {
   if (hitStop > 0) { hitStop--; return; }
   const prevP = { ...st.p }, prevS = { ...st.s }, prevPr = pressedSet(L, st), prevG = st.grav;
   const pad = readPad();
-  const sw = swipeDash; swipeDash = null;
   const inp = { l: keys.l || pad.l, r: keys.r || pad.r, jump: jumpEdge || pad.jumpE, jumpHeld: keys.j || pad.j, wait: keys.w || pad.w, pin: keys.p || pad.p, flip: flipEdge || pad.flipE, dash: dashEdge || pad.dashE, up: keys.u || pad.u, down: keys.w || keys.dn || pad.d };
   if (ghost && !ghost.st.won && ghost.i < ghost.data.length) update(ghost.L, ghost.st, unpackInp(ghost.data[ghost.i++]));
   inp.dash = false; // the dash was removed from the game (loop 186)
@@ -2090,14 +2089,6 @@ document.querySelectorAll('.ctl').forEach(b => {
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
   b.addEventListener('contextmenu', e => e.preventDefault());
 });
-// ---- swipe the game screen to dash that way (phones; Assist can turn it off) ----
-{ const stg = $('stage'); let s0 = null;
-  stg.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' || (save.assist && save.assist.noSwipe)) return; s0 = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, done: false }; });
-  stg.addEventListener('pointermove', e => { if (!s0 || s0.done || e.pointerId !== s0.id) return; const dx = e.clientX - s0.x, dy = e.clientY - s0.y, m = Math.hypot(dx, dy);
-    if (m > 28 && performance.now() - s0.t < 260) { s0.done = true; const a = Math.atan2(dy, dx), o = Math.round(a / (Math.PI / 4));
-      const D = { 0: [0, 1, 0, 0], 1: [0, 1, 0, 1], 2: [0, 0, 0, 1], 3: [1, 0, 0, 1], 4: [1, 0, 0, 0], '-4': [1, 0, 0, 0], '-3': [1, 0, 1, 0], '-2': [0, 0, 1, 0], '-1': [0, 1, 1, 0] }[o];
-      swipeDash = { l: !!D[0], r: !!D[1], u: !!D[2], d: !!D[3] }; } });
-  const end = () => { s0 = null; }; stg.addEventListener('pointerup', end); stg.addEventListener('pointercancel', end); }
 // ---- d-pad: slide a thumb anywhere on it; the angle from the centre gives 8 directions (left/right move, up/down aim) ----
 { const pad = $('dpad'), knob = pad.querySelector('b'); let pid = null;
   let lastDir = '';
@@ -2143,9 +2134,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 187, t: 'with the dash gone, pressing up on the phone d-pad now jumps by default (you can switch it off in Assist), and the last dash leftovers were cleared out.' };
+const WHATS_NEW = { v: 188, t: 'the old swipe-to-dash code is gone from phones, so a quick swipe on the game screen no longer does anything hidden' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '188 · cleared the last swipe-to-dash code from the phone controls',
   'Up on the d-pad now jumps by default.',
   'The dash was removed; seven stages rebuilt for jumping.',
   'How to play covers ⟲ BACK and step-by-step hints.',
@@ -2154,8 +2146,7 @@ const NEWS = [
   'New B-side: Quick Chimes (B-side of Chime Run).',
   'New B-side: Late Light (B-side of Last Light).',
   'A one-time reminder to back up your save code.',
-  'Nights count down to dawn.',
-  'New B-side: Three Nights (B-side of Two Nights).',];
+  'Nights count down to dawn.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
