@@ -15,6 +15,7 @@ const S = {
  'Night Walk': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=86],['RJ',30],['R',s=>s.s.x>=150],['RJ',30],['R',s=>s.s.x>=204],['W',s=>s.day==2||s.won],['',30]],
  'Moonlamps': [['W',s=>s.sleeping],['R',s=>s.s.x>=56],['RJ',30],['R',s=>s.s.x>=130],['RJ',30],['R',s=>s.s.x>=228],['W',s=>s.day==2||s.won],['',30]],
  'In the Shade': [['R',s=>s.p.x>=80],['W',s=>s.t>=1.7],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
+  'Lamplit Night': [['W',s=>s.sleeping],['R',s=>s.s.x>=56],['RJ',30],['R',s=>s.s.x>=80],['RJ',30],['R',s=>s.s.x>=166],['RJ',30],['R',s=>s.s.x>=228],['W',s=>s.day==2||s.won],['',30]],
   'Backward Noon': [['R',s=>s.p.x>=110],['F',1],['',40],...Array.from({length:12},(_, k)=>[k%2?'R':'L',k%2?(s=>s.p.x>=110||s.t<=2.6):(s=>s.p.x<=50||s.t<=2.6)]),['R',s=>s.p.x>=110],['F',1],['',40],['W',s=>E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Backward Noon')]),s).has('A')||s.t>6.9],['R',600]],
   'Two Lanterns': [['R',s=>s.enemies.some(e=>e.x>s.p.x-4&&e.x-s.p.x<36)],['RJ',30],['R',s=>s.enemies.some(e=>e.x>s.p.x-4&&e.x-s.p.x<24)],['RJ',30],['R',900]],
   'Under the Chime': [['R',s=>s.p.x>=48],['W',s=>s.t>1&&s.t%1>=0.05&&s.t%1<0.15],['R',s=>s.p.x>=140],['W',s=>s.t>2&&s.t%1>=0.05&&s.t%1<0.15],['R',900]],
