@@ -190,7 +190,7 @@ body.calm #game{transition:none}
   </div>
   <div class="meta">
     <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
-    <div class="metaR"><span id="dashPip" title="Dash ready" style="color:#ffb347">●</span><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
+    <div class="metaR"><span id="dashPip" title="Dash ready" style="color:#ffb347">●</span><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="rewBtn" aria-label="Go back one second" title="Go back one second (T or Backspace)">⟲ BACK</button><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
   <div id="stage"><canvas id="game" width="240" height="168" role="img" aria-label="Game screen"></canvas><div id="toast" role="status" aria-live="polite"></div><div id="sr" class="sr" aria-live="polite"></div></div>
@@ -207,7 +207,7 @@ body.calm #game{transition:none}
       <button class="ctl jump" data-k="j" aria-label="Jump">JUMP<small>▲▼</small></button>
     </div>
   </div>
-  <div class="keys">←→ move · Space/↑ jump · X/Shift dash (hold ↑↓ to aim) · F flip · E staff · hold ↓ pass time · R restart</div>
+  <div class="keys">←→ move · Space/↑ jump · X/Shift dash (hold ↑↓ to aim) · F flip · E staff · hold ↓ pass time · T back 1s · R restart</div>
 </div>
 <div class="overlay" id="overlay" hidden><div class="card" id="card" role="dialog" aria-modal="true" aria-live="polite"></div></div>
 
@@ -259,7 +259,7 @@ const S = {};
 for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P], ['pf', SPR_FALL, P], ['pd', SPR_DASH, P], ['pw', SPR_SLIDE, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
-let gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
+let rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let decor = [], roots = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
@@ -386,13 +386,21 @@ const cloudWarned = new Set();
 function whoosh() { if (muted) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const n = ac.sampleRate * 1.2 | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(), t0 = ac.currentTime; src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + 0.6); f.frequency.exponentialRampToValueAtTime(250, t0 + 1.2); gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.2); src.connect(f).connect(gn).connect(sfxOut()); src.start(); } catch (e) {} }
 // screen readers: a quiet running commentary of what changes on screen
 function say(t) { const el = $('sr'); if (!el) return; el.textContent = ''; setTimeout(() => { el.textContent = t; }, 30); }
+const cloneSt = o => typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o));
+// step back about one second: the sun, your shadow and every enemy return to where they were (the clock keeps the real time)
+function rewind() {
+  if (!st || st.won || !$('overlay').hidden || rewindBuf.length < 2) { beep(160, .05, 'sine', .02); return; }
+  rewindBuf.splice(-Math.min(6, rewindBuf.length - 1)); const snap = rewindBuf[rewindBuf.length - 1];
+  st = cloneSt(snap.st); rec.length = snap.n; parts = []; trail = []; gateCue = null;
+  beep(990, .06, 'sine', .025, .7); toast('⟲ ONE SECOND BACK'); say('One second back.');
+}
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
 function load(i) {
   cloudWarned.clear();
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
-  deathCount = {}; deathMarks = []; gateCue = null; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
+  deathCount = {}; deathMarks = []; gateCue = null; rewindBuf = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = []; roots = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv) || !!(LEVELS[i].custom && edTestInv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
@@ -490,6 +498,8 @@ function tick() {
   rec.push(packInp(inp));
   const q0 = Math.floor(st.t * 4);
   update(L, st, inp);
+  // keep the last five seconds as snapshots (one every 10 frames) so you can step back in time
+  if (runFrames % 10 === 0) { rewindBuf.push({ st: cloneSt(st), n: rec.length }); if (rewindBuf.length > 31) rewindBuf.shift(); }
   // while you hold the hourglass, a soft tick every quarter hour: pitch climbs toward noon and sinks toward dusk
   if (inp.wait && !st.sleeping && Math.floor(st.t * 4) !== q0 && Math.floor(st.t * 4) % 4) { const d = 1 - Math.min(1, Math.abs(st.t - 3.5) / 3.5); beep(520 + d * 360, .035, 'sine', .018); }
   jumpEdge = flipEdge = dashEdge = false;
@@ -860,7 +870,7 @@ function how() {
       ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
       ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
     ${sec('Keyboard shortcuts', false, [
-      ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · X/Shift dash (hold arrows to aim) · ↓ hold to pass time · F flip · E staff · R restart · V 2.5D view.'],
+      ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · X/Shift dash (hold arrows to aim) · ↓ hold to pass time · F flip · E staff · T or Backspace go back one second · R restart · V 2.5D view.'],
       ['☰', '<b>Menus:</b> Tab and Shift+Tab move, Enter picks, Esc closes; arrow keys move around the stage grid.'],
       ['✎', '<b>Stage maker:</b> number keys 1–0 pick tiles, Ctrl/Cmd+Z undoes.'],
       ['⚙', 'Change the play keys in Assist › Keyboard keys.']])}
@@ -1507,6 +1517,7 @@ window.addEventListener('keydown', e => {
   if (UPKEYS.has(e.key)) keys.u = 1;
   if (k) { e.preventDefault(); if (k === 'j' && !keys.j) jumpEdge = true; if (k === 'f' && !keys.f) flipEdge = true; if (k === 'x' && !keys.x) dashEdge = true; keys[k] = 1; }
   else if (e.key === 'r' || e.key === 'R') load(li);
+  else if (e.key === 't' || e.key === 'T' || e.key === 'Backspace') { e.preventDefault(); rewind(); }
 });
 window.addEventListener('keyup', e => { const k = KMAP[e.key]; if (UPKEYS.has(e.key)) keys.u = 0; if (k) keys[k] = 0; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = 0; });
@@ -1550,6 +1561,7 @@ document.querySelectorAll('.ctl').forEach(b => {
   pad.addEventListener('contextmenu', e => e.preventDefault()); }
 $('menuBtn').onclick = menu;
 $('resetBtn').onclick = () => { load(li); beep(240, .06, 'triangle', .04); };
+$('rewBtn').onclick = e => { e.currentTarget.blur(); rewind(); };
 // a cut-off hint shows '▾ more' so players know a tap reveals the rest
 function hintTrunc() { requestAnimationFrame(() => { const h = $('hint'); h.classList.toggle('trunc', !h.classList.contains('open') && h.scrollHeight > h.clientHeight + 2); }); }
 window.addEventListener('resize', hintTrunc);
@@ -1576,9 +1588,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 151, t: 'B-sides play the flip side of the soundtrack: the same tune in a minor key, Dm Bb F C instead of D Bm G A.' };
+const WHATS_NEW = { v: 152, t: 'made a mistake? Press ⟲ BACK (or T, or Backspace) to step back one second: the sun, your shadow and every enemy return to where they were.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '⟲ BACK steps time back one second.',
   'B-sides have their own minor-key music.',
   'B-side wins show your progress toward the Far Side.',
   'Far Side postcard shows on the title screen and journey summary.',
@@ -1587,8 +1600,7 @@ const NEWS = [
   'Thorns and resting stones are easier to see.',
   'New B-side: Under the Chime (B-side of Hour Chime).',
   'Assist: Closer view gives tall phones bigger pixels.',
-  'B-sides show which dial they belong to, and NEW until you try them.',
-  'New B-side: Mirror Hours (B-side of Mirror Steps).',];
+  'B-sides show which dial they belong to, and NEW until you try them.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
