@@ -843,7 +843,15 @@ function musicMix(t, sleeping) {
   if (t > 5.5) return { pad: .9, bass: .6, arp: .25, bell: .3 };          // dusk: warm, thinning
   return { pad: .75, bass: .55, arp: .6, bell: .15 };
 }
+// ambience: crickets on quiet nights, a few birds at dawn (sound effects bus, so Effects volume and mute apply)
+function ambience() {
+  if (muted || !ac || ac.state !== 'running' || !st || !$('overlay').hidden || st.won) return;
+  const r = Math.random();
+  if (st.sleeping && r < 0.10) { const f = 4200 + Math.random() * 600; for (let k = 0; k < 3; k++) beep(f, .025, 'sine', .006, 1, k * .06); }
+  else if (!st.sleeping && st.t < 0.8 && r < 0.05) { const f = 1800 + Math.random() * 900; beep(f, .07, 'sine', .01, 1.5); beep(f * 1.2, .06, 'sine', .008, .8, .09); }
+}
 function musicTick() {
+  ambience();
   if (!ac || !MUSIC.bus) return;
   const on = MUSIC.on && $('overlay').hidden !== undefined;
   MUSIC.bus.gain.setTargetAtTime(on ? 0.55 : 0, ac.currentTime, 0.4);
@@ -2118,9 +2126,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 172, t: 'a new B-side, Upside Midnight: walls above and below and thorns on the floor of the night, so your sleeping shadow has to turn the world twice.' };
+const WHATS_NEW = { v: 173, t: 'nights now have soft crickets and dawn brings a few birds, quiet enough to sit under the music (Effects volume and mute apply).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Crickets at night, birdsong at dawn.',
   'New B-side: Upside Midnight (B-side of Upside Dusk).',
   'The HUD shows the dial\'s hour, as used in hints.',
   'Stage list shows each dial\'s medal.',
@@ -2129,8 +2138,7 @@ const NEWS = [
   'New B-side: Lamplit Night (B-side of Moonlamps).',
   'Assist: larger text in menus and hints.',
   'Stage maker: add a passing cloud.',
-  'Assist options grouped into three sections.',
-  'Run splits show + or − against your best.',];
+  'Assist options grouped into three sections.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
