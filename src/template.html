@@ -27,6 +27,7 @@ header{width:100%;display:flex;align-items:center;justify-content:space-between;
 .lvl{font-family:var(--display);font-size:12px;color:var(--mute);text-align:center;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lvl b{color:var(--parch);font-weight:400}
 .icon-btn{font-family:var(--display);background:var(--ink-3);color:var(--parch);border:0;border-radius:4px;padding:8px 10px;font-size:11px;cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.card.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
 button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}.lv-btn:focus-visible{outline:2px solid #fff6d0;outline-offset:1px}
 .clock{width:100%;display:flex;align-items:center;gap:10px}
 #dial{flex:1;min-width:0;height:28px;image-rendering:pixelated}
@@ -604,7 +605,10 @@ function realSun(li) {
   return { h, par: LEVELS[li].real[h] };
 }
 function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); const rs = realSun(d.li); startOverride = rs ? rs.h : null; realPar = rs ? rs.par : null; load(d.li); toast('DAILY SUNDIAL #' + d.n + ' · REAL SUN ' + realLabel); }
-function showCard(html) { $('card').innerHTML = html; $('card').scrollTop = 0; $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.lv-btn.cur:not([disabled])') || $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
+// a soft fade at the bottom of a card that has more to scroll
+function moreFade() { const c = $('card'); c.classList.toggle('more', c.scrollHeight - c.clientHeight - c.scrollTop > 6); }
+$('card').addEventListener('scroll', moreFade, { passive: true }); window.addEventListener('resize', moreFade);
+function showCard(html) { $('card').innerHTML = html; $('card').scrollTop = 0; requestAnimationFrame(moreFade); $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.lv-btn.cur:not([disabled])') || $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
@@ -1423,7 +1427,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 67, t: 'share your chapter run time, and menus now always open at the top on phones.' };
+const WHATS_NEW = { v: 69, t: 'long menus now fade at the bottom when there is more to scroll.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
