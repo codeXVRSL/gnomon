@@ -1548,9 +1548,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 140, t: 'stages with cast shadows run lighter: the rules engine works out each hour\'s shadows once per frame instead of dozens of times.' };
+const WHATS_NEW = { v: 141, t: 'a new B-side, Mirror Hours: thorns wait where your shadow lands when you jump, so pick the hour before you leap.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'New B-side: Mirror Hours (B-side of Mirror Steps).',
   'Cast-shadow stages run lighter on slow phones.',
   'Daily Sundial picks stay put when new stages are added.',
   'Hear which gate moved: each pair has its own note.',
@@ -1559,8 +1560,7 @@ const NEWS = [
   'New B-side: Stone Nights (B-side of Stone Hours).',
   'Screen readers announce stages, gates opening and closing, falls and wins.',
   'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
-  'New B-side: Two Locks (B-side of Two Worlds).',
-  'Chapter headings show how many dials you have beaten.',];
+  'New B-side: Two Locks (B-side of Two Worlds).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
