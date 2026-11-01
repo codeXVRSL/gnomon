@@ -5,6 +5,7 @@ const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground &
 const fr_ = s => s.t - Math.floor(s.t);
 const hawkNear2 = s => s.enemies.some(b => { const bx = b.x + E_.castDx(s.t), by = 168 - b.y - 8; return !s.s.gone && s.s.ground && Math.abs(bx - s.s.x) < 14 && Math.abs(by - s.s.y) < 14; });
 const S = {
+ 'Night Walk B': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=80],['RJ',30],['R',s=>s.s.x>=148],['F',1],['',40],['R',s=>s.s.x>=172],['F',1],['',40],['R',s=>s.s.x>=230],['W',s=>s.day==2||s.won],['',30]],
  'Epilogue': [['R',s=>s.p.x>=110],['RP',1],['R',s=>s.p.x>=147||s.t>6.9],['W',s=>[...E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Epilogue')]),s)].includes('A')||s.t>6.8],['R',s=>s.p.x>=206||s.t>6.95],['W',s=>s.sleeping],['R',s=>s.s.x>=236],['W',s=>s.day==2],['',20],['R',s=>s.p.x>=252],['RJ',30],['R',600]],
  'Hawk Hours B': [['R',s=>s.p.x>=132],['RJ',8],['RJX',1],['RJ',8],['RX',1],...Array.from({length:4},()=>[['R',s=>hawkNear2(s)||s.won],['RJ',24]]).flat(),['R',600]],
  'High Noon B': [['R',s=>s.p.x>=22],['RJ',30],['R',s=>s.p.x>=70],['RJ',10],['UX',1],['',8],['R',s=>s.p.ground],['R',s=>s.p.x>=100],['RJ',30],['R',s=>s.p.x>=150],['',s=>!s.s.gone&&s.t>3.76||s.t>6.9],['R',s=>s.p.x>=171||s.t>6.9],['',s=>s.t>=3.9],['R',600]],

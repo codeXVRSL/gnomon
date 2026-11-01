@@ -1187,7 +1187,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 18, t: 'an Epilogue with an ending, a Night chapter, four B-sides, ghost races and a stage maker.' };
+const WHATS_NEW = { v: 21, t: 'an Epilogue with an ending, a Night chapter, five B-sides (new: Night Walk B), ghost races and a stage maker.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
