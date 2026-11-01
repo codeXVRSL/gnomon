@@ -1234,7 +1234,7 @@ const PREV_COL = { '#': '#8a6a4a', '^': '#e05a4a', 'G': '#ffd34a', 'S': '#ffffff
 function stagePreview(i) { const c = $('lvPrev'), lv = LEVELS[i]; if (!c || !lv || !lv.map) return; const m = lv.map, w = m[0].length, h = m.length, half = h / 2, T = 3;
   c.width = w * T; c.height = h * T; const g = c.getContext('2d'); g.fillStyle = '#3a5a7a'; g.fillRect(0, 0, c.width, half * T); g.fillStyle = '#1b1626'; g.fillRect(0, half * T, c.width, c.height - half * T);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const ch = m[y][x]; if (ch === '.') continue; let col = PREV_COL[ch] || '#c9a24a'; if (ch === '#' && y >= half) col = '#3d3254'; g.fillStyle = col; g.fillRect(x * T, y * T, T, T); }
-  const n = $('lvPrevName'); if (n) n.textContent = (lv.bside ? 'B-side · ' : '') + lv.name; }
+  const n = $('lvPrevName'); if (n) { const bt = save.best[i], md = ['', '✦', '☾', '☀'][(save.medal || {})[i] || 0]; n.textContent = (lv.bside ? 'B-side · ' : '') + lv.name + (lv.demo ? '' : bt ? ` · best ${bt.hours.toFixed(1)}h${md ? ' ' + md : ''}` : ' · not beaten yet'); } }
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
@@ -2142,9 +2142,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 189, t: 'the stage list now shows a little map of each dial when you point at it or move to it, light world on top and shadow world below' };
+const WHATS_NEW = { v: 190, t: 'the stage list preview also shows your best hours and medal for that dial, or says it is not beaten yet' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  '190 · stage preview shows your best and medal',
   '189 · stage list shows a tiny map preview of each dial',
   '188 · cleared the last swipe-to-dash code from the phone controls',
   'Up on the d-pad now jumps by default.',
@@ -2153,8 +2154,7 @@ const NEWS = [
   'Sunset runs show the daylight you had left.',
   'Assist: Reset to defaults.',
   'New B-side: Quick Chimes (B-side of Chime Run).',
-  'New B-side: Late Light (B-side of Last Light).',
-  'A one-time reminder to back up your save code.',];
+  'New B-side: Late Light (B-side of Last Light).',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
