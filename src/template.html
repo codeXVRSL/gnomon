@@ -561,7 +561,7 @@ function win() {
   $('ghostBtn').onclick = () => shareGhost($('ghostBtn'));
   $('photoBtn').onclick = () => takePhoto($('photoBtn'));
   if ($('bsideGo')) $('bsideGo').onclick = () => { hideCard(); load(LEVELS.findIndex(l => l.bside === LEVELS[li].name)); };
-  if (LEVELS[li].custom) { $('again').textContent = 'Edit stage'; $('again').onclick = () => editor(); }
+  if (LEVELS[li].custom) { $('again').textContent = 'Back to the editor'; $('again').onclick = () => editor(); $('again').classList.add('primary'); const nx = $('next') || $('toMenu'); if (nx) { nx.classList.remove('primary'); nx.textContent = 'Play it again'; nx.onclick = () => { hideCard(); load(li); }; } if (!matchMedia('(pointer: coarse)').matches) $('again').focus({ preventScroll: true }); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
 }
 // photo: the frame you won on, scaled up crisp, with a caption strip, shared or downloaded
@@ -1452,7 +1452,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 79, t: 'the stage maker has a safe Test run where nothing can hurt you, to explore your stage.' };
+const WHATS_NEW = { v: 80, t: 'beating your own stage now takes you back to the editor (or play it again).' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
