@@ -562,8 +562,9 @@ function win() {
   $('photoBtn').onclick = () => takePhoto($('photoBtn'));
   if ($('bsideGo')) $('bsideGo').onclick = () => { hideCard(); load(LEVELS.findIndex(l => l.bside === LEVELS[li].name)); };
   if (LEVELS[li].custom && !edTestInv && !(save.assist && save.assist.inv)) { save.edVerified = edEncode(); persist(); }
-  if (LEVELS[li].custom) { $('again').textContent = 'Back to the editor'; $('again').onclick = () => editor(); $('again').classList.add('primary'); const nx = $('next') || $('toMenu'); if (nx) { nx.classList.remove('primary'); nx.textContent = 'Play it again'; nx.onclick = () => { hideCard(); load(li); }; } if (!matchMedia('(pointer: coarse)').matches) $('again').focus({ preventScroll: true }); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
+  if (LEVELS[li].custom) { $('again').textContent = 'Back to the editor'; $('again').onclick = () => editor(); $('again').classList.add('primary'); const nx = $('next') || $('toMenu'); if (nx) { nx.classList.remove('primary'); nx.textContent = 'Play it again'; nx.onclick = () => { hideCard(); load(li); }; } if (!matchMedia('(pointer: coarse)').matches) $('again').focus({ preventScroll: true }); }
+  if (LEVELS[li].custom && friendStage && !edTestInv) { const secs = runFrames / 60, nx = $('next') || $('toMenu'); if (nx) { nx.textContent = 'Send it back with my time'; nx.classList.add('primary'); $('again').classList.remove('primary'); nx.onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()) + '!v', txt = `I beat your Gnomon stage in ${secs.toFixed(1)}s and ${st.hours.toFixed(1)} hours. Can you beat that?`; try { if (navigator.share) { await navigator.share({ text: txt, url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(txt + '\n' + url); toast('COPIED · SEND IT BACK'); } catch (e) {} }; if (!matchMedia('(pointer: coarse)').matches) nx.focus({ preventScroll: true }); } }
 }
 // photo: the frame you won on, scaled up crisp, with a caption strip, shared or downloaded
 async function takePhoto(btn) {
@@ -696,7 +697,7 @@ function playCustom() {
   let ci = LEVELS.findIndex(l => l.custom); const d = customDef(); if (ci < 0) { LEVELS.push(d); ci = LEVELS.length - 1; } else LEVELS[ci] = d;
   dailyMode = false; hideCard(); load(ci); if (edTestInv) toast('TEST RUN · NOTHING CAN HURT YOU');
 }
-let edTestInv = false; const edUndo = []; const edSnap = () => { edUndo.push(edMap.map(r => r.slice())); if (edUndo.length > 20) edUndo.shift(); };
+let edTestInv = false, friendStage = false; const edUndo = []; const edSnap = () => { edUndo.push(edMap.map(r => r.slice())); if (edUndo.length > 20) edUndo.shift(); };
 function editor(fromLink) {
   if (save.edTipSeen) { save.edTip = 1; } save.edTipSeen = 1; persist();
   if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
@@ -1446,7 +1447,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('
 function start(data) {
   const i = data && Number.isInteger(data.li) ? data.li : Math.max(0, save.atName ? LEVELS.findIndex(l => l.name === save.atName) : 0);
   load(Math.min(i, LEVELS.length - 1));
-  { const em = location.hash.match(/^#e=(.+?)(!v)?$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); playCustom(); toast(em[2] ? 'A FRIEND\'S STAGE · ✓ THEY BEAT IT' : 'A FRIEND\'S STAGE'); return; } catch (e) {} } }
+  { const em = location.hash.match(/^#e=(.+?)(!v)?$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); friendStage = true; playCustom(); toast(em[2] ? 'A FRIEND\'S STAGE · ✓ THEY BEAT IT' : 'A FRIEND\'S STAGE'); return; } catch (e) {} } }
   { const m = location.hash.match(/^#g=(\d+)~([\d.]*)~([0-9a-z._]+)$/); if (m && LEVELS[+m[1]]) { const gi = +m[1]; friendGhost = { li: gi, data: unrle(m[3]) }; save.seen = true; requestAnimationFrame(loop); if (m[2] !== '') { dailyMode = true; startOverride = +m[2]; } hideCard(); load(gi); toast('RACE YOUR FRIEND\'S GHOST'); return; } }
   if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
@@ -1454,7 +1455,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 86, t: 'save codes now catch an incomplete paste and tell you.' };
+const WHATS_NEW = { v: 87, t: 'beat a friend\'s stage and send it back with your time.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
