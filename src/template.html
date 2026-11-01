@@ -595,8 +595,10 @@ function win() {
   const comeback = save.skipped && save.skipped[LEVELS[li].name]; if (comeback) { delete save.skipped[LEVELS[li].name]; persist(); }
   const bUnlocks = prev ? [] : LEVELS.filter(l => l.bside === LEVELS[li].name), bUnlock = bUnlocks[0]; if (bUnlock) setTimeout(() => toast((bUnlocks.length > 1 ? bUnlocks.length + ' B-SIDES UNLOCKED' : 'B-SIDE UNLOCKED · ' + bUnlock.name.toUpperCase())), 900);
   const race = ghost && ghost.label === 'SOLUTION' ? (() => { const d = (runFrames - ghost.data.length) / 60; return `<p class="sub" style="color:#c7b4ff;margin:0 0 6px">${d < 0 ? `You beat the solution ghost by ${(-d).toFixed(1)}s.` : `The solution ghost was ${d.toFixed(1)}s faster.`}</p>`; })() : '';
+  // on a B-side win (before the set is done), show how close the Far Side postcard is
+  const bDone = BSIDES.filter(j => save.best[j]).length, bTrack = LEVELS[li].bside && bDone < BSIDES.length ? `<p class="sub" style="color:#c7b4ff;margin:0 0 6px">B-sides ${bDone}/${BSIDES.length} · beat them all for the Far Side postcard</p>` : '';
   const farSide = LEVELS[li].bside && BSIDES.every(j => save.best[j]) && !save.farSide ? (save.farSide = 1, persist(), `${postcard(6)}<p class="sub" style="color:#c7b4ff;letter-spacing:.1em;margin:0 0 6px">EVERY B-SIDE BEATEN · THE FAR SIDE POSTCARD IS YOURS</p>`) : '';
-  showCard(`${farSide}${race}${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlocks.length ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ ${bUnlocks.length > 1 ? 'B-SIDES' : 'B-SIDE'} UNLOCKED: ${bUnlocks.map(b => b.name.toUpperCase()).join(' · ')}</p><div class="row" style="margin:0 0 10px">${bUnlocks.map((b, k) => `<button class="btn" ${k ? '' : 'id="bsideGo"'} data-bs="${LEVELS.indexOf(b)}" style="flex:1">Play ${b.name}</button>`).join('')}</div>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
+  showCard(`${farSide}${bTrack}${race}${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlocks.length ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ ${bUnlocks.length > 1 ? 'B-SIDES' : 'B-SIDE'} UNLOCKED: ${bUnlocks.map(b => b.name.toUpperCase()).join(' · ')}</p><div class="row" style="margin:0 0 10px">${bUnlocks.map((b, k) => `<button class="btn" ${k ? '' : 'id="bsideGo"'} data-bs="${LEVELS.indexOf(b)}" style="flex:1">Play ${b.name}</button>`).join('')}</div>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
@@ -1571,9 +1573,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 149, t: 'the Far Side postcard now also counts in your journey summary and gets its own violet stripe on the title screen.' };
+const WHATS_NEW = { v: 150, t: 'winning a B-side now shows how many of them you have beaten, and how close you are to the Far Side postcard.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'B-side wins show your progress toward the Far Side.',
   'Far Side postcard shows on the title screen and journey summary.',
   'Beat every B-side for the Far Side postcard.',
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
@@ -1582,8 +1585,7 @@ const NEWS = [
   'Assist: Closer view gives tall phones bigger pixels.',
   'B-sides show which dial they belong to, and NEW until you try them.',
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
-  'Cast-shadow stages run lighter on slow phones.',
-  'Daily Sundial picks stay put when new stages are added.',];
+  'Cast-shadow stages run lighter on slow phones.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
