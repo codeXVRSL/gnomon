@@ -502,7 +502,7 @@ function skipOffer() {
   showCard(`<h2>Stuck on this one?</h2><p class="sub">You can open the next dial and come back later. This stage stays unbeaten, with no medal. The hint is below the game.</p>
     <div class="row"><button class="btn primary" id="skKeep">Keep trying</button>${LEVELS[li].solution ? '<button class="btn" id="skShow">Show me (ghost)</button>' : ''}${nx != null && !LEVELS[li].bside ? '<button class="btn" id="skGo">Open the next dial</button>' : ''}</div>`);
   $('skKeep').onclick = () => { hideCard(); $('hint').classList.add('open'); };
-  if ($('skShow')) $('skShow').onclick = () => { hideCard(); load(li); startGhost(li, LEVELS[li].solution, 'SOLUTION'); toast('FOLLOW THE GHOST · IT SHOWS ONE WAY THROUGH'); };
+  if ($('skShow')) $('skShow').onclick = () => { hideCard(); load(li); startGhost(li, unrle(LEVELS[li].solution), 'SOLUTION'); toast('FOLLOW THE GHOST · IT SHOWS ONE WAY THROUGH'); };
   if ($('skGo')) $('skGo').onclick = () => { save.skipped = save.skipped || {}; save.skipped[LEVELS[li].name] = 1; persist(); hideCard(); load(nx); };
 }
 function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast('CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
@@ -551,7 +551,8 @@ function win() {
   const CHN = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'], mainPos = ord.filter(k => k !== DEMO && !LEVELS[k].bside).indexOf(li), chapEnd = mainPos >= 0 && mainPos % 5 === 4 && CHN[Math.floor(mainPos / 5)];
   const comeback = save.skipped && save.skipped[LEVELS[li].name]; if (comeback) { delete save.skipped[LEVELS[li].name]; persist(); }
   const bUnlock = !prev && LEVELS.find(l => l.bside === LEVELS[li].name); if (bUnlock) setTimeout(() => toast('B-SIDE UNLOCKED · ' + bUnlock.name.toUpperCase()), 900);
-  showCard(`${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlock ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ B-SIDE UNLOCKED: ${bUnlock.name.toUpperCase()} </p><button class="btn" id="bsideGo" style="width:100%;margin:0 0 10px">Play ${bUnlock.name} now</button>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
+  const race = ghost && ghost.label === 'SOLUTION' ? (() => { const d = (runFrames - ghost.data.length) / 60; return `<p class="sub" style="color:#c7b4ff;margin:0 0 6px">${d < 0 ? `You beat the solution ghost by ${(-d).toFixed(1)}s.` : `The solution ghost was ${d.toFixed(1)}s faster.`}</p>`; })() : '';
+  showCard(`${race}${comeback ? '<p class="sub" style="color:var(--brass);margin:0 0 6px">↷ You skipped this one before. Nice comeback.</p>' : ''}${bUnlock ? `<p class="sub" style="color:var(--brass);letter-spacing:.08em;margin:0 0 6px">✦ B-SIDE UNLOCKED: ${bUnlock.name.toUpperCase()} </p><button class="btn" id="bsideGo" style="width:100%;margin:0 0 10px">Play ${bUnlock.name} now</button>` : ''}${mainPos >= 0 ? `<div style="height:3px;margin:-4px 0 10px;border-radius:2px;background:linear-gradient(90deg,${window.CHC[Math.min(5, Math.floor(mainPos / 5))]},transparent)"></div>` : ''}${chapEnd ? postcard(Math.floor(mainPos / 5)) : ''}${chapEnd ? `<p class="sub" style="color:${window.CHC[Math.min(5, Math.floor(mainPos / 5))]};letter-spacing:.1em;margin:0">CHAPTER COMPLETE · ${chapEnd.toUpperCase()}${CHN[Math.floor(mainPos / 5) + 1] ? ' · NEXT: ' + CHN[Math.floor(mainPos / 5) + 1].toUpperCase() : ''}</p>` : ''}<h2>${LEVELS[li].demo ? 'You beat the demo' : lastLv ? 'Home at last' : 'Back on the dial'}</h2>
     <div class="medal m${medal}">${medal === 3 ? '☀ SUN' : medal === 2 ? '☾ MOON' : '✦ STAR'}${isBest && prev ? ' · NEW BEST' : ''}</div>
     <div class="stat"><span><b>${hrs.toFixed(1)}</b>HOURS</span><span><b>${par.toFixed(1)}</b>PAR</span><span><b>${(runFrames / 60).toFixed(1)}s</b>TIME</span><span><b>${st.deaths}</b>FALLS</span><span><b>${st.shardsGot}/${L.shards.length}</b>SHARDS</span></div>
     <p class="sub">${medal === 3 ? 'A perfect reading of the dial.' : 'Sun medal at ' + (par * 1.15).toFixed(1) + ' hours or fewer.'}${st.shardsGot < L.shards.length ? ' A sun shard is still out there.' : ''}</p>
@@ -561,7 +562,7 @@ function win() {
   $('again').onclick = () => { hideCard(); load(li); };
   $('ghostBtn').onclick = () => shareGhost($('ghostBtn'));
   $('photoBtn').onclick = () => takePhoto($('photoBtn'));
-  if ($('solBtn')) $('solBtn').onclick = () => { hideCard(); load(li); startGhost(li, LEVELS[li].solution, 'SOLUTION'); toast('ONE WAY THROUGH · YOURS MAY BE BETTER'); };
+  if ($('solBtn')) $('solBtn').onclick = () => { hideCard(); load(li); startGhost(li, unrle(LEVELS[li].solution), 'SOLUTION'); toast('ONE WAY THROUGH · YOURS MAY BE BETTER'); };
   if ($('bsideGo')) $('bsideGo').onclick = () => { hideCard(); load(LEVELS.findIndex(l => l.bside === LEVELS[li].name)); };
   if (LEVELS[li].custom && !edTestInv && !(save.assist && save.assist.inv)) { save.edVerified = edEncode(); persist(); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
@@ -1474,9 +1475,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 109, t: 'after you beat a stage, you can watch a solution ghost to compare routes.' };
+const WHATS_NEW = { v: 110, t: 'race the solution ghost: the win card says who reached the dial first.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Race the solution ghost: the win card says who got there first.',
   'Beat a stage, then watch a solution ghost to compare routes.',
   'Every stage can now show you a solution ghost after ten falls.',
   'Stuck on a hard stage? After ten falls a ghost can show you one way through.',
@@ -1485,8 +1487,7 @@ const NEWS = [
   'Heat shimmer on the horizon at noon; trees sway as a cloud passes.',
   'Fireflies at dusk, a flock at dawn, stars, a crescent moon and shooting stars at night.',
   'Fixed a randomness bug: flowers, mortar and water sparkles now appear.',
-  'Beat a friend\'s stage and send it back with your time; verified stages.',
-  'Save codes to move progress between devices; reset progress (keeps settings).',];
+  'Beat a friend\'s stage and send it back with your time; verified stages.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
