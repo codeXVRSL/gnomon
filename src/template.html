@@ -328,7 +328,7 @@ function musicMix(t, sleeping) {
 }
 function musicTick() {
   if (!ac || !MUSIC.bus) return;
-  const on = MUSIC.on && !muted && $('overlay').hidden !== undefined;
+  const on = MUSIC.on && $('overlay').hidden !== undefined;
   MUSIC.bus.gain.setTargetAtTime(on ? 0.55 : 0, ac.currentTime, 0.4);
   if (!st) return;
   const mix = musicMix(st.t, st.sleeping), reversed = st.grav < 0 && !st.sleeping;
@@ -354,6 +354,7 @@ function audioUnlock() { try { ac = ac || new (window.AudioContext || window.web
 ['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, audioUnlock, { passive: true }));
 setInterval(musicTick, 100);
 if (save.music === false) MUSIC.on = false;
+if (save.sfx === false) muted = true;
 
 function inKey(deg, oct = 0) { const bar = Math.floor(MUSIC.step / 8) % 4, ch = CHORDS[(st && st.grav < 0 && !st.sleeping) ? 3 - bar : bar]; const n = ch[((deg % 4) + 4) % 4] + 12 * (oct + Math.floor(deg / 4)); return NOTE(n + 12); }
 function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
@@ -601,14 +602,14 @@ function menu() {
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
     <div class="row"><button class="btn" id="statsBtn">Stats</button><button class="btn" id="assistBtn">Assist mode</button><button class="btn" id="editBtn">Make a stage</button></div>
-    <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn" id="musicBtn">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
+    <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn" aria-pressed="${!muted}">${muted ? 'Effects off' : 'Effects on'}</button><button class="btn" id="musicBtn" aria-pressed="${MUSIC.on}">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; $('editBtn').onclick = () => editor();
-  $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
-  $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; };
+  $('muteBtn').onclick = e => { muted = !muted; save.sfx = !muted; persist(); e.target.textContent = muted ? 'Effects off' : 'Effects on'; e.target.setAttribute('aria-pressed', !muted); if (!muted) beep(660, .06, 'triangle', .04); };
+  $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; e.target.setAttribute('aria-pressed', MUSIC.on); };
 }
 // Assist mode, after Celeste: slow the game down, never run out of dashes, or ignore hazards (falls still count)
 function assist() {
@@ -1399,7 +1400,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 62, t: 'the hourglass now ticks softly each quarter hour, higher toward noon.' };
+const WHATS_NEW = { v: 63, t: 'sound effects and music now switch separately, and your choice is remembered.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
