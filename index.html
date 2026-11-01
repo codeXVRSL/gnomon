@@ -918,10 +918,11 @@ function handleEvents(prevP, prevS, prevG) {
   }
 }
 function tick() {
-  if (!$('overlay').hidden || st.won) { jumpEdge = flipEdge = dashEdge = false; return; }
+  if (!$('overlay').hidden || st.won) { jumpEdge = flipEdge = dashEdge = false; readPad(); return; }
   if (hitStop > 0) { hitStop--; return; }
   const prevP = { ...st.p }, prevS = { ...st.s }, prevPr = pressedSet(L, st), prevG = st.grav;
-  const inp = { l: keys.l, r: keys.r, jump: jumpEdge, jumpHeld: keys.j, wait: keys.w, pin: keys.p, flip: flipEdge, dash: dashEdge, up: keys.u || (touchJump && keys.j), down: keys.w };
+  const pad = readPad();
+  const inp = { l: keys.l || pad.l, r: keys.r || pad.r, jump: jumpEdge || pad.jumpE, jumpHeld: keys.j || pad.j, wait: keys.w || pad.w, pin: keys.p || pad.p, flip: flipEdge || pad.flipE, dash: dashEdge || pad.dashE, up: keys.u || (touchJump && keys.j) || pad.u, down: keys.w || pad.d };
   if (ghost && !ghost.st.won && ghost.i < ghost.data.length) update(ghost.L, ghost.st, unpackInp(ghost.data[ghost.i++]));
   rec.push(packInp(inp));
   update(L, st, inp);
@@ -1135,7 +1136,8 @@ function how() {
       ['◐', 'Your shadow sits <b>east at dawn</b>, under you at noon, <b>west at dusk</b>. At <b>noon</b> it vanishes and comes back under you.'],
       ['▲', '<b>Jump</b> up and your shadow jumps down. Shade presses <b>violet plates</b>, your feet press brass ones.'],
       ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
-      ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.']])}
+      ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
+      ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
     ${sec('Sun tricks', false, [
       ['☾', '<b>Night:</b> you sleep and steer your shadow alone. <b>Dawn:</b> you wake where it stands.'],
       ['⇅', '<b>FLIP</b> turns the world over, and upside down <b>the sun runs backward</b>.'],
@@ -1643,6 +1645,23 @@ document.fonts && document.fonts.ready.then(resize);
 // ---------- input ----------
 const KMAP = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'j', w: 'j', W: 'j', ' ': 'j', z: 'j', Z: 'j', ArrowDown: 'w', s: 'w', S: 'w', e: 'p', E: 'p', q: 'p', Q: 'p', x: 'x', X: 'x', k: 'x', K: 'x', Shift: 'x', f: 'f', F: 'f', c: 'f', C: 'f' };
 const UPKEYS = new Set(['ArrowUp', 'w', 'W']);
+// ---- controllers (standard mapping): stick/d-pad move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start = levels ----
+let padPrev = {};
+function readPad() {
+  const o = { l: false, r: false, u: false, d: false, j: false, w: false, p: false, jumpE: false, dashE: false, flipE: false };
+  const pads = navigator.getGamepads ? navigator.getGamepads() : []; const gp = pads && [...pads].find(p => p && p.connected);
+  if (!gp) return o;
+  const b = k => !!(gp.buttons[k] && gp.buttons[k].pressed), ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+  o.l = b(14) || ax < -0.4; o.r = b(15) || ax > 0.4; o.u = b(12) || ay < -0.5; o.d = b(13) || ay > 0.5;
+  o.j = b(0); o.w = b(3) || o.d; o.p = b(4);
+  const dash = b(1) || b(2), flip = b(5), start = b(9);
+  o.jumpE = o.j && !padPrev.j; o.dashE = dash && !padPrev.dash; o.flipE = flip && !padPrev.flip;
+  if (start && !padPrev.start) { $('overlay').hidden ? menu() : hideCard(); }
+  if (o.j && !padPrev.j && !$('overlay').hidden) { const btn = document.querySelector('#card .btn.primary'); if (btn) btn.click(); }
+  padPrev = { j: o.j, dash, flip, start };
+  return o;
+}
+window.addEventListener('gamepadconnected', () => toast('CONTROLLER CONNECTED'));
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) { if (e.key === 'Escape') hideCard(); return; }
   const k = KMAP[e.key];
