@@ -863,7 +863,7 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
-  deathCount = {}; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
+  deathCount = {}; deathMarks = []; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
@@ -890,7 +890,7 @@ function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { cons
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
 // stuck? after the third death of the same kind on a stage, a one-line tip (and the full hint opens)
-let deathCount = {};
+let deathCount = {}, deathMarks = [];
 const TIPS = { spikes: 'TIP · JUMP OR DASH OVER SPIKES · CHIME SPIKES ARE SAFE EARLY IN EACH HOUR', 'shadow spikes': 'TIP · WHEN YOU JUMP UP, YOUR SHADOW JUMPS DOWN · WATCH THE WORLD BELOW', 'shadow fell': 'TIP · YOUR SHADOW FALLS IF ITS FLOOR ENDS · STOP IT AGAINST A WALL OR WAIT',
   fell: 'TIP · DASH (X / RED BUTTON) CROSSES WIDER GAPS', lamplight: 'TIP · LAMPS BURN YOUR SHADOW · JUMP DEEP UNDER THEM OR STAND IN SHADE', 'bird shadow': 'TIP · HOP WHEN THE HAWK\'S SHADOW REACHES YOURS', dusk: 'TIP · EACH DASH BURNS HALF AN HOUR · DASH ONLY WHERE YOU MUST',
   crushed: 'TIP · STONES APPEAR AND VANISH WITH THE HOUR · WATCH THE CLOCK', 'shadow crushed': 'TIP · MOVING SHADE CAN PIN YOUR SHADOW · KEEP IT CLEAR', 'lantern light': 'TIP · JUMP LATE OVER THE LANTERN SO YOUR SHADOW CLEARS ITS LIGHT', lantern: 'TIP · LANTERNS MOVE ONLY AS HOURS PASS · STAND STILL TO FREEZE THEM' };
@@ -925,7 +925,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { deathCount[ev] = (deathCount[ev] || 0) + 1; if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
+    if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
       wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
@@ -1508,6 +1508,8 @@ function render(now) {
     g.fillStyle = 'rgba(199,180,255,.7)';
     g.fillRect(Math.round(p.x) + 3, HZ + 3 + k, 2, 2); g.fillRect(Math.round(p.x) - 1, HZ + 8 - k / 2, 1, 1); g.fillRect(Math.round(p.x) + 8, HZ + 6 + k / 3, 1, 1);
   }
+  // where you last fell: small fading crosses, so the next try knows what to avoid
+  for (const m of deathMarks) { if (m.life > 0) m.life--; const a = Math.min(.7, m.life / 300); g.fillStyle = `rgba(255,107,90,${a})`; g.fillRect(Math.round(m.x) - 3, Math.round(m.y) - 3, 2, 2); g.fillRect(Math.round(m.x) + 1, Math.round(m.y) - 3, 2, 2); g.fillRect(Math.round(m.x) - 1, Math.round(m.y) - 1, 2, 2); g.fillRect(Math.round(m.x) - 3, Math.round(m.y) + 1, 2, 2); g.fillRect(Math.round(m.x) + 1, Math.round(m.y) + 1, 2, 2); }
   drawEnemies(now, night);
   { const tt = st.t; let c = null; if (night) c = 'rgba(40,40,130,.20)'; else if (tt < 1) c = `rgba(255,140,150,${.10 * (1 - tt)})`; else if (tt > 5.2) c = `rgba(255,120,50,${Math.min(.16, (tt - 5.2) * .09)})`; if (c) { g.fillStyle = c; g.fillRect(camX - 4, -4, W + 8, HZ + 4); } }
   for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.col; g.fillRect(q.x | 0, q.y | 0, 2, 2); }
