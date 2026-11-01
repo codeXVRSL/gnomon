@@ -535,6 +535,7 @@ const LEVELS = [
       '..........#....o..............',
       '..............................'] },
   { name: 'Eclipse B', bside: 'Eclipse', startHour: 0.5, eclipse: [2.0, 6.6],
+    hint2: 'Step by step: walk to the wall and wait for two o\'clock. After the swap, jump the spikes, jump and up-dash into the crystal, dash right over the block, and jump your shadow over its wall.',
     hint: 'B-side. Get your shadow past the wall before two o\'clock and trade places in the dark. Then, spun around: jump the spikes, up-dash into the crystal, dash again over the block.',
     map: [
       '.......#......................',
@@ -552,6 +553,7 @@ const LEVELS = [
       '..............................',
       '..............................'] },
   { name: 'Tower Clock B', bside: 'Tower Clock', startHour: 3.6, cast: true, sunRate: 0.08, duskFail: true, hourPx: 300,
+    hint2: 'Step by step: jump the spikes, jump and up-dash onto the block, jump down and dash right, then wait at the gate until 5 o\'clock and walk through.',
     hint: 'B-side. The sun moves on its own now. Cross the spikes and the block fast, and reach the gate while the tower\'s shadow lies on the plate.',
     map: [
       '......................A.......',
@@ -569,6 +571,7 @@ const LEVELS = [
       '...#..........................',
       '...#..........................'] },
   { name: 'High Noon B', bside: 'High Noon', startHour: 2.0, sunRate: 0.07, hourPx: 200, duskFail: true,
+    hint2: 'Step by step: jump the first spikes, up-dash over the block, jump the next spikes, then stand still near the gate until noon passes and your shadow is reborn. Walk on after 4 o\'clock.',
     hint: 'B-side. The sun moves on its own. Beat noon past the spikes and the block, then run for the gate while your reborn shadow still stands on the plate.',
     map: [
       '......................',
@@ -586,6 +589,7 @@ const LEVELS = [
       '......#...............',
       '......#...............'] },
   { name: 'Hawk Hours B', bside: 'Hawk Hours', startHour: 0.5,
+    hint2: 'Step by step: run, jump the pit and dash mid-air, grab the crystal and dash again. Then keep walking and jump each time a hawk\'s shadow reaches yours.',
     hint: 'B-side. Two hawks and a pit too wide for one jump: jump, dash, grab the crystal mid-air, dash again. Time your run so the hawks\' shadows miss yours.',
     map: [
       '........................',
@@ -603,6 +607,7 @@ const LEVELS = [
       '.....o...#..............',
       '.........#..............'] },
   { name: 'Night Walk B', bside: 'Night Walk', startHour: 6.0, hourPx: 110, lampR: 12,
+    hint2: 'Step by step: walk until you are walled in, wait for night, walk your shadow and jump it under the lamp, FLIP under the hanging wall, FLIP back, and stop it under your dial.',
     hint: 'B-side. A busier night: jump your shadow deep under the lamp, flip to slide under the hanging wall, flip back before the deep spikes, and stop under your dial.',
     map: [
       '.....#......#.........',
@@ -620,6 +625,7 @@ const LEVELS = [
       '...........o..........',
       '................xx....'] },
   { name: 'Crescent B', bside: 'Crescent', startHour: 0, partial: [1.5, 3.0], sunRate: 0.04, hourPx: 120,
+    hint2: 'Step by step: wait at the gates until both plates are pressed, run through, jump the pit and dash mid-jump, land, then jump and up-dash onto the block.',
     hint: 'B-side. The crescent won\'t wait. Slip through while both shadows press both plates, then jump and dash the pit and up-dash onto the block.',
     map: [
       '..........................',
@@ -637,6 +643,7 @@ const LEVELS = [
       '..........................',
       '..........................'] },
   { name: 'In the Shade B', bside: 'In the Shade', startHour: 0.6, cast: true, sunRate: 0.06, hourPx: 160,
+    hint2: 'Step by step: jump the spikes, stop before the tower, wait for about 2 o\'clock, then run and jump over the tower.',
     hint: 'B-side. The sun moves on its own now, so the tower\'s shade will not wait for you. Jump the spikes and cross the tower while its shadow covers the lamp below.',
     map: [
       '....................',
@@ -654,6 +661,7 @@ const LEVELS = [
       '....................',
       '....................'] },
   { name: 'Passing Cloud B', bside: 'Passing Cloud', startHour: 0, clouds: [[2.0, 2.2], [4.6, 4.8]],
+    hint2: 'Step by step: wait at the first gate for the morning cloud, walk to the second gate, and wait for the afternoon cloud.',
     hint: 'B-side. Two walls, two gates, two clouds. Wait out the morning cloud at the first gate, then the afternoon one at the second, when your reborn shadow trails west.',
     map: [
       '..............................',
@@ -671,6 +679,7 @@ const LEVELS = [
       '........#.........#...........',
       '........#.........#...........'] },
   { name: 'Meet at Dusk B', bside: 'Meet at Dusk', startHour: 0.5,
+    hint2: 'Step by step: walk a little past halfway, stop, hold the hourglass until noon has passed, then walk to your dial and wait.',
     hint: 'B-side. A wall below splits the dial. Wherever you stand at noon is where your shadow is reborn, so be on the mark\'s side of the wall when noon comes.',
     map: [
       '....................',
@@ -688,6 +697,7 @@ const LEVELS = [
       '.............#......',
       '.............#......'] },
   { name: 'Plant the Hour B', bside: 'Plant the Hour', startHour: 3.6, clouds: [[5.3, 5.9]],
+    hint2: 'Step by step: plant the staff about two thirds of the way to the gate, walk to the gate, then hold the hourglass until the cloud passes and the plate is pressed.',
     hint: 'B-side. A cloud hides your staff\'s shadow too, right as you reach the gate. Plant it, get to the gate, and wait for the sky to clear.',
     map: [
       '....................',
