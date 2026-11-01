@@ -598,6 +598,7 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
     <label class="toggle"><input type="checkbox" id="aSwipe" ${a.noSwipe ? '' : 'checked'}> Swipe the game screen to dash (phones)</label>
+    <label class="toggle"><input type="checkbox" id="aUpJump" ${a.upJump ? 'checked' : ''}> Up on the d-pad also jumps</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
@@ -605,6 +606,7 @@ function assist() {
   $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
   $('aSwipe').onchange = e => { a.noSwipe = !e.target.checked; persist(); };
+  $('aUpJump').onchange = e => { a.upJump = e.target.checked; persist(); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu; $('aKeys').onclick = keysCard;
@@ -1259,7 +1261,7 @@ document.querySelectorAll('.ctl').forEach(b => {
 // ---- d-pad: slide a thumb anywhere on it; the angle from the centre gives 8 directions (left/right move, up/down aim) ----
 { const pad = $('dpad'), knob = pad.querySelector('b'); let pid = null;
   let lastDir = '';
-  const set = (l, r, u, d) => { const dir = '' + (+!!l) + (+!!r) + (+!!u) + (+!!d); if (dir !== lastDir && dir !== '0000') { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } lastDir = dir; keys.l = l ? 1 : 0; keys.r = r ? 1 : 0; keys.u = u ? 1 : 0; keys.dn = d ? 1 : 0;
+  const set = (l, r, u, d) => { const dir = '' + (+!!l) + (+!!r) + (+!!u) + (+!!d); if (dir !== lastDir && dir !== '0000') { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } lastDir = dir; if (save.assist && save.assist.upJump) { if (u && !keys.u) jumpEdge = true; keys.j = u ? 1 : 0; } keys.l = l ? 1 : 0; keys.r = r ? 1 : 0; keys.u = u ? 1 : 0; keys.dn = d ? 1 : 0;
     pad.querySelector('.l').classList.toggle('on', !!l); pad.querySelector('.r').classList.toggle('on', !!r); pad.querySelector('.u').classList.toggle('on', !!u); pad.querySelector('.d').classList.toggle('on', !!d); };
   const read = e => { const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), m = Math.hypot(dx, dy);
     if (m < r.width * 0.12) { set(0, 0, 0, 0); knob.style.transform = ''; return; }
