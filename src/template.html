@@ -734,7 +734,7 @@ function editor(fromLink) {
   $('edTest').onclick = () => { edTestInv = true; playCustom(); };
   $('edZoom').onclick = () => { edZoom = edZoom < 0 ? 0 : -1; editor(); };
   if ($('edSide')) $('edSide').onclick = () => { edZoom = 1 - edZoom; editor(); };
-  $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage' + (save.edVerified === edEncode() ? ' (verified: I beat it)' : ''), url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
+  $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()) + (save.edVerified === edEncode() ? '!v' : ''); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage' + (save.edVerified === edEncode() ? ' (verified: I beat it)' : ''), url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
   $('edUndo').onclick = () => { if (!edUndo.length) return; edMap = edUndo.pop(); save.edit = edEncode(); persist(); editor(); };
   $('edClear').onclick = () => { edSnap(); edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
   $('edBack').onclick = menu;
@@ -1446,7 +1446,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('
 function start(data) {
   const i = data && Number.isInteger(data.li) ? data.li : Math.max(0, save.atName ? LEVELS.findIndex(l => l.name === save.atName) : 0);
   load(Math.min(i, LEVELS.length - 1));
-  { const em = location.hash.match(/^#e=(.+)$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); playCustom(); toast('A FRIEND\'S STAGE'); return; } catch (e) {} } }
+  { const em = location.hash.match(/^#e=(.+?)(!v)?$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); playCustom(); toast(em[2] ? 'A FRIEND\'S STAGE · ✓ THEY BEAT IT' : 'A FRIEND\'S STAGE'); return; } catch (e) {} } }
   { const m = location.hash.match(/^#g=(\d+)~([\d.]*)~([0-9a-z._]+)$/); if (m && LEVELS[+m[1]]) { const gi = +m[1]; friendGhost = { li: gi, data: unrle(m[3]) }; save.seen = true; requestAnimationFrame(loop); if (m[2] !== '') { dailyMode = true; startOverride = +m[2]; } hideCard(); load(gi); toast('RACE YOUR FRIEND\'S GHOST'); return; } }
   if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
@@ -1454,7 +1454,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 84, t: 'move your progress between devices with a save code (About card).' };
+const WHATS_NEW = { v: 85, t: 'shared stage links now tell your friends you beat the stage yourself.' };
 function about() {
   showCard(`<h2>About</h2>
     <p>Gnomon is a puzzle-platformer about a shadow that tells the time. The sun only moves when you do.</p>
