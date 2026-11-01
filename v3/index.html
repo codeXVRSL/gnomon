@@ -786,7 +786,7 @@ function dailyInfo() {
 }
 let dailyMode = false;
 const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
-const BSIDES = LEVELS.map((_, i) => i).filter(i => LEVELS[i].bside);
+const BSIDES = LEVELS.map((_, i) => i).filter(i => LEVELS[i].bside).sort((a, b) => (LEVELS.findIndex(l => l.name === LEVELS[a].bside) - LEVELS.findIndex(l => l.name === LEVELS[b].bside)) || a - b); // in the order of their A-sides
 const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO && !LEVELS[i].bside && !LEVELS[i].custom); return save.demoFirst ? [DEMO, ...rest, ...BSIDES] : [...rest, ...BSIDES, DEMO]; };
 const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
 const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0, dn: 0 }; let jumpEdge = false, flipEdge = false, dashEdge = false;
@@ -1136,7 +1136,7 @@ function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
   const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
-    return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
+    return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">Chapter run in progress (stage ${chRun.i + 1}/5). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
@@ -1983,7 +1983,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 121, t: 'when a stage unlocks more than one B-side, the win card now shows them all.' };
+const WHATS_NEW = { v: 122, t: 'B-sides are listed in the order of their A-sides, and their tooltip names the A-side.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
   'New B-side: Plant at Dusk (staff + hour mark).',
