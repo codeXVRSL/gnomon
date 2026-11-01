@@ -37,6 +37,7 @@
   color-scheme:dark;
 }
 html,body{height:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 body{background:var(--ink);color:var(--parch);font-family:var(--body);font-size:15px;overflow:hidden;
   -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #bar{width:100%;display:flex;flex-direction:column;gap:6px}
@@ -212,7 +213,7 @@ body.calm #game{transition:none}
     <div class="metaR"><span id="dashPip" title="Dash ready" style="color:#ffb347">●</span><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
-  <div id="stage"><canvas id="game" width="240" height="168" aria-label="Game screen"></canvas><div id="toast"></div></div>
+  <div id="stage"><canvas id="game" width="240" height="168" role="img" aria-label="Game screen"></canvas><div id="toast" role="status" aria-live="polite"></div><div id="sr" class="sr" aria-live="polite"></div></div>
   <div class="hint" id="hint"></div>
   <div class="controls">
     <div class="move">
@@ -874,6 +875,8 @@ function beep(f, d = .07, type = 'square', v = .045, slide = 0) {
 }
 const cloudWarned = new Set();
 function whoosh() { if (muted) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const n = ac.sampleRate * 1.2 | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain(), t0 = ac.currentTime; src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + 0.6); f.frequency.exponentialRampToValueAtTime(250, t0 + 1.2); gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.2); src.connect(f).connect(gn).connect(sfxOut()); src.start(); } catch (e) {} }
+// screen readers: a quiet running commentary of what changes on screen
+function say(t) { const el = $('sr'); if (!el) return; el.textContent = ''; setTimeout(() => { el.textContent = t; }, 30); }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
 function load(i) {
@@ -886,7 +889,7 @@ function load(i) {
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; save.atName = LEVELS[i].name; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
-  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc();
+  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc(); say(LEVELS[i].name + '. ' + LEVELS[i].hint);
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
   // only show the powers this stage actually needs, so the sun stays the star
   const uses = LEVELS[i].uses || { flip: true, pin: true };
@@ -961,7 +964,7 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
     if (DEATH[ev]) { { const sh0 = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; deathMarks.push({ x: (sh0 ? prevS.x : prevP.x) + 4, y: (sh0 ? prevS.y : prevP.y) + 6, life: 900 }); if (deathMarks.length > 3) deathMarks.shift(); } deathCount[ev] = (deathCount[ev] || 0) + 1; { const tot = Object.values(deathCount).reduce((a, b) => a + b, 0); if (tot === 6 && LEVELS[li].hint2) setTimeout(() => { $('hint').textContent = LEVELS[li].hint + ' ' + LEVELS[li].hint2; $('hint').classList.add('open'); toast('A DEEPER HINT IS OPEN BELOW THE GAME'); }, 900); if (tot === 10 && !save.best[li] && !LEVELS[li].demo && !LEVELS[li].custom && !dailyMode && !chRun) setTimeout(skipOffer, 1100); } save.causes = save.causes || {}; save.causes[ev] = (save.causes[ev] || 0) + 1; persist(); if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
       wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; buzz(40, .9); const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
-    if (ev === 'win') setTimeout(win, 450);
+    if (ev === 'win') { say('Dial reached.'); setTimeout(win, 450); }
   }
 }
 function tick() {
@@ -986,7 +989,8 @@ function tick() {
   for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
   if ([...pr].some(k => !prevPr.has(k))) beep(660, .08, 'triangle', .05);
-  for (const k of pr) if (!prevPr.has(k)) linkSparks(k);
+  for (const k of pr) if (!prevPr.has(k)) { linkSparks(k); say(['One', 'Two', 'Three', 'Four'][k.charCodeAt(0) - 65] + '-dot gate open.'); }
+  for (const k of prevPr) if (!pr.has(k)) say(['One', 'Two', 'Three', 'Four'][k.charCodeAt(0) - 65] + '-dot gate closed.');
   handleEvents(prevP, prevS, prevG);
   for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vx *= .94; p.vy *= .94; p.life--; }
   parts = parts.filter(p => p.life > 0);
@@ -2027,9 +2031,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 133, t: 'controllers now rumble when you fall, win or land a big moment, like phones already vibrate. Turn both off in Assist mode.' };
+const WHATS_NEW = { v: 134, t: 'screen readers now hear the stage name and hint, which gate opens or closes, falls and reaching the dial.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Screen readers announce stages, gates opening and closing, falls and wins.',
   'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
   'New B-side: Two Locks (B-side of Two Worlds).',
   'Chapter headings show how many dials you have beaten.',
@@ -2038,8 +2043,7 @@ const NEWS = [
   'Stage maker: a second gate and plate pair, for stages with two locks.',
   'Opened a gate off screen? A blinking tag on the edge points to it.',
   'Pressing a plate sends sparks to the gate it opens.',
-  'Gates and plates show matching dots so you can tell which plate opens which gate.',
-  'New B-side: Bright Staff (water shadow + staff).',];
+  'Gates and plates show matching dots so you can tell which plate opens which gate.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
