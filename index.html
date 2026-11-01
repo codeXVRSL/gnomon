@@ -819,7 +819,7 @@ function musicTick() {
   const mix = musicMix(st.t, st.sleeping), reversed = st.grav < 0 && !st.sleeping;
   for (const k in mix) MUSIC.layers[k].gain.setTargetAtTime(mix[k] * (st.s && st.s.gone && k === 'arp' ? .3 : 1), ac.currentTime, 0.8);
   MUSIC.lp.frequency.setTargetAtTime(st.sleeping ? 900 : overcast(st.t) ? 1100 : 2400, ac.currentTime, 0.6);
-  const bpm = MUSIC.bpm * (L && L.def.sunRate ? 1.25 : 1) * (st.t > 5.6 && st.t < DUSK ? 1.15 : 1);
+  const bpm = MUSIC.bpm * (L && L.def.sunRate ? 1.25 : 1) * (st.t > 5.6 && st.t < DUSK ? 1.15 : 1) * (st.sleeping ? 0.8 : 1); // nights are slower
   const spb = 60 / bpm / 2; // eighth notes, quicker as dusk closes in
   while (MUSIC.next < ac.currentTime + 0.25) {
     const s = MUSIC.step, when = MUSIC.next, bar = Math.floor(s / 8) % 4, beat = s % 8;
@@ -1682,7 +1682,7 @@ function start(data) {
   if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
   requestAnimationFrame(loop);
-  if (!(data && data.st)) title();
+  if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 const WHATS_NEW = { v: 18, t: 'an Epilogue with an ending, a Night chapter, four B-sides, ghost races and a stage maker.' };
 function title() {
