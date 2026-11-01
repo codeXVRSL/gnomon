@@ -1612,9 +1612,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 167, t: 'a new B-side, Lamplit Night: three lamps burn in the world below, and your sleeping shadow must slip under every light before dawn.' };
+const WHATS_NEW = { v: 168, t: 'every stage now has a step-by-step hint: fall six times on any dial and the hint below the game spells out one way through.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Every dial now has a step-by-step hint after six falls.',
   'New B-side: Lamplit Night (B-side of Moonlamps).',
   'Assist: larger text in menus and hints.',
   'Stage maker: add a passing cloud.',
@@ -1623,8 +1624,7 @@ const NEWS = [
   'Rewinds count up, and Stats totals the seconds rewound.',
   'Photos keep your Screen look.',
   'New B-side: Backward Noon (B-side of Backward Sun).',
-  'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
-  'Locked dials say what opens them when tapped.',];
+  'Screen looks: Warm film, Handheld green, High contrast, Cool night.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;

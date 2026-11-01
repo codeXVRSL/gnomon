@@ -4,6 +4,7 @@
 const LEVELS = [
   { name: 'The Hour Hand', startHour: 0,
     hint: 'The sun only moves when you move, or while you hold the hourglass. Hold it, watch your shadow swing west onto the plate, then walk through before noon.',
+    hint2: 'Step by step: stand still at the start and hold the hourglass. Watch your shadow swing west; when it covers the plate, walk straight through the gate.',
     map: [
       '.#..................',
       '.#..................',
@@ -21,6 +22,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Tower Clock', startHour: 2, cast: true,
     hint: 'Stones cast real shadows below, sliding with the sun. Your shadow can\'t reach the plate, but the tower\'s can. Wait until it covers the plate, then go.',
+    hint2: 'Step by step: walk up close to the gate and stop. Hold the hourglass until the tower\'s long shadow slides onto the plate (late afternoon), then walk through.',
     map: [
       '....................',
       '....................',
@@ -38,6 +40,7 @@ const LEVELS = [
       '...#................'] },
   { name: 'High Noon', startHour: 2,
     hint: 'A wall below blocks your shadow. Keep walking: at noon your shadow vanishes and is reborn right beneath you, past the wall.',
+    hint2: 'Step by step: walk right until the wall below stops your shadow, keep going to the gate, then hold the hourglass. At noon your shadow vanishes and comes back under you, on the plate; walk on.',
     map: [
       '....................',
       '....................',
@@ -55,6 +58,7 @@ const LEVELS = [
       '.....#..............'] },
   { name: 'In the Shade', startHour: 0, cast: true,
     hint: 'Lamplight can\'t reach your shadow while it stands in shade. Cross the tower top at the hour its shadow covers the lamp.',
+    hint2: 'Step by step: walk to just before the tower and hold the hourglass until the tower\'s shadow covers the lamp below. Then hop up onto the tower and cross it.',
     map: [
       '....................',
       '....................',
@@ -72,6 +76,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Passing Cloud', startHour: 0, clouds: [[2.05, 2.25]],
     hint: 'A wall holds your shadow back. Wait at the gate with the hourglass: when a cloud crosses the sun your shadow fades, then it is reborn beneath you.',
+    hint2: 'Step by step: walk all the way to the gate and hold the hourglass. When the cloud passes, your shadow fades and is reborn right under you, on the plates. Walk through.',
     map: [
       '....................',
       '....................',
@@ -89,6 +94,7 @@ const LEVELS = [
       '..........#.........'] },
   { name: 'Meet at Dusk', startHour: 0.5,
     hint: 'Your shadow has its own finish: a violet hour mark sliding east below. Reach your dial, then wait for shadow and mark to meet.',
+    hint2: 'Step by step: walk to your dial and stand on it, then just hold the hourglass. The violet hour mark slides east until it meets your shadow.',
     map: [
       '....................',
       '....................',
@@ -106,6 +112,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Two Worlds', startHour: 0,
     hint: 'Your shadow walks upside-down in the world below and copies every step. Only shade presses a plate. Stop your shadow against the wall and keep walking.',
+    hint2: 'Step by step: just keep walking right. The wall below stops your shadow on the plate while you carry on through the gate.',
     map: [
       '....................',
       '....................',
@@ -123,6 +130,7 @@ const LEVELS = [
       '.............#......'] },
   { name: 'Mirror Steps', startHour: 0.5,
     hint: 'When you jump up, your shadow jumps down. A leap that saves you can kill it.',
+    hint2: 'Step by step: jump each spike pit from its very edge, so your shadow\'s mirrored jump lands clear of the blocks below.',
     map: [
       '....................',
       '....................',
@@ -140,6 +148,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Plant the Hour', startHour: 3.6,
     hint: 'Tap STAFF to plant your staff. Its thin shadow swings west as the sun sinks, and shade presses plates. Plant it east of the plate, then walk to the gate.',
+    hint2: 'Step by step: walk most of the way to the gate, plant the staff about two steps before it, then keep walking. Its shadow swings onto the plate as you arrive.',
     map: [
       '....................',
       '....................',
@@ -157,6 +166,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Turn the Dial', startHour: 1,
     hint: 'Press FLIP while standing to turn gravity over. You fall to the sky, your shadow falls to the deep. Look where each of you will land first.',
+    hint2: 'Step by step: walk to just before the wall and FLIP. Walk the ceiling, hop the hanging spike, and FLIP back down once you are past the wall, near the dial.',
     map: [
       '.............x......',
       '....................',
@@ -210,6 +220,7 @@ const LEVELS = [
       '..........#.........'] },
   { name: 'Eclipse', startHour: 0.5, eclipse: [2.0, 6.6],
     hint: 'Slip your shadow past the wall below. At two o\'clock the moon covers the sun, the world spins, and you trade places with your shadow. Cross the spikes upside down.',
+    hint2: 'Step by step: walk until your shadow is stopped, wait for two o\'clock, and let the eclipse swap you with your shadow. Then jump each spike pit upside down.',
     map: [
       '.......#......................',
       '.......#......................',
@@ -227,6 +238,7 @@ const LEVELS = [
       '..............................'] },
   { name: 'Crescent', startHour: 0, partial: [1.5, 3.0],
     hint: 'A crescent sun casts two shadows, one on each side of you. Two gates, two plates: wait for the crescent, then stand so both shadows press both plates.',
+    hint2: 'Step by step: walk a little past the first plate\'s column and hold the hourglass until the crescent appears. Both shadows land on both plates; walk through both gates.',
     map: [
       '....................',
       '....................',
@@ -244,6 +256,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Stone Hours', startHour: 1,
     hint: 'Pale morning stones only hold before noon. Dark evening stones only hold after. Watch the sun and wait when you must.',
+    hint2: 'Step by step: cross the pale stones right away, then wait at the dark stones until noon. Once they turn solid, walk on.',
     map: [
       '....................',
       '....................',
@@ -261,6 +274,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Bright Water', startHour: 3,
     hint: 'Sunlight bounces off water and casts a second, fainter shadow, thrown the other way. Swim up to the drowned gate and wait: as the sun sinks, your water shadow slides east onto the plate.',
+    hint2: 'Step by step: swim up to the drowned gate and wait. Late in the afternoon your water shadow slides east onto the plate; swim through.',
     map: [
       '.........A..........',
       '.........A..........',
@@ -278,6 +292,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Sunstones', startHour: 1.5,
     hint: 'Golden sunstones cast shade below that slides with the sun. Stand on the stones so your shadow rides their shade, then wait for the day to carry it over the gap.',
+    hint2: 'Step by step: walk left onto the sunstones, stop, and hold the hourglass. Your shadow rides their shade across the gap by early evening; then walk left to the dial.',
     map: [
       '....................',
       '....................',
@@ -295,6 +310,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Hour Chime', startHour: 0.3,
     hint: 'Chime spikes rise late in every hour. Watch the red band on the sun clock. Time only moves when you move, so stop and let the hour pass.',
+    hint2: 'Step by step: stop before each pair of bells and hold the hourglass until the hour turns over, then walk past them before the red band comes back.',
     map: [
       '....................',
       '....................',
@@ -312,6 +328,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Hawk Hours', startHour: 0.5,
     hint: 'The hawk can\'t hurt you, but its shadow hunts yours below, and it only flies as hours pass. Your shadow is stuck, so jump it when the hawk\'s shadow sweeps in.',
+    hint2: 'Step by step: walk forward and, each time the hawk\'s shadow swoops at yours, jump so your shadow dips under it. Five swoops, five jumps.',
     map: [
       '....................',
       '....................',
@@ -329,6 +346,7 @@ const LEVELS = [
       '.........#..........'] },
   { name: 'Lantern Walk', startHour: 3.8, hourPx: 80,
     hint: 'Lantern-bearers walk as the hours pass, and their light burns shade below. After noon your shadow trails behind you: jump late so it clears the light too.',
+    hint2: 'Step by step: walk toward the lantern-bearer and jump late, when the lantern is about a step ahead of you, so your trailing shadow clears the light too.',
     map: [
       '....................',
       '....................',
@@ -346,6 +364,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Falling Stones', startHour: 0,
     hint: 'Cracked stones crumble soon after they are stepped on, so keep your shadow moving. Plant your staff early: by the time you reach the gate, its shadow should have swung onto the plate.',
+    hint2: 'Step by step: plant the staff early, a few steps from the start, and then keep walking without stopping so your shadow never lingers on the cracked stone.',
     map: [
       '....................',
       '....................',
@@ -363,6 +382,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Spring Tide', startHour: 0.5,
     hint: 'Springs throw you high, and throw your shadow deep. Think about where the shadow lands.',
+    hint2: 'Step by step: walk until your shadow is past the spring below, then jump. Your shadow is thrown deep, clear of the spikes.',
     map: [
       '....................',
       '.............o......',
@@ -380,6 +400,7 @@ const LEVELS = [
       '........xxxxx.......'] },
   { name: 'Upside Dusk', startHour: 5.5,
     hint: 'At nightfall you sleep and your shadow walks alone. It can turn gravity too. At dawn you wake wherever it stands.',
+    hint2: 'Step by step: walk to the wall and wait for nightfall. FLIP your sleeping shadow, steer it past the wall, wait for dawn, then FLIP back and walk to the dial.',
     map: [
       '..........#.........',
       '..........#.........',
@@ -397,6 +418,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Gnomon', startHour: 3.1,
     hint: 'Everything at once. The pale stones are gone after noon, so walk the sky to turn the day back. Plant your staff so its shadow holds the plate as you reach the gate, and wait out the chime.',
+    hint2: 'Step by step: FLIP and walk the sky to turn the day back, FLIP home past the pale stones, plant the staff near the gate, walk on, and wait out the chime before the last stretch.',
     map: [
       '....................',
       '....................',
@@ -414,6 +436,7 @@ const LEVELS = [
       '..............#.....'] },
 { name: 'Last Light', startHour: 3, sunRate: 0.04, duskFail: true, hourPx: 600,
     hint: 'Sunset run: the sun sinks on its own, and night means starting over. DASH costs half an hour, so spend it only where you must. Flags save your spot.',
+    hint2: 'Step by step: keep moving. Jump each spike gap, dash up and over the tall blocks, and touch each flag on the way so a mistake does not cost the whole run.',
     map: [
       '........................................................',
       '........................................................',
@@ -449,6 +472,7 @@ const LEVELS = [
       '..................xxxxxx............................'] },
   { name: 'Night Walk', startHour: 5.6,
     hint: 'Walled in by day, so let the day run out. At night your shadow walks alone: hop it over the spikes and wall, stop it under your dial, and wake there at dawn.',
+    hint2: 'Step by step: walk as far as you can and wait for nightfall. Hop your shadow over the spikes and the wall, stop it under your dial, and wait for dawn.',
     map: [
       '.....#......#.......',
       '.....#......#.......',
@@ -466,6 +490,7 @@ const LEVELS = [
       '....................'] },
   { name: 'Moonlamps', startHour: 6.2, lampR: 12, hourPx: 90,
     hint: 'Lamps burn in the world below, even at night. Your shadow cannot walk past them, so make it jump deep and slip under their light, then stop it beyond the wall before dawn.',
+    hint2: 'Step by step: at nightfall walk your shadow to each lamp and jump just before its light, then stop it beyond the wall and wait for dawn.',
     map: [
       '...............#......',
       '...............#......',
@@ -483,6 +508,7 @@ const LEVELS = [
       '......................'] },
   { name: 'Two Nights', startHour: 6.0, hourPx: 80,
     hint: 'Two walls, two nights. Steer your shadow past the first wall tonight and wake beyond it. Then live through a whole day, and steer it past the second wall on the next night.',
+    hint2: 'Step by step: on the first night jump your shadow past the first wall and wait for dawn there. Live through the day, then do the same at the second wall on the second night.',
     map: [
       '.........#.........#..........',
       '.........#.........#..........',
