@@ -1217,6 +1217,8 @@ function bLabel(i, ord) { const mains = ord.filter(j => !LEVELS[j].demo && !LEVE
 function lockedWhy(i) { const lv = LEVELS[i]; let nice; if (lv.bside) nice = `Beat ${lv.bside} to open this B-side.`; else { const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i), prev = LEVELS[ord[p - 1]]; nice = prev ? `Beat ${prev.name} first.` : 'Locked.'; }
   let el = $('lockMsg'); if (!el && $('card').querySelector('h2')) { el = document.createElement('p'); el.id = 'lockMsg'; el.className = 'sub'; el.setAttribute('role', 'status'); el.style.cssText = 'color:var(--brass);margin:-4px 0 8px;position:sticky;top:0;background:var(--ink-2);z-index:2;padding:4px 0'; $('card').querySelector('h2').after(el); }
   if (el) el.textContent = '🔒 ' + nice; else toast(nice.toUpperCase()); say(nice); beep(220, .05, 'triangle', .03); }
+// the first open dial you have not beaten yet: main stages in order, then B-sides
+function nextUnbeaten() { const ord = order().filter(k => k !== DEMO); const m = ord.filter(i => !LEVELS[i].bside).find(i => unlocked(i) && !save.best[i]); if (m != null) return m; const b = BSIDES.find(i => unlocked(i) && !save.best[i]); return b == null ? null : b; }
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
@@ -1225,6 +1227,7 @@ function menu() {
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">${chRun.k === 6 ? 'Full run' : 'Chapter run'} in progress (stage ${chRun.i + 1}/${chRun.ids.length}). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${(() => { let n = 0; for (let k = done ? dd.n : dd.n - 1; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n >= 2 ? ' · 🔥' + n : ''; })()}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
+    ${(() => { const nx = nextUnbeaten(); return nx != null ? `<button class="btn" id="nextUnb" style="margin-top:-4px">▶ Next unbeaten: ${LEVELS[nx].bside ? bLabel(nx, ord) + ' · ' : ''}${LEVELS[nx].name}</button>` : ''; })()}
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
@@ -1232,6 +1235,7 @@ function menu() {
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn" aria-pressed="${!muted}">${muted ? 'Effects off' : 'Effects on'}</button><button class="btn" id="musicBtn" aria-pressed="${MUSIC.on}">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
+  if ($('nextUnb')) $('nextUnb').onclick = () => { dailyMode = false; hideCard(); load(nextUnbeaten()); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { if (x.dataset.locked) { lockedWhy(+x.dataset.i); return; } dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
   $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; if ($('chQuit')) $('chQuit').onclick = () => { chRun = null; menu(); }; $('editBtn').onclick = () => editor();
@@ -2126,9 +2130,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 173, t: 'nights now have soft crickets and dawn brings a few birds, quiet enough to sit under the music (Effects volume and mute apply).' };
+const WHATS_NEW = { v: 174, t: 'the stage list has a Next unbeaten button that takes you straight to the first open dial you have not beaten, main stages first, then B-sides.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Next unbeaten: one tap to the next dial left to beat.',
   'Crickets at night, birdsong at dawn.',
   'New B-side: Upside Midnight (B-side of Upside Dusk).',
   'The HUD shows the dial\'s hour, as used in hints.',
@@ -2137,8 +2142,7 @@ const NEWS = [
   'Every dial now has a step-by-step hint after six falls.',
   'New B-side: Lamplit Night (B-side of Moonlamps).',
   'Assist: larger text in menus and hints.',
-  'Stage maker: add a passing cloud.',
-  'Assist options grouped into three sections.',];
+  'Stage maker: add a passing cloud.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
