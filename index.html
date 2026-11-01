@@ -1475,7 +1475,7 @@ function render(now) {
     } else if (c >= 'A' && c <= 'D') {
       const open = pr.has(c) || (topW ? overlapsPlayerTile(st, x, y) : overlapsShadowTile(st, x, y));
       g.fillStyle = '#3a3346'; g.fillRect(px, py, 2, TS); g.fillRect(px + 10, py, 2, TS);
-      if (!open) { g.fillStyle = '#8a5236'; g.fillRect(px + 2, py, 8, TS); g.fillStyle = '#a9693f'; g.fillRect(px + 3, py, 1, TS); g.fillRect(px + 6, py, 1, TS); g.fillStyle = '#9d7cff'; g.fillRect(px + 5, py + 5, 2, 2); }
+      if (!open) { g.fillStyle = '#8a5236'; g.fillRect(px + 2, py, 8, TS); g.fillStyle = '#a9693f'; g.fillRect(px + 3, py, 1, TS); g.fillRect(px + 6, py, 1, TS); g.fillStyle = '#9d7cff'; pips(c, px, py, '#9d7cff'); }
       else { g.fillStyle = 'rgba(157,124,255,.25)'; g.fillRect(px + 2, py, 8, TS); }
     } else if (c >= 'a' && c <= 'd') {
       const on = pr.has(c.toUpperCase());
@@ -1483,11 +1483,11 @@ function render(now) {
         // sun plate: a brass tile on the floor, pressed by your feet
         g.fillStyle = on ? '#f6c85f' : '#8a7a5a'; g.fillRect(px + 1, py + 8, 10, 4);
         g.fillStyle = on ? '#fff4c2' : '#a8946c'; g.fillRect(px + 1, py + 8, 10, 1);
-        g.fillStyle = on ? '#fff' : '#5b4a33'; g.fillRect(px + 5, py + 9, 2, 2);
+        g.fillStyle = on ? '#fff' : '#5b4a33'; { const n = c.charCodeAt(0) - 96; if (n === 1) g.fillRect(px + 5, py + 9, 2, 2); else for (let i = 0; i < n; i++) g.fillRect(px + 6 - n + i * 2, py + 9, 1, 2); }
         if (on) { g.fillStyle = 'rgba(246,200,95,.3)'; g.fillRect(px - 2, py + 4, 16, 10); }
       } else {
         g.fillStyle = on ? '#9d7cff' : '#5d4c86'; g.fillRect(px + 1, py + 1, 10, 10);
-        g.fillStyle = on ? '#fff' : '#3b2f5c'; g.fillRect(px + 5, py + 3, 2, 6); g.fillRect(px + 3, py + 5, 6, 2);
+        if (c === 'a') { g.fillStyle = on ? '#fff' : '#3b2f5c'; g.fillRect(px + 5, py + 3, 2, 6); g.fillRect(px + 3, py + 5, 6, 2); } else pips(c, px, py, on ? '#fff' : '#2a2046');
         if (on) { g.fillStyle = 'rgba(199,180,255,.25)'; g.fillRect(px - 2, py - 2, 16, 16); }
       }
     } else if (c === '=') {
@@ -1722,6 +1722,9 @@ function drawExtrusions(now, t, night, pr) {
   // sun slabs get a sliver of depth too
   for (const r of slabs(L, st)) { const rx = Math.round(r.x); g.fillStyle = 'rgba(60,40,100,.85)'; g.fillRect(rx + 2, r.y + r.h, r.w, EX); }
 }
+// pips tell matching pairs apart without relying on colour: gate A and plate a show one, B and b two, and so on
+const PIPS = [[[5, 5]], [[3, 5], [7, 5]], [[2, 5], [5, 5], [8, 5]], [[3, 2], [7, 2], [3, 8], [7, 8]]];
+function pips(c, px, py, col) { g.fillStyle = col; for (const [dx, dy] of PIPS[c.toUpperCase().charCodeAt(0) - 65]) g.fillRect(px + dx, py + dy, 2, 2); }
 // blinking corner brackets around your shadow: something is about to get it (red: hawk, amber: lamplight)
 function warnBrackets(now, col) {
   const ss = st.s; if (ss.gone || !(Math.floor(now / 110) % 2) || (save.assist && save.assist.noWarn)) return;
@@ -1983,9 +1986,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 124, t: 'a new B-side, Bright Staff: your water shadow and your staff hold two plates at once.' };
+const WHATS_NEW = { v: 125, t: 'gates and plates now carry matching dots: one dot opens one dot, two dots open two, so stages with several gates are easy to read.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Gates and plates show matching dots so you can tell which plate opens which gate.',
   'New B-side: Bright Staff (water shadow + staff).',
   'New B-side: Plant at Dusk (staff + hour mark).',
   'How to play lists every keyboard shortcut.',
@@ -1994,8 +1998,7 @@ const NEWS = [
   'Beat a stage, then watch a solution ghost to compare routes.',
   'Every stage can now show you a solution ghost after ten falls.',
   'Stuck on a hard stage? After ten falls a ghost can show you one way through.',
-  'Every B-side now has a step-by-step hint after six falls.',
-  'The five toughest stages offer a step-by-step hint after six falls.',];
+  'Every B-side now has a step-by-step hint after six falls.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
