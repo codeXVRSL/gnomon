@@ -1251,7 +1251,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 25, t: 'controller support, speedrun splits in Stats, a left-handed layout and tap-to-toggle hourglass (Assist), plus Night Walk B.' };
+const WHATS_NEW = { v: 30, t: 'Crescent B, chapter-complete moments, death markers, custom keyboard keys, and tips when you get stuck.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
