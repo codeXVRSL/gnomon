@@ -4,6 +4,8 @@ const E_ = require('./engine.js');
 const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground && Math.abs(b.x + E_.castDx(s.t) - s.s.x) < 14; };
 const fr_ = s => s.t - Math.floor(s.t);
 const S = {
+ 'Two Nights': [['W',s=>s.sleeping],['R',s=>s.s.x>=120],['RJ',30],['R',s=>s.s.x>=180],['W',s=>s.day==2],['W',s=>s.sleeping],['R',s=>s.s.x>=250],['RJ',30],['R',s=>s.s.x>=324],['W',s=>s.day==3||s.won],['',30]],
+ 'Night Flip': [['W',s=>s.sleeping],['R',s=>s.s.x>=70],['F',1],['',40],['R',s=>s.s.x>=110],['F',1],['',40],['R',s=>s.s.x>=206],['W',s=>s.day==2||s.won],['',30]],
  'Night Walk': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=86],['RJ',30],['R',s=>s.s.x>=150],['RJ',30],['R',s=>s.s.x>=204],['W',s=>s.day==2||s.won],['',30]],
  'Moonlamps': [['W',s=>s.sleeping],['R',s=>s.s.x>=56],['RJ',30],['R',s=>s.s.x>=130],['RJ',30],['R',s=>s.s.x>=228],['W',s=>s.day==2||s.won],['',30]],
  'In the Shade': [['R',s=>s.p.x>=80],['W',s=>s.t>=1.7],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
