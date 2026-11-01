@@ -189,11 +189,11 @@ body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}bod
   <div id="bar">
   <div class="clock">
     <canvas id="dial" width="200" height="14" aria-label="Sun clock"></canvas>
-    <div class="clock-txt"><b id="phase">Dawn</b> <span id="hourTxt" style="color:var(--mute)"></span><br>DAY <span id="day">1</span></div>
+    <div class="clock-txt"><b id="phase">Dawn</b> <span id="hourTxt" style="color:var(--mute);margin-right:.5em"></span><br>DAY <span id="day">1</span></div>
   </div>
   <div class="meta">
     <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
-    <div class="metaR"><span id="dashPip" title="Dash ready" style="color:#ffb347">●</span><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="rewBtn" aria-label="Go back one second" title="Go back one second (T or Backspace)">⟲ BACK</button><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
+    <div class="metaR"><span id="timer">0:00.0</span><span id="falls">☠ 0</span><span id="shards">✦ 0/0</span><button class="mini" id="rewBtn" aria-label="Go back one second" title="Go back one second (T or Backspace)">⟲ BACK</button><button class="mini" id="resetBtn" aria-label="Restart stage">↻ RESTART</button></div>
   </div>
   </div>
   <div id="stage"><canvas id="game" width="240" height="168" role="img" aria-label="Game screen"></canvas><div id="toast" role="status" aria-live="polite"></div><div id="sr" class="sr" aria-live="polite"></div></div>
@@ -206,11 +206,11 @@ body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}bod
       <button class="ctl flip" data-k="f" aria-label="Flip gravity">FLIP</button>
       <button class="ctl wait" data-k="w" aria-label="Hold to let time pass">⧗</button>
       <button class="ctl pin" data-k="p" aria-label="Plant or pull back your gnomon staff">STAFF</button>
-      <button class="ctl dash" data-k="x" aria-label="Sun dash">DASH</button>
+      
       <button class="ctl jump" data-k="j" aria-label="Jump">JUMP<small>▲▼</small></button>
     </div>
   </div>
-  <div class="keys">←→ move · Space/↑ jump · X/Shift dash (hold ↑↓ to aim) · F flip · E staff · hold ↓ pass time · T back 1s · R restart</div>
+  <div class="keys">←→ move · Space/↑ jump · F flip · E staff · hold ↓ pass time · T back 1s · R restart</div>
 </div>
 <div class="overlay" id="overlay" hidden><div class="card" id="card" role="dialog" aria-modal="true" aria-live="polite"></div></div>
 
@@ -462,8 +462,8 @@ function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math
 
 // stuck? after the third death of the same kind on a stage, a one-line tip (and the full hint opens)
 let deathCount = {}, deathMarks = [], stepAcc = 0, swipeDash = null;
-const TIPS = { spikes: 'TIP · JUMP OR DASH OVER SPIKES · CHIME SPIKES ARE SAFE EARLY IN EACH HOUR', 'shadow spikes': 'TIP · WHEN YOU JUMP UP, YOUR SHADOW JUMPS DOWN · WATCH THE WORLD BELOW', 'shadow fell': 'TIP · YOUR SHADOW FALLS IF ITS FLOOR ENDS · STOP IT AGAINST A WALL OR WAIT',
-  fell: 'TIP · DASH (X / RED BUTTON) CROSSES WIDER GAPS', lamplight: 'TIP · LAMPS BURN YOUR SHADOW · JUMP DEEP UNDER THEM OR STAND IN SHADE', 'bird shadow': 'TIP · HOP WHEN THE HAWK\'S SHADOW REACHES YOURS', dusk: 'TIP · EACH DASH BURNS HALF AN HOUR · DASH ONLY WHERE YOU MUST',
+const TIPS = { spikes: 'TIP · JUMP OVER SPIKES · CHIME SPIKES ARE SAFE EARLY IN EACH HOUR', 'shadow spikes': 'TIP · WHEN YOU JUMP UP, YOUR SHADOW JUMPS DOWN · WATCH THE WORLD BELOW', 'shadow fell': 'TIP · YOUR SHADOW FALLS IF ITS FLOOR ENDS · STOP IT AGAINST A WALL OR WAIT',
+  fell: 'TIP · HOLD JUMP FOR A HIGHER, LONGER LEAP', lamplight: 'TIP · LAMPS BURN YOUR SHADOW · JUMP DEEP UNDER THEM OR STAND IN SHADE', 'bird shadow': 'TIP · HOP WHEN THE HAWK\'S SHADOW REACHES YOURS', dusk: 'TIP · EACH DASH BURNS HALF AN HOUR · DASH ONLY WHERE YOU MUST',
   crushed: 'TIP · STONES APPEAR AND VANISH WITH THE HOUR · WATCH THE CLOCK', 'shadow crushed': 'TIP · MOVING SHADE CAN PIN YOUR SHADOW · KEEP IT CLEAR', 'lantern light': 'TIP · JUMP LATE OVER THE LANTERN SO YOUR SHADOW CLEARS ITS LIGHT', lantern: 'TIP · LANTERNS MOVE ONLY AS HOURS PASS · STAND STILL TO FREEZE THEM' };
 const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours', dusk: 'Night fell before you got home' };
 function handleEvents(prevP, prevS, prevG) {
@@ -509,7 +509,7 @@ function tick() {
   const sw = swipeDash; swipeDash = null;
   const inp = { l: keys.l || pad.l, r: keys.r || pad.r, jump: jumpEdge || pad.jumpE, jumpHeld: keys.j || pad.j, wait: keys.w || pad.w, pin: keys.p || pad.p, flip: flipEdge || pad.flipE, dash: dashEdge || pad.dashE, up: keys.u || pad.u, down: keys.w || keys.dn || pad.d };
   if (ghost && !ghost.st.won && ghost.i < ghost.data.length) update(ghost.L, ghost.st, unpackInp(ghost.data[ghost.i++]));
-  if (sw) { inp.dash = true; inp.l = sw.l; inp.r = sw.r; inp.up = sw.u; inp.down = sw.d; }
+  inp.dash = false; // the dash was removed from the game (loop 186)
   rec.push(packInp(inp));
   const q0 = Math.floor(st.t * 4);
   update(L, st, inp);
@@ -520,7 +520,6 @@ function tick() {
   jumpEdge = flipEdge = dashEdge = false;
   if (!st.won) runFrames++;
   if (!st.sleeping && st.p.ground && Math.abs(st.p.vx) > 0.6) { stepAcc += Math.abs(st.p.x - prevP.x); if (stepAcc > 13) { stepAcc = 0; const under = tileAt(L, Math.floor((st.p.x + 4) / TS), Math.floor((st.p.y + PH + 1) / TS)); beep(under === '~' ? 900 : under === '#' ? 190 + Math.random() * 30 : 260 + Math.random() * 40, .025, 'triangle', .012, .8); } } else stepAcc = 0;
-  if (save.assist && save.assist.dash && st.dashT === 0) st.dashes = 1;
   if (st.dashT > 0) { trail.push({ x: st.p.x, y: st.p.y, sx: st.s.x, sy: st.s.y, life: 14, face: st.face }); }
   for (const q of trail) q.life--; trail = trail.filter(q => q.life > 0);
   const pr = pressedSet(L, st);
@@ -763,12 +762,11 @@ function assist() {
     <p class="sub">Gnomon is meant to be tough but fair. If it is getting in the way of your fun, change how it plays. Medals still count.</p>
     <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">CHALLENGE</p>
     <div class="row">${sp.map(v => `<button class="btn ${a.speed === v ? 'primary' : ''}" data-sp="${v}">${Math.round(v * 100)}%</button>`).join('')}</div>
-    <label class="toggle"><input type="checkbox" id="aDash" ${a.dash ? 'checked' : ''}> Infinite dashes</label>
     <label class="toggle"><input type="checkbox" id="aInv" ${a.inv ? 'checked' : ''}> Invincible (spikes, lamps and hawks can't hurt you)</label>
     <label class="toggle"><input type="checkbox" id="aWarn" ${a.noWarn ? '' : 'checked'}> Danger warnings (your shadow blinks when a hawk or light is about to reach it)</label>
     <p class="sub" style="color:var(--brass);letter-spacing:.12em;font-size:11px;margin:12px 0 2px">CONTROLS</p>
     <label class="toggle"><input type="checkbox" id="aWait" ${a.waitToggle ? 'checked' : ''}> Tap ⧗ to start and stop time (instead of holding)</label>
-    <label class="toggle"><input type="checkbox" id="aSwipe" ${a.noSwipe ? '' : 'checked'}> Swipe the game screen to dash (phones)</label>
+    
     <label class="toggle"><input type="checkbox" id="aUpJump" ${a.upJump ? 'checked' : ''}> Up on the d-pad also jumps</label>
     <label class="toggle"><input type="checkbox" id="aLefty" ${a.lefty ? 'checked' : ''}> Left-handed buttons (actions on the left, movement on the right)</label>
     <label class="toggle"><input type="checkbox" id="aBuzz" ${a.noBuzz ? '' : 'checked'}> Vibration and controller rumble</label>
@@ -781,11 +779,9 @@ function assist() {
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
     <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn" id="aReset">Reset to defaults</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
-  $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
   $('aBig').onchange = e => { a.bigText = e.target.checked; persist(); document.body.classList.toggle('bigtext', a.bigText); hintTrunc(); };
   $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
   $('aWait').onchange = e => { a.waitToggle = e.target.checked; keys.w = 0; persist(); };
-  $('aSwipe').onchange = e => { a.noSwipe = !e.target.checked; persist(); };
   $('aUpJump').onchange = e => { a.upJump = e.target.checked; persist(); };
   $('aVs').oninput = e => { VOL().sfx = +e.target.value; if (sfxBus) sfxBus.gain.value = VOL().sfx; persist(); };
   $('aVs').onchange = () => beep(660, .08, 'triangle', .05);
@@ -801,7 +797,7 @@ function assist() {
 }
 // ---------- stage maker: paint a 20 x 14 map, set the hour, play it, share it as a link ----------
 const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Start', '#f6c85f'], ['G', 'Dial', '#ffd25e'], ['g', 'Shadow dial', '#9d7cff'], ['x', 'Spikes', '#e9806e'], ['v', 'Chime', '#f0a04e'],
-  ['A', 'Gate', '#c98b2b'], ['a', 'Plate', '#c7b4ff'], ['~', 'Water', '#4a90c8'], ['=', 'Sunstone', '#ffd88a'], ['c', 'Crumble', '#a8946c'], ['^', 'Spring', '#7fe0a0'], ['r', 'Crystal', '#9fe8ff'], ['f', 'Flag', '#e8e0ff'],
+  ['A', 'Gate', '#c98b2b'], ['a', 'Plate', '#c7b4ff'], ['~', 'Water', '#4a90c8'], ['=', 'Sunstone', '#ffd88a'], ['c', 'Crumble', '#a8946c'], ['^', 'Spring', '#7fe0a0'], ['f', 'Flag', '#e8e0ff'],
   ['o', 'Shard', '#fff0b0'], ['y', 'Hawk', '#5a4552'], ['*', 'Lamp', '#ffd36b'], ['m', 'Morning', '#e8e0c8'], ['e', 'Evening', '#3a3046'], ['B', 'Gate ··', '#a8743a'], ['b', 'Plate ··', '#a890f0']];
 const edColor = c => (ED_TILES.find(x => x[0] === c) || ED_TILES[0])[2];
 let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#', edZoom = -1; // -1 = whole map, 0 = left half, 1 = right half
@@ -912,12 +908,11 @@ function how() {
       ['☀', '<b>The sun only moves when you move.</b> Hold ⧗ to let time pass.'],
       ['◐', 'Your shadow sits <b>east at dawn</b>, under you at noon, <b>west at dusk</b>. At <b>noon</b> it vanishes and comes back under you.'],
       ['▲', '<b>Jump</b> up and your shadow jumps down. Shade presses <b>violet plates</b>, your feet press brass ones.'],
-      ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button; on phones aim with the <b>d-pad</b>, or just <b>swipe the game screen</b> in any direction). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
       ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
       ['⟲', '<b>⟲ BACK</b> steps time back one second, up to five seconds back (T or Backspace; View/Back or LT on a controller). Stuck? Tap the hint under the game, then tap it again for a step-by-step way through.'],
-      ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
+      ['🎮', '<b>Controller:</b> stick to move, A jump, Y hourglass, LB staff, RB flip, Start for levels.']])}
     ${sec('Keyboard shortcuts', false, [
-      ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · X/Shift dash (hold arrows to aim) · ↓ hold to pass time · F flip · E staff · T or Backspace go back one second · R restart · V 2.5D view.'],
+      ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · ↓ hold to pass time · F flip · E staff · T or Backspace go back one second · R restart · V 2.5D view.'],
       ['☰', '<b>Menus:</b> Tab and Shift+Tab move, Enter picks, Esc closes; arrow keys move around the stage grid.'],
       ['✎', '<b>Stage maker:</b> number keys 1–0 pick tiles, Ctrl/Cmd+Z undoes.'],
       ['⚙', 'Change the play keys in Assist › Keyboard keys.']])}
@@ -1315,7 +1310,7 @@ function render(now) {
   $('shards').textContent = `✦ ${st.shardsGot}/${L.shards.length}`;
   $('falls').textContent = `☠ ${st.deaths}`;
   { const sec = (runFrames + (chRun ? chRun.f : 0)) / 60; $('timer').textContent = (chRun ? `RUN ${chRun.i + 1}/${chRun.ids.length} · ` : '') + Math.floor(sec / 60) + ':' + (sec % 60).toFixed(1).padStart(4, '0'); $('timer').style.color = chRun ? 'var(--brass)' : ''; }
-  { const db = document.querySelector('.ctl.dash'), spent = st.dashes === 0 || st.dashT > 0; if (db) db.classList.toggle('spent', spent); const pip = $('dashPip'); if (pip) { pip.textContent = spent ? '○' : '●'; pip.style.color = spent ? '#6aa8ff' : '#ffb347'; pip.title = spent ? 'Dash used: land or touch a crystal' : 'Dash ready'; } }
+  { const db = document.querySelector('.ctl.dash'), spent = st.dashes === 0 || st.dashT > 0; if (db) db.classList.toggle('spent', spent); const pip = null; if (pip) { pip.textContent = spent ? '○' : '●'; pip.style.color = spent ? '#6aa8ff' : '#ffb347'; pip.title = spent ? 'Dash used: land or touch a crystal' : 'Dash ready'; } }
 }
 
 // ---------- 2.5D camera: cabinet extrusion of every solid block ----------
@@ -1513,10 +1508,10 @@ document.fonts && document.fonts.ready.then(resize);
 // ---------- input ----------
 const KMAP = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'j', w: 'j', W: 'j', ' ': 'j', z: 'j', Z: 'j', ArrowDown: 'w', s: 'w', S: 'w', e: 'p', E: 'p', q: 'p', Q: 'p', x: 'x', X: 'x', k: 'x', K: 'x', Shift: 'x', f: 'f', F: 'f', c: 'f', C: 'f' };
 const UPKEYS = new Set(['ArrowUp', 'w', 'W']);
-const ACTIONS = [['l', 'Left'], ['r', 'Right'], ['j', 'Jump'], ['x', 'Dash'], ['w', 'Hourglass'], ['p', 'Staff'], ['f', 'Flip']];
+const ACTIONS = [['l', 'Left'], ['r', 'Right'], ['j', 'Jump'], ['w', 'Hourglass'], ['p', 'Staff'], ['f', 'Flip']];
 function applyKeymap() { for (const [k, a] of Object.entries((save.keymap) || {})) KMAP[k] = a; }
 applyKeymap();
-// ---- controllers (standard mapping): stick/d-pad move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start = levels ----
+// ---- controllers (standard mapping): stick/d-pad move and aim, A jump, Y hourglass, LB staff, RB flip, Start = levels ----
 let padPrev = {};
 let padRep = 0, padBackT = 0;
 function padNav(k) {
@@ -1549,7 +1544,7 @@ function readPad() {
   padPrev = { j: o.j, dash, flip, start, back, ...dirs };
   return o;
 }
-window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED · A JUMP · X DASH'); const k = document.querySelector('.keys'); if (k) k.textContent = 'Ⓐ jump · Ⓧ/Ⓑ dash · Ⓨ hourglass · LB staff · RB flip · stick to move and aim · Start levels'; });
+window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED · A JUMP · Y HOURGLASS'); const k = document.querySelector('.keys'); if (k) k.textContent = 'Ⓐ jump · Ⓨ hourglass · LB staff · RB flip · stick to move · Start levels'; });
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && $('edUndo')) { e.preventDefault(); $('edUndo').click(); return; }
@@ -1647,9 +1642,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 185, t: 'How to play now explains ⟲ BACK and the two-tap step-by-step hints.' };
+const WHATS_NEW = { v: 186, t: 'the dash is gone. Every stage is now beaten with running, jumping and time alone; the seven stages that needed a dash were rebuilt with lower blocks and shorter pits, and crystals were removed.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'The dash was removed; seven stages rebuilt for jumping.',
   'How to play covers ⟲ BACK and step-by-step hints.',
   'Sunset runs show the daylight you had left.',
   'Assist: Reset to defaults.',
@@ -1658,8 +1654,7 @@ const NEWS = [
   'A one-time reminder to back up your save code.',
   'Nights count down to dawn.',
   'New B-side: Three Nights (B-side of Two Nights).',
-  'Bushes and pebbles on the grass.',
-  'All 31 sun medals earns a gold sun on the title.',];
+  'Bushes and pebbles on the grass.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;

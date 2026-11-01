@@ -5,11 +5,11 @@ const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground &
 const fr_ = s => s.t - Math.floor(s.t);
 const hawkNear2 = s => s.enemies.some(b => { const bx = b.x + E_.castDx(s.t), by = 168 - b.y - 8; return !s.s.gone && s.s.ground && Math.abs(bx - s.s.x) < 14 && Math.abs(by - s.s.y) < 14; });
 const S = {
- 'Crescent B': [['R',s=>s.p.x>=75],['W',s=>{const p=E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Crescent B')]),s);return (p.has('A')&&p.has('B'))||s.t>3}],['R',s=>s.p.x>=132],['RJ',8],['RJX',1],['RJ',8],['R',s=>s.p.x>=200||s.p.ground&&s.p.x>=190],['RJ',10],['UX',1],['',8],['R',600]],
+  'Crescent B': [['R',s=>s.p.x>=75],['W',s=>{const p=E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Crescent B')]),s);return (p.has('A')&&p.has('B'))||s.t>3}],['R',s=>s.p.x>=132],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=196],['RJ',20],['R',600]],
  'Night Walk B': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=80],['RJ',30],['R',s=>s.s.x>=148],['F',1],['',40],['R',s=>s.s.x>=172],['F',1],['',40],['R',s=>s.s.x>=230],['W',s=>s.day==2||s.won],['',30]],
  'Epilogue': [['R',s=>s.p.x>=110],['RP',1],['R',s=>s.p.x>=147||s.t>6.9],['W',s=>[...E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Epilogue')]),s)].includes('A')||s.t>6.8],['R',s=>s.p.x>=206||s.t>6.95],['W',s=>s.sleeping],['R',s=>s.s.x>=236],['W',s=>s.day==2],['',20],['R',s=>s.p.x>=252],['RJ',30],['R',600]],
- 'Hawk Hours B': [['R',s=>s.p.x>=132],['RJ',8],['RJX',1],['RJ',8],['RX',1],...Array.from({length:4},()=>[['R',s=>hawkNear2(s)||s.won],['RJ',24]]).flat(),['R',600]],
- 'High Noon B': [['R',s=>s.p.x>=22],['RJ',30],['R',s=>s.p.x>=70],['RJ',10],['UX',1],['',8],['R',s=>s.p.ground],['R',s=>s.p.x>=100],['RJ',30],['R',s=>s.p.x>=150],['',s=>!s.s.gone&&s.t>3.76||s.t>6.9],['R',s=>s.p.x>=171||s.t>6.9],['',s=>s.t>=3.9],['R',600]],
+  'Hawk Hours B': [['R',s=>s.p.x>=132],['RJ',30],['R',s=>s.p.ground],...Array.from({length:4},()=>[['R',s=>hawkNear2(s)||s.won],['RJ',24]]).flat(),['R',600]],
+  'High Noon B': [['R',s=>s.p.x>=22],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=66],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=100],['RJ',30],['R',s=>s.p.x>=150],['',s=>!s.s.gone&&s.t>3.76||s.t>6.9],['R',s=>s.p.x>=171||s.t>6.9],['',s=>s.t>=3.9],['R',600]],
  'Two Nights': [['W',s=>s.sleeping],['R',s=>s.s.x>=120],['RJ',30],['R',s=>s.s.x>=180],['W',s=>s.day==2],['W',s=>s.sleeping],['R',s=>s.s.x>=250],['RJ',30],['R',s=>s.s.x>=324],['W',s=>s.day==3||s.won],['',30]],
  'Night Flip': [['W',s=>s.sleeping],['R',s=>s.s.x>=70],['F',1],['',40],['R',s=>s.s.x>=110],['F',1],['',40],['R',s=>s.s.x>=206],['W',s=>s.day==2||s.won],['',30]],
  'Night Walk': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=86],['RJ',30],['R',s=>s.s.x>=150],['RJ',30],['R',s=>s.s.x>=204],['W',s=>s.day==2||s.won],['',30]],
@@ -30,10 +30,10 @@ const S = {
  'Meet at Dusk B': [['R',s=>s.p.x>=110],['W',s=>s.t>=3.8],['R',s=>s.atG],['W',900]],
  'Passing Cloud B': [['R',s=>s.p.x>=122],['W',s=>!s.s.gone&&s.t>2.2],['R',s=>s.p.x>=254||s.t>6.9],['W',s=>!s.s.gone&&s.t>4.8],['R',600]],
  'In the Shade B': [['R',s=>s.p.x>=36],['RJ',30],['R',s=>s.p.x>=80],['',s=>s.t>=1.9],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
- 'Last Light': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=164],['RJ',12],['RUX',1],['R',20],['R',s=>s.p.x>=230],['RJ',14],['RX',1],['R',s=>s.p.x>=380],['RJ',12],['RUX',1],['R',20],['R',s=>s.p.x>=488],['RJ',25],['R',s=>s.p.x>=548],['RJ',25],['R',600]],
+ 'Last Light': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=160],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=247],['RJ',20],['R',s=>s.p.ground],['R',s=>s.p.x>=360],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=488],['RJ',25],['R',s=>s.p.ground],['R',s=>s.p.x>=548],['RJ',25],['R',600]],
  'Chime Run': [['R',s=>s.p.x>=56],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=246],['RJ',8],['R',6],['LJ',1],['L',6],['LJ',1],['R',1],['RJ',40],['R',s=>s.p.x>=380],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=500],['RJ',30],['R',600]],
- 'Eclipse B': [['R',s=>s.p.x>=72],['W',s=>s.t>=2.05],['R',s=>s.p.x>=124],['RJ',30],['R',s=>s.p.x>=172],['RJ',12],['RUX',1],['R',8],['RX',1],['R',s=>s.p.x>=276||s.won],['RJ',16],['R',600]],
- 'Tower Clock B': [['R',s=>s.p.x>=96],['RJ',30],['R',s=>s.p.x>=152],['RJ',12],['RJUX',1],['',s=>s.p.ground],['R',s=>s.p.x>=184],['RJ',8],['RX',1],['R',s=>s.p.x>=255||s.t>6.9],['',s=>s.t>=5.0||s.t>=6.9],['R',600]],
+  'Eclipse B': [['R',s=>s.p.x>=72],['W',s=>s.t>=2.05],['R',s=>s.p.x>=124],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=166],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=204],['RJ',30],['R',s=>s.p.x>=276||s.won],['RJ',16],['R',600]],
+  'Tower Clock B': [['R',s=>s.p.x>=96],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=150],['RJ',20],['R',s=>s.p.ground],['R',s=>s.p.x>=184],['RJ',30],['R',s=>s.p.ground],['R',s=>s.p.x>=255||s.t>6.9],['',s=>s.t>=5.0||s.t>=6.9],['R',600]],
  'Tower Clock': [['R',s=>s.p.x>=111],['W',s=>s.t>=5.0],['R',900]],
  'Crescent': [['R',s=>s.p.x>=75],['W',s=>s.t>=1.7],['R',900]],
  'Hawk Hours': [...Array.from({length:5},()=>[['R',s=>hawkNear(s)],['RJ',30]]).flat(),['R',900]],
