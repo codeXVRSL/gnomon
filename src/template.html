@@ -709,7 +709,7 @@ function editor(fromLink) {
     ${save.edTip ? '' : '<p class="sub" style="color:var(--brass);margin-top:-4px">Tip: pick a tile below, then paint. Place S (you) and G (your dial) in the top half, add a violet plate below and a gate above, then press Play.</p>'}
     <div class="row" style="justify-content:space-between"><button class="btn" id="edZoom">${edZoom < 0 ? 'Zoom in' : 'Whole map'}</button>${edZoom < 0 ? '' : `<button class="btn" id="edSide">${edZoom === 0 ? 'Right half ▶' : '◀ Left half'}</button>`}</div>
     <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(${x1 - x0},1fr)">${cells}</div>
-    <div class="ed-pal">${ED_TILES.map(([c, n, col]) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
+    <div class="ed-pal">${ED_TILES.map(([c, n, col], k) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}" title="${n}${k < 10 ? ' (key ' + ((k + 1) % 10) + ')' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
     <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
     <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
@@ -1371,6 +1371,7 @@ window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED 
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && $('edUndo')) { e.preventDefault(); $('edUndo').click(); return; }
+    if ($('edGrid') && /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') { const b = document.querySelectorAll('#card [data-t]')[(+e.key + 9) % 10]; if (b) { e.preventDefault(); b.click(); } return; }
     if (e.key === 'Escape') hideCard();
     else if (e.key.startsWith('Arrow') && document.activeElement && document.activeElement.classList.contains('lv-btn')) { // move around the stage grid
       const all = [...$('card').querySelectorAll('.lv-btn')], i = all.indexOf(document.activeElement), r0 = document.activeElement.getBoundingClientRect();
@@ -1450,7 +1451,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 76, t: 'the stage maker shows where your shadow will start (◆), and Ctrl+Z undoes.' };
+const WHATS_NEW = { v: 77, t: 'stage maker on desktop: number keys pick tiles, Ctrl+Z undoes, ◆ shows where your shadow starts.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
