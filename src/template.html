@@ -572,7 +572,7 @@ function menu() {
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>
-    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h' : ''}</button>
+    <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h · next in ' + (() => { const n = new Date(), m = new Date(n); m.setHours(24, 0, 0, 0); const s = (m - n) / 1000; return Math.floor(s / 3600) + 'h ' + Math.floor(s % 3600 / 60) + 'm'; })() : ''}</button>
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
@@ -1297,7 +1297,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 32, t: 'a d-pad on phones (up, down and diagonals for aiming dashes), a photo button, footsteps, Crescent B and death markers.' };
+const WHATS_NEW = { v: 36, t: 'a phone d-pad with up/down and diagonals, swipe the screen to dash, a dash indicator by the timer, a photo button and footsteps.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
