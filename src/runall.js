@@ -61,5 +61,6 @@ const S = {
 S['The Deep Dial'] = [['RM',s=>s.p.x>=88],['W',s=>(s.s.x>84&&s.s.x<106)||s.t>6],['R',s=>s.p.x>=112],['R',s=>s.p.x>=150],['',25],['F',1],['',40],['RJ',s=>s.p.x>=190],['F',1],['',40],['R',s=>s.p.x>=218],['W',s=>(s.t-Math.floor(s.t))<0.08],['R',s=>s.p.x>=296],['W',s=>s.sleeping],['R',s=>s.s.x>=336],['W',s=>s.day==2||s.won],['R',s=>s.p.x>=380],['W',s=>s.t>=1.05],['R',s=>s.p.x>=444],['RJ',22],['R',900]];
 S['Lantern Walk'] = [['R',s=>s.enemies[0].x<s.p.x+16],['RJ',30],['R',600]];
 S['Late Light'] = S['Last Light'];
+S['Quick Chimes'] = S['Chime Run'];
 module.exports = S;
 if (require.main === module) LV.forEach((lv, i) => { const sc = S[lv.name]; if (!sc) return console.log(i+1, lv.name, 'NO SCRIPT'); const r = run(i, sc); const naive = run(i, [['R', 1200]]); console.log((i+1+'').padStart(2), lv.name.padEnd(16), r.won ? 'WON ' : 'FAIL', 'hrs', r.st.hours.toFixed(1), '| naive', naive.won ? 'wins!' : 'fails', r.won ? '' : r.log.slice(-2).join(' ; ')); });
