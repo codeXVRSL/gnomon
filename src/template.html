@@ -527,7 +527,7 @@ function win() {
       const k = chRun.k, secs = chRun.f / 60; save.chRuns = save.chRuns || {}; const pb = save.chRuns[k], isPB = !pb || secs < pb; if (isPB) save.chRuns[k] = secs; persist(); chRun = null;
       showCard(`${postcard(k)}<h2>${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run</h2><div class="stat"><span><b>${fmt(secs)}</b>TIME</span><span><b>${fmt(isPB ? secs : pb)}</b>${isPB ? 'NEW BEST' : 'BEST'}</span></div>
         <div class="row"><button class="btn" id="chShare">Share time</button><button class="btn" id="chAgain">Run again</button><button class="btn primary" id="chDone">Done</button></div>`);
-      $('chShare').onclick = async () => { const txt = `Gnomon · ${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run ${fmt(secs)}${isPB ? ' (new best)' : ''}\n${location.href.split('#')[0].split('?')[0]}`; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) {} } };
+      $('chShare').onclick = async () => { const txt = `Gnomon · ${['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'][k]} run ${fmt(secs)}${isPB ? ' (new best)' : ''}\n${location.href.split('#')[0].split('?')[0]}`; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) { copyCard('Share', txt); } } };
       $('chAgain').onclick = () => startChRun(k); $('chDone').onclick = hideCard; return;
     } else chRun = null;
   }
@@ -545,7 +545,7 @@ function win() {
       <p class="sub">Made by Save, with Claude.</p>
       <div class="row"><button class="btn" id="endShare">Share journey</button><button class="btn primary" id="endMenu">Level list</button><button class="btn" id="endDaily">Daily Sundial</button></div>`);
     $('endMenu').onclick = menu; $('endDaily').onclick = startDaily;
-    $('endShare').onclick = async () => { const txt = (window.__journey || 'Gnomon') + '\n' + location.href.split('#')[0].split('?')[0]; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) {} } };
+    $('endShare').onclick = async () => { const txt = (window.__journey || 'Gnomon') + '\n' + location.href.split('#')[0].split('?')[0]; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) { copyCard('Share', txt); } } };
     return;
   }
   const CHN = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'], mainPos = ord.filter(k => k !== DEMO && !LEVELS[k].bside).indexOf(li), chapEnd = mainPos >= 0 && mainPos % 5 === 4 && CHN[Math.floor(mainPos / 5)];
@@ -567,7 +567,7 @@ function win() {
   if (LEVELS[li].custom && !edTestInv && !(save.assist && save.assist.inv)) { save.edVerified = edEncode(); persist(); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
   if (LEVELS[li].custom) { $('again').textContent = 'Back to the editor'; $('again').onclick = () => editor(); $('again').classList.add('primary'); const nx = $('next') || $('toMenu'); if (nx) { nx.classList.remove('primary'); nx.textContent = 'Play it again'; nx.onclick = () => { hideCard(); load(li); }; } if (!matchMedia('(pointer: coarse)').matches) $('again').focus({ preventScroll: true }); }
-  if (LEVELS[li].custom && friendStage && !edTestInv) { const secs = runFrames / 60, nx = $('next') || $('toMenu'); if (nx) { nx.textContent = 'Send it back with my time'; nx.classList.add('primary'); $('again').classList.remove('primary'); nx.onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()) + '!v', txt = `I beat your Gnomon stage in ${secs.toFixed(1)}s and ${st.hours.toFixed(1)} hours. Can you beat that?`; try { if (navigator.share) { await navigator.share({ text: txt, url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(txt + '\n' + url); toast('COPIED · SEND IT BACK'); } catch (e) {} }; if (!matchMedia('(pointer: coarse)').matches) nx.focus({ preventScroll: true }); } }
+  if (LEVELS[li].custom && friendStage && !edTestInv) { const secs = runFrames / 60, nx = $('next') || $('toMenu'); if (nx) { nx.textContent = 'Send it back with my time'; nx.classList.add('primary'); $('again').classList.remove('primary'); nx.onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()) + '!v', txt = `I beat your Gnomon stage in ${secs.toFixed(1)}s and ${st.hours.toFixed(1)} hours. Can you beat that?`; try { if (navigator.share) { await navigator.share({ text: txt, url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(txt + '\n' + url); toast('COPIED · SEND IT BACK'); } catch (e) { copyCard('Send it back', txt + '\n' + url); } }; if (!matchMedia('(pointer: coarse)').matches) nx.focus({ preventScroll: true }); } }
 }
 // photo: the frame you won on, scaled up crisp, with a caption strip, shared or downloaded
 async function takePhoto(btn) {
@@ -1481,7 +1481,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 114, t: 'sharing never pops up a blocking dialog now; if copying fails you get the link to copy in a card.' };
+const WHATS_NEW = { v: 115, t: 'every share button now falls back to a copy card if the clipboard is blocked.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
   'Race the solution ghost: the win card says who got there first.',
