@@ -71,6 +71,9 @@ body.calm #game{transition:none}
 .pinbar i b{position:absolute;inset:0;background:var(--violet);transform-origin:left;transform:scaleX(1)}
 .hint{width:100%;font-size:14px;line-height:1.4;color:var(--mute);min-height:2.8em;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .hint.open{display:block;-webkit-line-clamp:unset}
+.hint{position:relative}
+.hint.trunc:not(.open)::after{content:'▾ more';position:absolute;right:0;bottom:0;padding:0 2px 0 14px;background:linear-gradient(90deg,transparent,var(--ink) 12px);color:var(--brass);font-size:12px;line-height:inherit}
+@media (orientation: portrait) and (min-height: 600px){.hint{-webkit-line-clamp:4}}
 .controls{width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:8px;padding-bottom:4px}
 .ctl{background:var(--ink-3);color:var(--parch);border:0;border-radius:8px;font-family:var(--display);cursor:pointer;box-shadow:inset 0 -4px 0 rgba(0,0,0,.35);touch-action:none;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:0}
 .ctl small{font-size:8px;letter-spacing:.06em;color:var(--mute)}
@@ -883,7 +886,7 @@ function load(i) {
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.16 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; save.atName = LEVELS[i].name; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
-  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open');
+  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open'); hintTrunc();
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
   // only show the powers this stage actually needs, so the sun stays the star
   const uses = LEVELS[i].uses || { flip: true, pin: true };
@@ -1988,7 +1991,10 @@ document.querySelectorAll('.ctl').forEach(b => {
   pad.addEventListener('contextmenu', e => e.preventDefault()); }
 $('menuBtn').onclick = menu;
 $('resetBtn').onclick = () => { load(li); beep(240, .06, 'triangle', .04); };
-$('hint').onclick = () => $('hint').classList.toggle('open');
+// a cut-off hint shows '▾ more' so players know a tap reveals the rest
+function hintTrunc() { requestAnimationFrame(() => { const h = $('hint'); h.classList.toggle('trunc', !h.classList.contains('open') && h.scrollHeight > h.clientHeight + 2); }); }
+window.addEventListener('resize', hintTrunc);
+$('hint').onclick = () => { $('hint').classList.toggle('open'); hintTrunc(); };
 $('helpBtn').onclick = () => { $('hint').classList.toggle('open'); };
 $('viewBtn').onclick = toggleView;
 $('rotBtn').onclick = async () => {
@@ -2011,9 +2017,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 129, t: 'switching tabs or locking your phone now hushes the music and lets go of every button; it picks up cleanly when you come back.' };
+const WHATS_NEW = { v: 130, t: 'on tall phones the stage hint shows up to four lines, and a cut-off hint now says ▾ more so you know a tap shows the rest.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
   'Switching tabs or locking your phone hushes the music until you return.',
   'Stage maker: a second gate and plate pair, for stages with two locks.',
   'Opened a gate off screen? A blinking tag on the edge points to it.',
@@ -2022,8 +2029,7 @@ const NEWS = [
   'New B-side: Bright Staff (water shadow + staff).',
   'New B-side: Plant at Dusk (staff + hour mark).',
   'How to play lists every keyboard shortcut.',
-  'Sharing never opens a blocking pop-up; a copy card appears if needed.',
-  'Race the solution ghost: the win card says who got there first.',];
+  'Sharing never opens a blocking pop-up; a copy card appears if needed.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
