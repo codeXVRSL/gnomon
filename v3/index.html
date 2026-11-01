@@ -759,7 +759,7 @@ const S = {};
 for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P], ['pf', SPR_FALL, P], ['pd', SPR_DASH, P], ['pw', SPR_SLIDE, P], ['pj', SPR_JUMP, P], ['sl', sleepMap, P], ['s', SPR, shPal], ['s2', walk2, shPal], ['sj', SPR_JUMP, shPal], ['pin', SPR, pinPal]])
   for (const fx of [0, 1]) for (const fy of [0, 1]) S[k + fx + fy] = sprite(map, pal, !!fx, !!fy);
 
-let rewFx = 0, rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
+let rewStreak = 0, rewLast = 0, rewFx = 0, rewindBuf = [], gateCue = null, li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let decor = [], roots = [], lookX = 0, wipe = 0;
 const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
@@ -892,7 +892,8 @@ function rewind() {
   if (!st || st.won || !$('overlay').hidden || rewindBuf.length < 2) { beep(160, .05, 'sine', .02); return; }
   rewindBuf.splice(-Math.min(6, rewindBuf.length - 1)); const snap = rewindBuf[rewindBuf.length - 1];
   st = cloneSt(snap.st); rec.length = snap.n; parts = []; trail = []; gateCue = null;
-  beep(990, .06, 'sine', .025, .7); toast('⟲ ONE SECOND BACK'); say('One second back.'); rewFx = calm() ? 0 : 16;
+  save.rewound = (save.rewound || 0) + 1; persist(); rewStreak = performance.now() - rewLast < 1500 ? rewStreak + 1 : 1; rewLast = performance.now();
+  beep(990, .06, 'sine', .025, .7); toast(rewStreak > 1 ? `⟲ ${rewStreak} SECONDS BACK` : '⟲ ONE SECOND BACK'); say('One second back.'); rewFx = calm() ? 0 : 16;
 }
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1700); }
 
@@ -1347,7 +1348,7 @@ function stats() {
       return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL${ord.every(i => save.best[i]) ? `<button class="btn" data-ch="6" style="display:block;padding:3px 6px;font-size:10px;margin-top:4px" title="Play all ${ord.length} dials back to back on one clock">▶ FULL RUN${save.chRuns && save.chRuns[6] ? ' ' + fmt(save.chRuns[6]) : ''}</button>` : ''}</span></div>`; })()}
     ${(() => { const c = Object.entries(save.causes || {}).sort((a, b) => b[1] - a[1]); if (!c.length) return ''; const tot = c.reduce((a, x) => a + x[1], 0); return `<p class="sub" style="margin-bottom:2px">All-time falls: ${tot}</p><div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">${c.slice(0, 6).map(([k, n]) => `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="width:46%;color:var(--mute)">${DEATH[k] || k}</span><span style="flex:1;height:6px;background:var(--ink-3);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${(n / c[0][1] * 100).toFixed(0)}%;background:var(--brass)"></i></span><b style="width:34px;text-align:right">${n}</b></div>`).join('')}</div>`; })()}
     ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const got = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); if (BSIDES.every(j => save.best[j])) got.push(6); return `<p class="sub" style="margin-bottom:4px">Postcards: ${got.length}/7</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${[0, 1, 2, 3, 4, 5, 6].map(k => got.includes(k) ? `<div style="margin-bottom:-10px">${postcard(k)}</div>` : `<div style="aspect-ratio:240/96;border:1px dashed var(--ink-3);border-radius:6px;display:grid;place-items:center;font-size:10px;color:var(--mute)">${['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT', 'FAR SIDE'][k]}</div>`).join('')}</div>`; })()}
-    <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
+    <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).${save.rewound ? ` Seconds rewound: ${save.rewound}.` : ''}</p>
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
   $('stDone').onclick = menu;
@@ -2102,9 +2103,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 161, t: 'saved and shared photos now keep your Screen look, so a Handheld green run looks green in the picture too.' };
+const WHATS_NEW = { v: 162, t: 'stepping back several times in a row now counts up (⟲ 3 SECONDS BACK), and Stats shows how many seconds you have rewound in total.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Rewinds count up, and Stats totals the seconds rewound.',
   'Photos keep your Screen look.',
   'New B-side: Backward Noon (B-side of Backward Sun).',
   'Screen looks: Warm film, Handheld green, High contrast, Cool night.',
@@ -2113,8 +2115,7 @@ const NEWS = [
   'Full run: all 31 dials on one clock.',
   'Beaten dials show your record when you open them.',
   'A one-time tip points new players to ⟲ BACK.',
-  'Controller View/Back or left trigger steps back in time.',
-  '⟲ BACK steps time back one second.',];
+  'Controller View/Back or left trigger steps back in time.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
