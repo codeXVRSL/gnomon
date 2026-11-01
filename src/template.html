@@ -452,7 +452,10 @@ function tick() {
   if (ghost && !ghost.st.won && ghost.i < ghost.data.length) update(ghost.L, ghost.st, unpackInp(ghost.data[ghost.i++]));
   if (sw) { inp.dash = true; inp.l = sw.l; inp.r = sw.r; inp.up = sw.u; inp.down = sw.d; }
   rec.push(packInp(inp));
+  const q0 = Math.floor(st.t * 4);
   update(L, st, inp);
+  // while you hold the hourglass, a soft tick every quarter hour: pitch climbs toward noon and sinks toward dusk
+  if (inp.wait && !st.sleeping && Math.floor(st.t * 4) !== q0 && Math.floor(st.t * 4) % 4) { const d = 1 - Math.min(1, Math.abs(st.t - 3.5) / 3.5); beep(520 + d * 360, .035, 'sine', .018); }
   jumpEdge = flipEdge = dashEdge = false;
   if (!st.won) runFrames++;
   if (!st.sleeping && st.p.ground && Math.abs(st.p.vx) > 0.6) { stepAcc += Math.abs(st.p.x - prevP.x); if (stepAcc > 13) { stepAcc = 0; const under = tileAt(L, Math.floor((st.p.x + 4) / TS), Math.floor((st.p.y + PH + 1) / TS)); beep(under === '~' ? 900 : under === '#' ? 190 + Math.random() * 30 : 260 + Math.random() * 40, .025, 'triangle', .012, .8); } } else stepAcc = 0;
@@ -1396,7 +1399,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 61, t: 'you also get a red spike warning when falling or dashing fast.' };
+const WHATS_NEW = { v: 62, t: 'the hourglass now ticks softly each quarter hour, higher toward noon.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
