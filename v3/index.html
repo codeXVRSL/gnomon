@@ -114,7 +114,7 @@ body.calm #game{transition:none}
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.lv-btn{box-shadow:inset 0 -2px 0 var(--cc,transparent)}.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
+.lv-btn{box-shadow:inset 0 -2px 0 var(--cc,transparent)}.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chp{order:1;font-size:10px;letter-spacing:.06em;opacity:.75}.chp.all{opacity:1;color:var(--brass)}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
 .lv-btn[disabled]{opacity:.35;cursor:default}
@@ -1148,10 +1148,12 @@ $('card').addEventListener('scroll', moreFade, { passive: true }); window.addEve
 function showCard(html) { $('card').innerHTML = html; $('card').scrollTop = 0; requestAnimationFrame(moreFade); $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.lv-btn.cur:not([disabled])') || $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i] || (save.skipped && save.skipped[LEVELS[ord[p - 1]].name]); };
+// how much of a chapter you have beaten, shown at the end of its heading line
+const chProg = ids => { const d = ids.filter(j => save.best[j]).length; return d ? `<span class="chp${d === ids.length ? ' all' : ''}">${d === ids.length ? '✓ ' : ''}${d}/${ids.length}</span>` : ''; };
 function menu() {
   const ord = order(); let n = 0;
   const CHC = window.CHC, CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
-  const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
+  const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}${chProg(ord.filter(j => !LEVELS[j].demo && !LEVELS[j].bside).slice(k, k + 5))}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = `<div class="chap">B-SIDES${chProg(ord.filter(j => LEVELS[j].bside))}</div>`; } if (lv.demo) head = '<div class="chap">DEMO</div>';
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" style="--cc:${!lv.demo && !lv.bside ? CHC[Math.min(5, Math.floor((k - 1) / 5))] : 'transparent'}" data-i="${i}" title="${lv.name}${lv.bside ? ' (B-side of ' + lv.bside + ')' : ''}${save.best[i] ? ` · best ${save.best[i].hours.toFixed(1)}h` + ((save.times || {})[i] ? ` · ${save.times[i].toFixed(1)}s` : '') : unlocked(i) ? '' : ' · locked'}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : (save.skipped && save.skipped[lv.name]) ? '<span title="Skipped, come back later" style="color:var(--brass)">↷</span>' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>${chRun ? `<p class="sub" style="color:var(--brass);margin:0 0 6px">Chapter run in progress (stage ${chRun.i + 1}/5). Picking another stage ends it. <button class="btn" id="chQuit" style="padding:3px 8px;font-size:11px">End run</button></p>` : ''}
@@ -2017,9 +2019,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 130, t: 'on tall phones the stage hint shows up to four lines, and a cut-off hint now says ▾ more so you know a tap shows the rest.' };
+const WHATS_NEW = { v: 131, t: 'each chapter heading on the stage list now shows how many of its dials you have beaten (✓ when it is all done).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Chapter headings show how many dials you have beaten.',
   'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
   'Switching tabs or locking your phone hushes the music until you return.',
   'Stage maker: a second gate and plate pair, for stages with two locks.',
@@ -2028,8 +2031,7 @@ const NEWS = [
   'Gates and plates show matching dots so you can tell which plate opens which gate.',
   'New B-side: Bright Staff (water shadow + staff).',
   'New B-side: Plant at Dusk (staff + hour mark).',
-  'How to play lists every keyboard shortcut.',
-  'Sharing never opens a blocking pop-up; a copy card appears if needed.',];
+  'How to play lists every keyboard shortcut.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
