@@ -5,7 +5,7 @@ const fails = out.split('\n').filter(l => /FAIL|NO SCRIPT/.test(l)), naive = out
 console.log('runall:', out.split('\n').filter(l => / WON /.test(l)).length, 'won', fails.length ? 'FAILS: ' + fails.join(' | ') : '', naive.length ? 'NAIVE WINS: ' + naive.join(' | ') : '');
 console.log(execSync('RUNS=4 node fuzz.js', { cwd: __dirname }).toString().trim().split('\n').pop());
 (async () => {
-  const { chromium } = require('playwright'); const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 900, height: 700 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  const { chromium } = require('playwright'); const b = await chromium.launch(); const ctx = await b.newContext({ permissions: ['clipboard-read', 'clipboard-write'] }); const p = await ctx.newPage({ viewport: { width: 900, height: 700 } }); await p.addInitScript(() => { try { delete navigator.share; } catch (e) {} }); const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + require('path').resolve(__dirname, '../out/gnomon.html') + '?test'); await p.waitForTimeout(600);
   const step = async (n, f) => { try { await f(); console.log('ok  ', n); } catch (e) { console.log('FAIL', n, e.message.split('\n')[0]); errs.push(n); } };
   const menu = () => p.evaluate(() => { window.__gnomon.hideCard(); [...document.querySelectorAll('button')].find(x => /levels/i.test(x.textContent)).click(); });
@@ -26,7 +26,18 @@ console.log(execSync('RUNS=4 node fuzz.js', { cwd: __dirname }).toString().trim(
   await step('win: replay', async () => { await winOn(2); await clickText(/^replay$/); await p.waitForTimeout(250); if (!/03 · High Noon/.test(await lvl())) throw new Error('got ' + await lvl()); });
   await step('win: play B-side now', async () => { await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('gnomon-v5') || '{}'); }); await winOn(1); const has = await p.$('#bsideGo'); if (has) { await p.click('#bsideGo'); await p.waitForTimeout(250); if (!/Tower Clock B/.test(await p.evaluate(() => document.body.innerText))) throw new Error('B-side not loaded'); } });
   await step('epilogue: level list', async () => { const e = await p.evaluate(() => { for (let i = 0; i < 60; i++) { window.__gnomon.load(i); if (/Epilogue/.test(document.body.innerText)) return i; } return -1; }); await winOn(e); await clickText(/level list/); await p.waitForTimeout(200); if (!(await p.$('.lv-btn'))) throw new Error('menu not shown'); });
-  await step('save code round trip', async () => { const code = await p.evaluate(() => { const b = btoa(unescape(encodeURIComponent(localStorage.getItem('gnomon-v5') || '{}'))); return b; }); if (!code.length) throw new Error('empty'); });
+  await step('save code round trip', async () => {
+    await p.evaluate(() => { window.__gnomon.hideCard(); window.__S && 0; }); await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('gnomon-v5') || '{}'); s.best = s.best || {}; localStorage.setItem('gnomon-v5', JSON.stringify(s)); });
+    await p.reload(); await p.waitForTimeout(600); await p.evaluate(() => { if (!document.getElementById('tAbout')) window.__gnomon.hideCard(); });
+    if (!(await p.$('#tAbout'))) { await p.evaluate(() => { localStorage.setItem('gnomon-v5', JSON.stringify(Object.assign(JSON.parse(localStorage.getItem('gnomon-v5') || '{}'), { seen: true }))); }); await p.reload(); await p.waitForTimeout(600); }
+    const before = await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gnomon-v5')).best).length);
+    await p.click('#tAbout'); await p.waitForTimeout(150); await p.click('#abExp'); await p.waitForTimeout(200); const code = await p.evaluate(() => navigator.clipboard.readText()); if (!code.startsWith('GN2.')) throw new Error('bad code ' + code.slice(0, 8));
+    await p.evaluate(() => localStorage.setItem('gnomon-v5', JSON.stringify({ best: {}, shards: {}, seen: true, byName: true }))); await p.reload(); await p.waitForTimeout(600);
+    await p.click('#tAbout'); await p.waitForTimeout(150); await p.click('#abImp'); await p.waitForTimeout(150); await p.fill('#cdIn', code.slice(0, -5)); await p.click('#cdGo'); await p.waitForTimeout(150);
+    if (!/INCOMPLETE/.test(await p.evaluate(() => document.getElementById('toast').textContent))) throw new Error('truncation not caught');
+    await p.fill('#cdIn', code); await p.click('#cdGo'); await p.waitForTimeout(900);
+    const after = await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gnomon-v5')).best).length); if (after !== before || after === 0) throw new Error(`restored ${after}, expected ${before}`);
+  });
   await step('daily card buttons', async () => { await p.evaluate(() => { window.__gnomon.hideCard(); window.__gnomon.startDaily(); }); await p.waitForTimeout(300); await p.evaluate(() => window.__gnomon.win()); await p.waitForTimeout(250); await p.click('#againD'); await p.waitForTimeout(200); if (!(await p.evaluate(() => document.getElementById('overlay').hidden))) throw new Error('retry did not start'); await p.evaluate(() => window.__gnomon.win()); await p.waitForTimeout(250); await p.click('#toMenuD'); await p.waitForTimeout(200); if (!(await p.$('.lv-btn'))) throw new Error('menu not shown'); });
   await step('grid tooltips', async () => { await menu(); const t = await p.evaluate(() => document.querySelector('.lv-btn').title); if (!/best/.test(t)) throw new Error('tooltip ' + t); });
   await step('play 120 frames', async () => { await p.evaluate(() => { window.__gnomon.hideCard(); window.__gnomon.load(3); window.__gnomon.keys.r = 1; }); await p.waitForTimeout(2000); });
