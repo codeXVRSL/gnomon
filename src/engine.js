@@ -219,7 +219,7 @@ function update(L, st, inp) {
   for (const k in st.crumble) { const c = st.crumble[k]; if (c.shake > 0) { c.shake--; if (c.shake === 0) { c.gone = CRUMBLE_GONE; st.events.push('crumble'); } } else if (c.gone > 0) { c.gone--; if (c.gone === 0) delete st.crumble[k]; } }
   const standOn = (world, b, w, h, gdir) => forTiles(b.x, b.y + (gdir > 0 ? h : -1), w, 1, (tx, ty) => { if (tileAt(L, tx, ty) === 'c' && (world === 'top' ? ty < HALF : ty >= HALF) && !crumbleGone(st, tx, ty)) { const k = tx + ',' + ty; if (!st.crumble[k]) st.crumble[k] = { shake: CRUMBLE_SHAKE, gone: 0 }; } });
   if (p.ground && !st.sleeping) standOn('top', p, PW, PH, pgn);
-  if (s.ground && !st.pinned) standOn('bot', s, SW, s.h, sgn);
+  if (s.ground && !st.pinned && st.hours > 0) standOn('bot', s, SW, s.h, sgn); // cracked stones wait until the clock has started
 
   const landP = p.land, landS = s.land;
   // ---- Sun Dash ----

@@ -436,7 +436,7 @@ function update(L, st, inp) {
   for (const k in st.crumble) { const c = st.crumble[k]; if (c.shake > 0) { c.shake--; if (c.shake === 0) { c.gone = CRUMBLE_GONE; st.events.push('crumble'); } } else if (c.gone > 0) { c.gone--; if (c.gone === 0) delete st.crumble[k]; } }
   const standOn = (world, b, w, h, gdir) => forTiles(b.x, b.y + (gdir > 0 ? h : -1), w, 1, (tx, ty) => { if (tileAt(L, tx, ty) === 'c' && (world === 'top' ? ty < HALF : ty >= HALF) && !crumbleGone(st, tx, ty)) { const k = tx + ',' + ty; if (!st.crumble[k]) st.crumble[k] = { shake: CRUMBLE_SHAKE, gone: 0 }; } });
   if (p.ground && !st.sleeping) standOn('top', p, PW, PH, pgn);
-  if (s.ground && !st.pinned) standOn('bot', s, SW, s.h, sgn);
+  if (s.ground && !st.pinned && st.hours > 0) standOn('bot', s, SW, s.h, sgn); // cracked stones wait until the clock has started
 
   const landP = p.land, landS = s.land;
   // ---- Sun Dash ----
@@ -1207,7 +1207,7 @@ function render(now) {
     const showSh = !night && t < DUSK && !isGone(t) && !eclipsed(t), dxs = showSh ? castDx(t) : 0;
     for (const d of decor) {
       const base = HZ - TS, x = d.x;
-      if (showSh) { g.fillStyle = 'rgba(8,4,20,.24)'; if (d.kind === 'tree') { g.fillRect(Math.round(x + dxs) + 2, HZ + TS, 2, Math.round(d.h * .45)); g.beginPath(); g.arc(Math.round(x + dxs) + 3, HZ + TS + d.h * .6, d.h * .33, 0, 6.29); g.fill(); } else { g.fillRect(Math.round(x + dxs) + 1, HZ + TS, 2, d.h); g.fillRect(Math.round(x + dxs) - 1, HZ + TS + d.h - 2, 6, 2); } }
+      if (showSh) { const sx = Math.round(x + dxs), len = Math.round(d.h * (0.5 + Math.abs(dxs) / 90)); g.fillStyle = 'rgba(10,6,24,.16)'; g.fillRect(sx + 1, HZ + TS, 3, len); if (d.kind === 'tree') g.fillRect(sx - 1, HZ + TS + len - Math.round(d.h * .3), 7, Math.round(d.h * .3)); }
       if (d.kind === 'tree') { g.fillStyle = '#5a4030'; g.fillRect(x + 2, base - d.h * .45, 2, d.h * .45); g.fillStyle = '#3f6a48'; g.beginPath(); g.arc(x + 3, base - d.h * .62, d.h * .33, 0, 6.29); g.fill(); g.fillStyle = '#5c8f5e'; g.fillRect(x, base - d.h * .8, 3, 2); }
       else { g.fillStyle = '#6b5a48'; g.fillRect(x + 1, base - d.h, 2, d.h); g.fillStyle = '#c9a86a'; g.fillRect(x - 1, base - d.h, 6, 2); }
     }
