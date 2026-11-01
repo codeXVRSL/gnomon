@@ -777,7 +777,7 @@ function assist() {
     <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Effects volume</span><input type="range" id="aVs" min="0" max="1" step="0.1" value="${VOL().sfx}" style="flex:1"></label>
     <label class="toggle" style="gap:8px"><span style="width:110px">Music volume</span><input type="range" id="aVm" min="0" max="1" step="0.1" value="${VOL().mus}" style="flex:1"></label>
-    <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn primary" id="aDone">Done</button></div>`);
+    <div class="row"><button class="btn" id="aKeys">Keyboard keys</button><button class="btn" id="aReset">Reset to defaults</button><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
   $('aBig').onchange = e => { a.bigText = e.target.checked; persist(); document.body.classList.toggle('bigtext', a.bigText); hintTrunc(); };
@@ -794,6 +794,7 @@ function assist() {
   $('aBuzz').onchange = e => { a.noBuzz = !e.target.checked; persist(); if (!a.noBuzz) buzz(30, .6); };
   $('aLefty').onchange = e => { a.lefty = e.target.checked; document.body.classList.toggle('lefty', a.lefty); persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
+  $('aReset').onclick = () => { save.assist = { speed: 1, dash: false, inv: false }; persist(); L.invincible = false; document.body.classList.remove('lefty', 'bigtext'); applyLook(); resize(); toast('ASSIST RESET'); assist(); };
   $('aDone').onclick = menu; $('aKeys').onclick = keysCard;
 }
 // ---------- stage maker: paint a 20 x 14 map, set the hour, play it, share it as a link ----------
@@ -1643,9 +1644,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 182, t: 'a new B-side, Quick Chimes: the Chime Run road with faster bells and no flags.' };
+const WHATS_NEW = { v: 183, t: 'Assist mode has a Reset to defaults button that puts every option back the way the game starts (your volumes stay as they are).' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Assist: Reset to defaults.',
   'New B-side: Quick Chimes (B-side of Chime Run).',
   'New B-side: Late Light (B-side of Last Light).',
   'A one-time reminder to back up your save code.',
@@ -1654,8 +1656,7 @@ const NEWS = [
   'Bushes and pebbles on the grass.',
   'All 31 sun medals earns a gold sun on the title.',
   'The gnome blinks when idle.',
-  'Next unbeaten: one tap to the next dial left to beat.',
-  'Crickets at night, birdsong at dawn.',];
+  'Next unbeaten: one tap to the next dial left to beat.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
