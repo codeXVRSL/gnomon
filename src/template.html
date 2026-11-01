@@ -1454,15 +1454,21 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 82, t: 'an About card on the title screen.' };
+const WHATS_NEW = { v: 83, t: 'you can reset your progress from the About card (settings are kept).' };
 function about() {
   showCard(`<h2>About</h2>
     <p>Gnomon is a puzzle-platformer about a shadow that tells the time. The sun only moves when you do.</p>
     <p class="sub">Version ${WHATS_NEW.v}. ${LEVELS.filter(l => !l.custom).length} stages, a daily puzzle, and a stage maker.</p>
     <p class="sub">Made by Save, with Claude. Pixel fonts: Silkscreen and Pixelify Sans (Google Fonts). Everything else (art, music, sound) is drawn and played in code.</p>
     <p class="sub">Source: <a href="https://github.com/codeXVRSL/gnomon" target="_blank" rel="noopener" style="color:var(--brass)">github.com/codeXVRSL/gnomon</a></p>
-    <div class="row"><button class="btn primary" id="abBack">Back</button></div>`);
+    <div class="row"><button class="btn" id="abReset">Reset progress…</button><button class="btn primary" id="abBack">Back</button></div>`);
   $('abBack').onclick = title;
+  $('abReset').onclick = () => {
+    showCard(`<h2>Reset progress?</h2><p>This erases every beaten dial, medal, time, shard, ghost, postcard, chapter run and your Daily streak. Your settings (assist, keys, sound) stay. This cannot be undone.</p>
+      <div class="row"><button class="btn primary" id="rsNo">Keep my progress</button><button class="btn" id="rsYes" style="border-color:#e0607a;color:#ff9aa8">Erase it all</button></div>`);
+    $('rsNo').onclick = about;
+    $('rsYes').onclick = () => { const keep = {}; for (const k of ['assist', 'keymap', 'music', 'sfx', 'vol', 'seen', 'seenVer', 'byName', 'taught', 'edTipSeen', 'edTip']) if (save[k] !== undefined) keep[k] = save[k]; try { localStorage.setItem('gnomon-v5', JSON.stringify(Object.assign({ best: {}, shards: {} }, keep))); } catch (e) {} location.reload(); };
+  };
 }
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
