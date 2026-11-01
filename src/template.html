@@ -500,8 +500,9 @@ function skipOffer() {
   if (!$('overlay').hidden) return;
   const ord = order().filter(k => k !== DEMO), p = ord.indexOf(li), nx = ord[p + 1];
   showCard(`<h2>Stuck on this one?</h2><p class="sub">You can open the next dial and come back later. This stage stays unbeaten, with no medal. The hint is below the game.</p>
-    <div class="row"><button class="btn primary" id="skKeep">Keep trying</button>${nx != null && !LEVELS[li].bside ? '<button class="btn" id="skGo">Open the next dial</button>' : ''}</div>`);
+    <div class="row"><button class="btn primary" id="skKeep">Keep trying</button>${LEVELS[li].solution ? '<button class="btn" id="skShow">Show me (ghost)</button>' : ''}${nx != null && !LEVELS[li].bside ? '<button class="btn" id="skGo">Open the next dial</button>' : ''}</div>`);
   $('skKeep').onclick = () => { hideCard(); $('hint').classList.add('open'); };
+  if ($('skShow')) $('skShow').onclick = () => { hideCard(); load(li); startGhost(li, LEVELS[li].solution, 'SOLUTION'); toast('FOLLOW THE GHOST · IT SHOWS ONE WAY THROUGH'); };
   if ($('skGo')) $('skGo').onclick = () => { save.skipped = save.skipped || {}; save.skipped[LEVELS[li].name] = 1; persist(); hideCard(); load(nx); };
 }
 function startChRun(k) { const ord = order().filter(i => i !== DEMO && !LEVELS[i].bside), ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return; chRun = { k, ids, i: 0, f: 0 }; hideCard(); load(ids[0]); toast('CHAPTER RUN · ' + ['DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'][k] + ' · 5 STAGES, ONE CLOCK'); }
@@ -1472,9 +1473,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 105, t: 'every B-side now has a step-by-step hint after six falls.' };
+const WHATS_NEW = { v: 106, t: 'still stuck after ten falls on a hard stage? Watch a ghost show one way through.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Stuck on a hard stage? After ten falls a ghost can show you one way through.',
   'Every B-side now has a step-by-step hint after six falls.',
   'The five toughest stages offer a step-by-step hint after six falls.',
   'Heat shimmer on the horizon at noon; trees sway as a cloud passes.',
@@ -1483,8 +1485,7 @@ const NEWS = [
   'Beat a friend\'s stage and send it back with your time; verified stages.',
   'Save codes to move progress between devices; reset progress (keeps settings).',
   'Stage maker: undo, safe test run, shadow-start preview, number keys.',
-  'Stuck after 10 falls? Open the next dial and come back later.',
-  'Chapter runs: a whole chapter on one clock, with a best time.',];
+  'Stuck after 10 falls? Open the next dial and come back later.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
