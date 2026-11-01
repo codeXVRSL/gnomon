@@ -538,12 +538,13 @@ function win() {
       <h2>Home at last</h2>
       <p>You and your shadow are back on the dial, together. The sun can rest.</p>
       <div class="stat"><span><b>${won}</b>DIALS</span><span><b>${hrs.toFixed(1)}h</b>THIS RUN</span><span><b>${st.deaths}</b>FALLS</span></div>
-      ${(() => { const main = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].custom), tm = save.times || {}, tt = main.reduce((a, i) => a + (tm[i] || 0), 0), sh = main.reduce((a, i) => a + (save.shards[i] || 0), 0), shT = main.reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0), falls = Object.values(save.causes || {}).reduce((a, b) => a + b, 0), ord = order().filter(k => k !== DEMO && !LEVELS[k].bside), pc = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }).length, fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
-        return `<p class="sub" style="margin:8px 0 2px">Your whole journey:</p><div class="stat" style="flex-wrap:wrap"><span><b>${fmt(tt)}</b>BEST TIMES</span><span><b>${falls}</b>ALL FALLS</span><span><b>${sh}/${shT}</b>SHARDS</span><span><b>${pc}/6</b>POSTCARDS</span></div>`; })()}
+      ${(() => { const main = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].custom && !LEVELS[i].demo), tm = save.times || {}, tt = main.reduce((a, i) => a + (tm[i] || 0), 0), sh = main.reduce((a, i) => a + (save.shards[i] || 0), 0), shT = main.reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0), falls = Object.values(save.causes || {}).reduce((a, b) => a + b, 0), ord = order().filter(k => k !== DEMO && !LEVELS[k].bside), pc = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }).length, fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
+        window.__journey = `Gnomon · home at last\n${won} dials · ${fmt(tt)} best times · ${falls} falls · ${sh}/${shT} shards · ${pc}/6 postcards`; return `<p class="sub" style="margin:8px 0 2px">Your whole journey:</p><div class="stat" style="flex-wrap:wrap"><span><b>${fmt(tt)}</b>BEST TIMES</span><span><b>${falls}</b>ALL FALLS</span><span><b>${sh}/${shT}</b>SHARDS</span><span><b>${pc}/6</b>POSTCARDS</span></div>`; })()}
       <p class="sub">There is more: B-sides in the level list, the Daily Sundial every day, and your own stages in Make a stage.</p>
       <p class="sub">Made by Save, with Claude.</p>
-      <div class="row"><button class="btn primary" id="endMenu">Level list</button><button class="btn" id="endDaily">Daily Sundial</button></div>`);
+      <div class="row"><button class="btn" id="endShare">Share journey</button><button class="btn primary" id="endMenu">Level list</button><button class="btn" id="endDaily">Daily Sundial</button></div>`);
     $('endMenu').onclick = menu; $('endDaily').onclick = startDaily;
+    $('endShare').onclick = async () => { const txt = (window.__journey || 'Gnomon') + '\n' + location.href.split('#')[0].split('?')[0]; try { if (navigator.share) await navigator.share({ text: txt }); else { await navigator.clipboard.writeText(txt); toast('COPIED'); } } catch (e) { try { await navigator.clipboard.writeText(txt); toast('COPIED'); } catch (e2) {} } };
     return;
   }
   const CHN = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night'], mainPos = ord.filter(k => k !== DEMO && !LEVELS[k].bside).indexOf(li), chapEnd = mainPos >= 0 && mainPos % 5 === 4 && CHN[Math.floor(mainPos / 5)];
@@ -693,12 +694,14 @@ function playCustom() {
   dailyMode = false; hideCard(); load(ci);
 }
 function editor(fromLink) {
+  if (save.edTipSeen) { save.edTip = 1; } save.edTipSeen = 1; persist();
   if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
   if (!edMap) edMap = edBlank();
   const x0 = edZoom < 0 ? 0 : edZoom * 10, x1 = edZoom < 0 ? 20 : x0 + 10;
   const cells = edMap.map((r, y) => r.map((c, x) => x < x0 || x >= x1 ? '' : `<i data-x="${x}" data-y="${y}" style="background:${y >= HALF && c === '.' ? '#241c40' : edColor(c)}">${c === '.' || c === '#' ? '' : c}</i>`).join('')).join('');
   showCard(`<h2>Stage maker</h2>
     <p class="sub">Top half is the world of light, bottom half is your shadow's world. Tap or drag to paint.</p>
+    ${save.edTip ? '' : '<p class="sub" style="color:var(--brass);margin-top:-4px">Tip: pick a tile below, then paint. Place S (you) and G (your dial) in the top half, add a violet plate below and a gate above, then press Play.</p>'}
     <div class="row" style="justify-content:space-between"><button class="btn" id="edZoom">${edZoom < 0 ? 'Zoom in' : 'Whole map'}</button>${edZoom < 0 ? '' : `<button class="btn" id="edSide">${edZoom === 0 ? 'Right half ▶' : '◀ Left half'}</button>`}</div>
     <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(${x1 - x0},1fr)">${cells}</div>
     <div class="ed-pal">${ED_TILES.map(([c, n, col]) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
@@ -1439,7 +1442,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 72, t: 'a journey summary when you finish the game, and a nod when you beat a stage you skipped.' };
+const WHATS_NEW = { v: 73, t: 'share your whole journey from the ending card, and a first-time tip in the stage maker.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
