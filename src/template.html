@@ -863,6 +863,10 @@ function render(now) {
       g.fillStyle = 'rgba(80,86,110,.6)'; g.fillRect(cx - cw / 2 + 2, sy + 3, cw - 4, 1);
     }
   }
+  if (night && t > 7.2) { const fade = Math.min(1, (t - 7.2) / 0.6), span = W + 60; for (let i = 0; i < 34; i++) { // a quiet starfield once the sky has gone dark
+    const sx = (((hash(i, 11) * span - camX * 0.08) % span) + span) % span - 30, sy = hash(i, 13) * (HZ * 0.62) + 3, tw = (0.35 + 0.55 * Math.abs(Math.sin(now / 1100 + i * 1.7))) * fade;
+    g.fillStyle = `rgba(232,224,255,${tw.toFixed(2)})`; g.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+  } }
   drawBackdrop(now, t, night, top, low);
   if (!night && eclipsed(t)) { g.fillStyle = 'rgba(20,14,48,.55)'; g.fillRect(0, 0, W, HZ); for (let i = 0; i < 14; i++) { const x = hash(i, 7) * W | 0, y = hash(i, 5) * 50 | 0; g.fillStyle = '#e8e0ff'; g.fillRect(x, y, 1, 1); } }
   if (!night && overcast(t)) { g.fillStyle = 'rgba(70,80,110,.22)'; g.fillRect(0, 0, W, HZ); }
@@ -1455,7 +1459,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 91, t: 'the title sundial now follows the colour of the real sky, with stars at night.' };
+const WHATS_NEW = { v: 92, t: 'stars come out over the night stages, and the title sundial follows the real sky.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
