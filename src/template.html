@@ -1455,7 +1455,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 89, t: 'hover a stage in the Dials list to see your best hours and time.' };
+const WHATS_NEW = { v: 91, t: 'the title sundial now follows the colour of the real sky, with stars at night.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 function about() {
   showCard(`<h2>About</h2>
@@ -1491,15 +1491,17 @@ function title() {
     <p class="sub" style="text-align:center;margin:6px 0 0"><button class="mini" id="tAbout" style="background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit">About Gnomon · v${WHATS_NEW.v}</button></p>`);
   const c = $('tDial'), x = c.getContext('2d'); let on = true;
   const draw = () => { if (!on || $('overlay').hidden) return; const now = new Date(), hr = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-    x.fillStyle = '#1c1636'; x.fillRect(0, 0, 200, 96);
     const day = hr >= 6 && hr < 18, k = day ? (hr - 6) / 12 : 0.5, cx = 100, cy = 70;
+    // the sky takes the colour of the hour: pink dawn, blue-violet day, orange dusk, deep night
+    { const g2 = x.createLinearGradient(0, 0, 0, 96), top = !day ? '#120e26' : k < 0.15 ? '#3a2850' : k > 0.85 ? '#3c2440' : '#20244a', bot = !day ? '#1c1636' : k < 0.15 ? '#7a4a62' : k > 0.85 ? '#8a4a3a' : '#2e3466'; g2.addColorStop(0, top); g2.addColorStop(1, bot); x.fillStyle = g2; x.fillRect(0, 0, 200, 96); }
+    if (!day) for (let i = 0; i < 18; i++) { const sx2 = (i * 53) % 197, sy2 = (i * 29) % 46 + 4, tw = 0.4 + 0.6 * Math.abs(Math.sin(Date.now() / 900 + i)); x.fillStyle = `rgba(232,224,255,${tw.toFixed(2)})`; x.fillRect(sx2, sy2, 1, 1); }
     // sun or moon arcing across the sky at your real time of day
     const sx = 20 + k * 160, sy = 52 - Math.sin(k * Math.PI) * 40; x.fillStyle = day ? '#ffd25e' : '#e8e0ff'; x.beginPath(); x.arc(sx, sy, 5, 0, 6.29); x.fill();
     // dial face
     x.fillStyle = '#3a3046'; x.beginPath(); x.ellipse(cx, cy, 80, 18, 0, 0, 6.29); x.fill(); x.fillStyle = '#5a4b3a'; x.beginPath(); x.ellipse(cx, cy - 2, 78, 16, 0, 0, 6.29); x.fill();
     x.fillStyle = '#c9a86a'; for (let h = 0; h <= 12; h++) { const a = Math.PI + h / 12 * Math.PI; x.fillRect(Math.round(cx + Math.cos(a) * 70), Math.round(cy - 2 + Math.sin(a) * 13), 2, 2); }
     // the shadow of the gnomon: points away from the sun
-    if (day) { const ex = cx + (0.5 - k) * 2 * 66, ey = cy - 2 + (1 - Math.abs(0.5 - k) * 2) * 12; x.strokeStyle = 'rgba(12,7,25,.85)'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx, cy - 2); x.lineTo(ex, ey); x.stroke(); }
+    if (day) { const ex = cx + (0.5 - k) * 2 * 66, ey = cy - 2 + (1 - Math.abs(0.5 - k) * 2) * 12; x.strokeStyle = 'rgba(12,7,25,.85)'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx, cy - 2); x.lineTo(ex, ey); x.stroke(); const pu = 2 + Math.sin(Date.now() / 400); x.fillStyle = 'rgba(199,180,255,.35)'; x.beginPath(); x.arc(ex, ey, 3 + pu, 0, 6.29); x.fill(); x.fillStyle = '#c7b4ff'; x.fillRect(Math.round(ex) - 1, Math.round(ey) - 1, 2, 2); }
     // the gnomon itself
     x.fillStyle = '#f6c85f'; x.beginPath(); x.moveTo(cx - 4, cy - 2); x.lineTo(cx, cy - 34); x.lineTo(cx + 4, cy - 2); x.fill();
     x.fillStyle = '#e8e0ff'; x.font = '8px monospace'; x.fillText(now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), 4, 10);
