@@ -289,7 +289,10 @@ function dailyInfo() {
   const now = new Date(); const day = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 86400000);
   const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo && !LEVELS[i].custom && (LEVELS[i].par || 0) <= 8); // no multi-day epics as a daily
   let h = Math.imul(Math.max(0, day) + 1, 2654435761) >>> 0; h = (h ^ (h >>> 15)) >>> 0;
-  return { n: day + 1, li: pool[h % pool.length], key: 'd' + (day + 1) };
+  // each stage draws its own ticket for the day (by name), and the best ticket wins: adding new stages
+  // only changes a day's pick when the new stage wins it, instead of reshuffling every day
+  const ticket = name => { let x = h ^ 2166136261; for (let k = 0; k < name.length; k++) { x ^= name.charCodeAt(k); x = Math.imul(x, 16777619); } x ^= x >>> 13; x = Math.imul(x, 1274126177); return (x ^ (x >>> 16)) >>> 0; };
+  return { n: day + 1, li: pool.reduce((b, i) => ticket(LEVELS[i].name) > ticket(LEVELS[b].name) ? i : b, pool[0]), key: 'd' + (day + 1) };
 }
 let dailyMode = false;
 const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
@@ -1545,9 +1548,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 138, t: 'each gate pair has its own note when it opens (one dot lowest, four dots highest) and a soft low note when it closes.' };
+const WHATS_NEW = { v: 139, t: 'the Daily Sundial keeps its schedule steady: new stages no longer reshuffle which dial comes up on future days.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Daily Sundial picks stay put when new stages are added.',
   'Hear which gate moved: each pair has its own note.',
   'Hanging roots and glow tips in the shadow world.',
   'Stage maker: remix any dial you have beaten.',
@@ -1556,8 +1560,7 @@ const NEWS = [
   'Controllers rumble on falls and wins; Assist can turn rumble and vibration off.',
   'New B-side: Two Locks (B-side of Two Worlds).',
   'Chapter headings show how many dials you have beaten.',
-  'Hints show more lines on tall phones; a cut-off hint says ▾ more.',
-  'Switching tabs or locking your phone hushes the music until you return.',];
+  'Hints show more lines on tall phones; a cut-off hint says ▾ more.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
