@@ -690,6 +690,8 @@ function customDef() { const d = { name: 'Your stage', custom: true, startHour: 
 function playCustom() {
   const m = edMap.map(r => r.join('')).join('');
   if ((m.match(/S/g) || []).length !== 1 || (m.match(/G/g) || []).length !== 1) { toast('PUT EXACTLY ONE START AND ONE DIAL'); return; }
+  { const bad = edMap.slice(HALF).some(r => r.includes('S') || r.includes('G')); if (bad) { toast('S AND G GO IN THE TOP HALF (THE WORLD OF LIGHT)'); return; } }
+  { const sy = edMap.findIndex(r => r.includes('S')), sx = edMap[sy].indexOf('S'); let fl = false; for (let y = sy + 1; y < HALF + 1 && !fl; y++) if ('#=_'.includes((edMap[y] || [])[sx])) fl = true; if (!fl) toast('HEADS UP: NOTHING UNDER YOUR START, YOU WILL FALL'); }
   let ci = LEVELS.findIndex(l => l.custom); const d = customDef(); if (ci < 0) { LEVELS.push(d); ci = LEVELS.length - 1; } else LEVELS[ci] = d;
   dailyMode = false; hideCard(); load(ci);
 }
@@ -1442,7 +1444,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 73, t: 'share your whole journey from the ending card, and a first-time tip in the stage maker.' };
+const WHATS_NEW = { v: 74, t: 'the stage maker now catches a start or dial placed in the shadow world, and warns if your start has no floor.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
