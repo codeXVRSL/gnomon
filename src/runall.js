@@ -15,6 +15,7 @@ const S = {
  'Night Walk': [['R',s=>s.p.x>=130||s.t>6.9],['W',s=>s.sleeping],['R',s=>s.s.x>=86],['RJ',30],['R',s=>s.s.x>=150],['RJ',30],['R',s=>s.s.x>=204],['W',s=>s.day==2||s.won],['',30]],
  'Moonlamps': [['W',s=>s.sleeping],['R',s=>s.s.x>=56],['RJ',30],['R',s=>s.s.x>=130],['RJ',30],['R',s=>s.s.x>=228],['W',s=>s.day==2||s.won],['',30]],
  'In the Shade': [['R',s=>s.p.x>=80],['W',s=>s.t>=1.7],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
+ 'Plant at Dusk': [['R',s=>s.p.x>=70],['RP',1],['R',s=>s.atG],['W',1500]],
  'Plant the Hour B': [['R',s=>s.p.x>=84],['RP',1],['R',s=>s.p.x>=146||s.won],['W',s=>[...E_.pressedSet(E_.parse(LV[LV.findIndex(l=>l.name==='Plant the Hour B')]),s)].includes('A')||s.t>6.9],['R',300]],
  'Meet at Dusk B': [['R',s=>s.p.x>=110],['W',s=>s.t>=3.8],['R',s=>s.atG],['W',900]],
  'Passing Cloud B': [['R',s=>s.p.x>=122],['W',s=>!s.s.gone&&s.t>2.2],['R',s=>s.p.x>=254||s.t>6.9],['W',s=>!s.s.gone&&s.t>4.8],['R',600]],
