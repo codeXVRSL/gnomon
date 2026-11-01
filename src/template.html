@@ -366,7 +366,7 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add(
 function load(i) {
   if (!dailyMode) { startOverride = null; realPar = null; }
   if (save.assist && save.assist.waitToggle) { keys.w = 0; const wb = document.querySelector('.ctl.wait'); if (wb) wb.classList.remove('on'); }
-  wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
+  deathCount = {}; wipe = 26; runFrames = 0; trail = []; rec = []; ghost = null; assistUsed = !!(save.assist && (save.assist.dash || save.assist.inv || save.assist.speed < 1));
   decor = [];
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
@@ -392,6 +392,11 @@ function load(i) {
 function burst(x, y, col, n = 14, sp = 1.6) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = .4 + Math.random() * sp; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 26 + Math.random() * 18, col }); } }
 function dust(x, y, dirY) { for (let i = 0; i < 5; i++) parts.push({ x: x + Math.random() * 8, y, vx: (Math.random() - .5) * 1.4, vy: -dirY * (.2 + Math.random() * .5), life: 14 + Math.random() * 8, col: 'rgba(240,230,210,.7)' }); }
 
+// stuck? after the third death of the same kind on a stage, a one-line tip (and the full hint opens)
+let deathCount = {};
+const TIPS = { spikes: 'TIP · JUMP OR DASH OVER SPIKES · CHIME SPIKES ARE SAFE EARLY IN EACH HOUR', 'shadow spikes': 'TIP · WHEN YOU JUMP UP, YOUR SHADOW JUMPS DOWN · WATCH THE WORLD BELOW', 'shadow fell': 'TIP · YOUR SHADOW FALLS IF ITS FLOOR ENDS · STOP IT AGAINST A WALL OR WAIT',
+  fell: 'TIP · DASH (X / RED BUTTON) CROSSES WIDER GAPS', lamplight: 'TIP · LAMPS BURN YOUR SHADOW · JUMP DEEP UNDER THEM OR STAND IN SHADE', 'bird shadow': 'TIP · HOP WHEN THE HAWK\'S SHADOW REACHES YOURS', dusk: 'TIP · EACH DASH BURNS HALF AN HOUR · DASH ONLY WHERE YOU MUST',
+  crushed: 'TIP · STONES APPEAR AND VANISH WITH THE HOUR · WATCH THE CLOCK', 'shadow crushed': 'TIP · MOVING SHADE CAN PIN YOUR SHADOW · KEEP IT CLEAR', 'lantern light': 'TIP · JUMP LATE OVER THE LANTERN SO YOUR SHADOW CLEARS ITS LIGHT', lantern: 'TIP · LANTERNS MOVE ONLY AS HOURS PASS · STAND STILL TO FREEZE THEM' };
 const DEATH = { fell: 'You fell into the dark', spikes: 'Spikes', crushed: 'Crushed', 'shadow fell': 'Your shadow fell into the light', 'shadow spikes': 'Your shadow hit spikes', 'shadow crushed': 'Your shadow was crushed', lamplight: 'Lamplight burned your shadow', lantern: 'A lantern-bearer caught you', 'lantern light': 'Lantern light burned your shadow', 'shadow hound': 'A shade hound caught your shadow', 'bird shadow': 'The hawk\'s shadow caught yours', dusk: 'Night fell before you got home' };
 function handleEvents(prevP, prevS, prevG) {
   for (const ev of st.events) {
@@ -423,7 +428,8 @@ function handleEvents(prevP, prevS, prevG) {
     if (ev === 'resync') { toast('YOUR SHADOW RETURNS'); beep(440, .2, 'sine', .05, 1.5); burst(st.s.x + 4, st.s.y + 6, '#c7b4ff'); }
     if (ev === 'nightfall') { toast('NIGHTFALL · steer your shadow'); beep(392, .35, 'sine', .06, .5); }
     if (ev === 'dawn') { toast('DAWN · you wake by your shadow'); beep(330, .35, 'sine', .06, 2); flash = 1; dawnTimer = 30; burst(st.p.x + 4, st.p.y + 6, '#f6c85f', 20); }
-    if (DEATH[ev]) { wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
+    if (DEATH[ev]) { deathCount[ev] = (deathCount[ev] || 0) + 1; if (deathCount[ev] === 3 && TIPS[ev]) setTimeout(() => { toast(TIPS[ev]); $('hint').classList.add('open'); }, 700);
+      wipe = Math.max(wipe, 16); toast(DEATH[ev].toUpperCase()); beep(140, .25, 'sawtooth', .05, .4); shake = 6; hitStop = 7; flash = .35; try { navigator.vibrate && navigator.vibrate(40); } catch (e) {} const sh = ev.startsWith('shadow') || ev === 'lamplight' || ev === 'lantern light' || ev === 'bird shadow'; burst(sh ? prevS.x + 4 : prevP.x + 4, sh ? prevS.y + 6 : prevP.y + 6, sh ? '#c7b4ff' : '#f6c85f', 24, 2.2); }
     if (ev === 'win') setTimeout(win, 450);
   }
 }
