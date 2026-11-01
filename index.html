@@ -1082,8 +1082,8 @@ function win() {
       <h2>Home at last</h2>
       <p>You and your shadow are back on the dial, together. The sun can rest.</p>
       <div class="stat"><span><b>${won}</b>DIALS</span><span><b>${hrs.toFixed(1)}h</b>THIS RUN</span><span><b>${st.deaths}</b>FALLS</span></div>
-      ${(() => { const main = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].custom && !LEVELS[i].demo), tm = save.times || {}, tt = main.reduce((a, i) => a + (tm[i] || 0), 0), sh = main.reduce((a, i) => a + (save.shards[i] || 0), 0), shT = main.reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0), falls = Object.values(save.causes || {}).reduce((a, b) => a + b, 0), ord = order().filter(k => k !== DEMO && !LEVELS[k].bside), pc = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }).length, fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
-        window.__journey = `Gnomon · home at last\n${won} dials · ${fmt(tt)} best times · ${falls} falls · ${sh}/${shT} shards · ${pc}/6 postcards`; return `<p class="sub" style="margin:8px 0 2px">Your whole journey:</p><div class="stat" style="flex-wrap:wrap"><span><b>${fmt(tt)}</b>BEST TIMES</span><span><b>${falls}</b>ALL FALLS</span><span><b>${sh}/${shT}</b>SHARDS</span><span><b>${pc}/6</b>POSTCARDS</span></div>`; })()}
+      ${(() => { const main = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].custom && !LEVELS[i].demo), tm = save.times || {}, tt = main.reduce((a, i) => a + (tm[i] || 0), 0), sh = main.reduce((a, i) => a + (save.shards[i] || 0), 0), shT = main.reduce((a, i) => a + (LEVELS[i].map.join('').match(/o/g) || []).length, 0), falls = Object.values(save.causes || {}).reduce((a, b) => a + b, 0), ord = order().filter(k => k !== DEMO && !LEVELS[k].bside), pc = [0, 1, 2, 3, 4, 5].filter(k => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }).length + (BSIDES.every(j => save.best[j]) ? 1 : 0), fmt = x => Math.floor(x / 60) + ':' + (x % 60).toFixed(1).padStart(4, '0');
+        window.__journey = `Gnomon · home at last\n${won} dials · ${fmt(tt)} best times · ${falls} falls · ${sh}/${shT} shards · ${pc}/7 postcards`; return `<p class="sub" style="margin:8px 0 2px">Your whole journey:</p><div class="stat" style="flex-wrap:wrap"><span><b>${fmt(tt)}</b>BEST TIMES</span><span><b>${falls}</b>ALL FALLS</span><span><b>${sh}/${shT}</b>SHARDS</span><span><b>${pc}/6</b>POSTCARDS</span></div>`; })()}
       <p class="sub">There is more: B-sides in the level list, the Daily Sundial every day, and your own stages in Make a stage.</p>
       <p class="sub">Made by Save, with Claude.</p>
       <div class="row"><button class="btn" id="endShare">Share journey</button><button class="btn primary" id="endMenu">Level list</button><button class="btn" id="endDaily">Daily Sundial</button></div>`);
@@ -2071,9 +2071,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 148, t: 'beat every B-side to earn a seventh postcard, the Far Side; the postcard gallery now has room for it.' };
+const WHATS_NEW = { v: 149, t: 'the Far Side postcard now also counts in your journey summary and gets its own violet stripe on the title screen.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'Far Side postcard shows on the title screen and journey summary.',
   'Beat every B-side for the Far Side postcard.',
   'New B-side: Two Lanterns (B-side of Lantern Walk).',
   'Thorns and resting stones are easier to see.',
@@ -2082,8 +2083,7 @@ const NEWS = [
   'B-sides show which dial they belong to, and NEW until you try them.',
   'New B-side: Mirror Hours (B-side of Mirror Steps).',
   'Cast-shadow stages run lighter on slow phones.',
-  'Daily Sundial picks stay put when new stages are added.',
-  'Hear which gate moved: each pair has its own note.',];
+  'Daily Sundial picks stay put when new stages are added.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
@@ -2116,7 +2116,7 @@ function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
     <canvas id="tDial" width="200" height="96" style="width:100%;image-rendering:pixelated;border-radius:4px;background:#1c1636"></canvas>
-    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const N = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const got = N.map((_, k) => { const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return got.some(Boolean) ? `<div style="display:flex;gap:4px;margin:6px 0 2px" aria-label="Chapter postcards">${N.map((n, k) => `<span title="${n}${got[k] ? ' postcard' : ''}" style="flex:1;height:6px;border-radius:3px;background:${got[k] ? window.CHC[k] : 'transparent'};border:1px solid ${got[k] ? window.CHC[k] : 'var(--ink-3)'}"></span>`).join('')}</div>` : ''; })()}
+    ${(() => { const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); const N = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night', 'Far side']; const got = N.map((_, k) => { if (k === 6) return BSIDES.every(j => save.best[j]); const ids = ord.slice(k * 5, k * 5 + 5); return ids.length && ids.every(i => save.best[i]); }); return got.some(Boolean) ? `<div style="display:flex;gap:4px;margin:6px 0 2px" aria-label="Chapter postcards">${N.map((n, k) => `<span title="${n}${got[k] ? ' postcard' : ''}" style="flex:1;height:6px;border-radius:3px;background:${got[k] ? (k === 6 ? '#c7b4ff' : window.CHC[k]) : 'transparent'};border:1px solid ${got[k] ? (k === 6 ? '#c7b4ff' : window.CHC[k]) : 'var(--ink-3)'}"></span>`).join('')}</div>` : ''; })()}
     ${save.seenVer !== WHATS_NEW.v && save.seen ? `<p class="sub" style="color:var(--brass)">New: ${WHATS_NEW.t}</p>` : ''}
     <p>Your shadow is the hand of a sundial. It lives upside-down below you, copies every move, and swings with a sun that only moves when you do.</p>
     <div class="row"><button class="btn primary" id="tPlay">${cont ? `Continue<small style="display:block;font-size:10px;opacity:.75;margin-top:2px">${LEVELS[li].name} · ${LEVELS.filter((l, i) => !l.custom && save.best[i]).length}/${LEVELS.filter(l => !l.custom).length} dials</small>` : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
@@ -2160,7 +2160,7 @@ function intro() {
   $('howBtn2').onclick = () => { save.seen = true; persist(); how(); };
   $('dailyIntro').onclick = () => { save.seen = true; persist(); startDaily(); };
 }
-if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { LEVELS, linkSparks, audio: () => ac ? ac.state : 'none', keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
+if (/[?&]test/.test(location.search)) { window.__S = S; window.__gnomon = { LEVELS, title, linkSparks, audio: () => ac ? ac.state : 'none', keys, render: n => render(n), bench: n => { const t0 = performance.now(); for (let k = 0; k < n; k++) { tick(); render(performance.now()); } return (performance.now() - t0) / n; }, get ghost() { return ghost; }, get st() { return st; }, win, startDaily, MUSIC, load, hideCard, step: (inp, n, until) => { for (let k = 0; k < n; k++) { update(L, st, inp); if (until && until(st)) break; } } }; }
 window.claude?.hot?.snapshot?.(() => ({ li, st }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
