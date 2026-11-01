@@ -90,7 +90,7 @@ body.calm #game{transition:none}
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--brass);margin-top:6px;display:flex;align-items:center;gap:8px}.chap::after{content:'';flex:1;height:1px;background:var(--ink-3)}
+.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--cc,var(--brass));margin-top:6px;display:flex;align-items:center;gap:8px}.chap::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cc,var(--ink-3)),transparent)}.chap::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cc,var(--brass));box-shadow:0 0 6px var(--cc,transparent)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
 .lv-btn[disabled]{opacity:.35;cursor:default}
@@ -567,8 +567,8 @@ function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
   const ord = order(); let n = 0;
-  const CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
-  const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
+  const CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0']; const CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
+  const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap" style="--cc:${CHC[k / 5]}">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
     return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>
@@ -1297,7 +1297,7 @@ function start(data) {
   requestAnimationFrame(loop);
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
-const WHATS_NEW = { v: 36, t: 'a phone d-pad with up/down and diagonals, swipe the screen to dash, a dash indicator by the timer, a photo button and footsteps.' };
+const WHATS_NEW = { v: 37, t: 'a new B-side, In the Shade B (the sun moves by itself, so catch the tower shade in time), and chapter colours on the stage list. Before that: a phone d-pad with up/down and diagonals, swipe the screen to dash, a dash indicator by the timer, a photo button and footsteps.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
