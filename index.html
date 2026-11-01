@@ -65,7 +65,8 @@ body.calm #game{transition:none}
 .mini{font-family:var(--display);font-size:10px;background:var(--ink-3);color:var(--parch);border:0;border-radius:3px;padding:4px 7px;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
 .pinbar i{display:block;width:90px;height:8px;background:var(--ink-3);border-radius:2px;overflow:hidden;position:relative}
 .pinbar i b{position:absolute;inset:0;background:var(--violet);transform-origin:left;transform:scaleX(1)}
-.hint{width:100%;font-size:14px;line-height:1.4;color:var(--mute);min-height:2.8em;text-wrap:pretty}
+.hint{width:100%;font-size:14px;line-height:1.4;color:var(--mute);min-height:2.8em;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.hint.open{display:block;-webkit-line-clamp:unset}
 .controls{width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:8px;padding-bottom:4px}
 .ctl{background:var(--ink-3);color:var(--parch);border:0;border-radius:8px;font-family:var(--display);cursor:pointer;box-shadow:inset 0 -4px 0 rgba(0,0,0,.35);touch-action:none;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:0}
 .ctl small{font-size:8px;letter-spacing:.06em;color:var(--mute)}
@@ -101,6 +102,7 @@ body.calm #game{transition:none}
 .btn{flex:1;font-family:var(--display);font-size:12px;padding:12px;border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
 .btn.primary{background:var(--brass);color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.chap{grid-column:1/-1;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--brass);margin-top:6px;display:flex;align-items:center;gap:8px}.chap::after{content:'';flex:1;height:1px;background:var(--ink-3)}
 .lv-btn{aspect-ratio:1;max-width:100%;font-family:var(--display);border:0;border-radius:4px;background:var(--ink-3);color:var(--parch);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px}
 .lv-btn small{font-size:8px;color:var(--brass);letter-spacing:.06em}
 .lv-btn[disabled]{opacity:.35;cursor:default}
@@ -812,6 +814,7 @@ function musicTick() {
   while (MUSIC.next < ac.currentTime + 0.25) {
     const s = MUSIC.step, when = MUSIC.next, bar = Math.floor(s / 8) % 4, beat = s % 8;
     const chord = CHORDS[reversed ? 3 - bar : bar], scale = st.sleeping ? NIGHT_SCALE : DAY_SCALE;
+    if (beat === 0 && eclipsed(st.t)) { tone('bass', NOTE(26), when, spb * 8, 'sawtooth', 0.03, 0.3); tone('pad', NOTE(33), when, spb * 8, 'sine', 0.05, 0.6); }
     if (beat === 0) for (const n of chord) tone('pad', NOTE(n + (st.sleeping && n % 12 === 6 ? -1 : 0)), when, spb * 8.5, 'sine', 0.035, 0.4);
     if (beat === 0 || beat === 4) tone('bass', NOTE(chord[0] - 12), when, spb * 3.5, 'triangle', 0.09, 0.02);
     // arpeggio walks up by day, down when the sun runs backward
@@ -849,7 +852,7 @@ function load(i) {
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; persist();
   $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
-  $('hint').textContent = LEVELS[i].hint;
+  $('hint').textContent = LEVELS[i].hint; $('hint').classList.remove('open');
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
   // only show the powers this stage actually needs, so the sun stays the star
   const uses = LEVELS[i].uses || { flip: true, pin: true };
@@ -1004,7 +1007,9 @@ function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
   const ord = order(); let n = 0;
-  const b = ord.map(i => { const lv = LEVELS[i]; const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; }).join('');
+  const CH = ['I · DAWN', 'II · MORNING', 'III · NOON', 'IV · AFTERNOON', 'V · DUSK', 'VI · NIGHT']; let k = 0, bs = false;
+  const b = ord.map(i => { const lv = LEVELS[i]; let head = ''; if (!lv.demo && !lv.bside && k % 5 === 0 && k / 5 < CH.length) head = `<div class="chap">${CH[k / 5]}</div>`; if (!lv.demo && !lv.bside) k++; if (lv.bside && !bs) { bs = true; head = '<div class="chap">B-SIDES</div>'; } if (lv.demo) head = '<div class="chap">DEMO</div>';
+    return head + (() => { const label = lv.demo ? '★' : lv.bside ? 'B' : String(++n); return `<button class="lv-btn ${i === li ? 'cur' : ''} ${lv.demo ? 'demo' : ''}" data-i="${i}" ${unlocked(i) ? '' : 'disabled'} aria-label="${lv.demo ? 'Hard demo' : 'Level ' + n} ${lv.name}">${label}<small>${lv.demo ? 'DEMO' : lv.bside ? 'B-SIDE' : save.best[i] ? '✦'.repeat(save.shards[i] || 0) || '·' : '&nbsp;'}</small></button>`; })(); }).join('');
   const dd = dailyInfo(), done = save.daily && save.daily[dd.key];
   showCard(`<h2>Dials</h2>
     <button class="btn daily" id="dailyBtn">☀ DAILY SUNDIAL #${dd.n}${done ? ' · ' + done.hours.toFixed(1) + 'h' : ''}</button>
@@ -1631,7 +1636,7 @@ document.querySelectorAll('.ctl').forEach(b => {
 });
 $('menuBtn').onclick = menu;
 $('resetBtn').onclick = () => { load(li); beep(240, .06, 'triangle', .04); };
-$('hint').onclick = () => $('hint').classList.remove('open');
+$('hint').onclick = () => $('hint').classList.toggle('open');
 $('helpBtn').onclick = () => { $('hint').classList.toggle('open'); };
 $('viewBtn').onclick = toggleView;
 $('rotBtn').onclick = async () => {
