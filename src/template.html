@@ -85,6 +85,11 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .lv-btn[disabled]{opacity:.35;cursor:default}
 .lv-btn.cur{box-shadow:0 0 0 2px var(--brass)}
 .lv-btn.demo{background:#5a2e4a;color:var(--brass)}
+.ed-grid{display:grid;gap:1px;background:#0c0719;padding:1px;touch-action:none;user-select:none;width:100%;box-sizing:border-box}
+.ed-grid i{display:block;aspect-ratio:1;font-style:normal;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--display)}
+.ed-pal{display:flex;flex-wrap:wrap;gap:4px}
+.ed-pal button{border:0;border-radius:4px;padding:5px 7px;font-family:var(--display);font-size:10px;cursor:pointer;background:var(--ink-3);color:var(--parch)}
+.ed-pal button.sel{outline:2px solid var(--brass)}
 .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute);cursor:pointer}
 .toggle input{accent-color:var(--brass);width:16px;height:16px}
 .rules{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
@@ -250,14 +255,14 @@ const DEMO = LEVELS.findIndex(l => l.demo);
 const DAILY_EPOCH = Date.UTC(2026, 10, 1);
 function dailyInfo() {
   const now = new Date(); const day = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 86400000);
-  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo);
+  const pool = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].demo && !LEVELS[i].custom);
   let h = Math.imul(Math.max(0, day) + 1, 2654435761) >>> 0; h = (h ^ (h >>> 15)) >>> 0;
   return { n: day + 1, li: pool[h % pool.length], key: 'd' + (day + 1) };
 }
 let dailyMode = false;
 const SHARE_URL = location.origin && location.origin.startsWith('http') && !location.origin.includes('claude') ? location.origin + location.pathname : 'https://codexvrsl.github.io/gnomon/';
 const BSIDES = LEVELS.map((_, i) => i).filter(i => LEVELS[i].bside);
-const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO && !LEVELS[i].bside); return save.demoFirst ? [DEMO, ...rest, ...BSIDES] : [...rest, ...BSIDES, DEMO]; };
+const order = () => { const rest = LEVELS.map((_, i) => i).filter(i => i !== DEMO && !LEVELS[i].bside && !LEVELS[i].custom); return save.demoFirst ? [DEMO, ...rest, ...BSIDES] : [...rest, ...BSIDES, DEMO]; };
 const persist = () => { try { localStorage.setItem('gnomon-v5', JSON.stringify(save)); } catch (e) {} };
 const keys = { l: 0, r: 0, j: 0, w: 0, p: 0, f: 0, x: 0, u: 0 }; let jumpEdge = false, flipEdge = false, dashEdge = false;
 function toggleView() { save.view25 = !save.view25; persist(); $('viewBtn').classList.toggle('on', save.view25); toast(save.view25 ? 'CAMERA · 2.5D' : 'CAMERA · FLAT'); beep(520, .08, 'sine', .04, 1.4); }
@@ -343,7 +348,7 @@ function load(i) {
   li = i; L = parse(startOverride != null ? { ...LEVELS[i], startHour: startOverride } : LEVELS[i]); L.invincible = !!(save.assist && save.assist.inv);
   for (let x = 1; x < L.W - 1; x++) { const up = L.grid[HALF - 2][x], gr = L.grid[HALF - 1][x]; if (up === '.' && gr === '#' && L.grid[HALF - 2][x - 1] !== 'G' && L.grid[HALF - 2][x + 1] !== 'G' && hash(x, i + 3) < 0.11 && !/[A-Da-d]/.test(L.grid.map(r => r[x]).join('')) && !decor.some(d => Math.abs(d.x - x * TS) < 30)) decor.push({ x: x * TS + 2 + Math.round(hash(x, 9) * 6), kind: hash(x, i) < 0.6 ? 'tree' : 'post', h: 16 + Math.round(hash(x, 5) * 12) }); } st = init(L); parts = []; shake = 0; flash = 0; camX = Math.max(0, Math.min(L.PX - W, st.p.x - W / 2));
   save.at = i; persist();
-  $('lvl').innerHTML = LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
+  $('lvl').innerHTML = LEVELS[i].custom ? `<b>MADE</b> · ${LEVELS[i].name}` : LEVELS[i].demo ? `<b>DEMO</b> · ${LEVELS[i].name}` : LEVELS[i].bside ? `<b>B-SIDE</b> · ${LEVELS[i].name}` : `<b>${String(order().filter(k => k !== DEMO).indexOf(i) + 1).padStart(2, '0')}</b> · ${LEVELS[i].name}`;
   $('hint').textContent = LEVELS[i].hint;
   toast((LEVELS[i].demo ? 'DEMO · ' : '') + LEVELS[i].name.toUpperCase());
   // only show the powers this stage actually needs, so the sun stays the star
@@ -445,6 +450,7 @@ function win() {
     ${lastLv ? '<button class="btn primary" id="toMenu">All dials</button>' : '<button class="btn primary" id="next">Next dial</button>'}</div>`);
   $('again').onclick = () => { hideCard(); load(li); };
   $('ghostBtn').onclick = () => shareGhost($('ghostBtn'));
+  if (LEVELS[li].custom) { $('again').textContent = 'Edit stage'; $('again').onclick = () => editor(); }
   if (lastLv) $('toMenu').onclick = menu; else $('next').onclick = () => { hideCard(); load(ord[pos + 1]); };
 }
 function ghostLink() { return lastRun ? SHARE_URL + '#g=' + lastRun.li + '~' + (lastRun.h ?? '') + '~' + lastRun.d : SHARE_URL; }
@@ -504,13 +510,13 @@ function menu() {
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
-    <div class="row"><button class="btn" id="assistBtn">Assist mode</button></div>
+    <div class="row"><button class="btn" id="assistBtn">Assist mode</button><button class="btn" id="editBtn">Make a stage</button></div>
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn" id="musicBtn">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
-  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist;
+  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('editBtn').onclick = () => editor();
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
   $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; };
 }
@@ -529,6 +535,52 @@ function assist() {
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu;
 }
+// ---------- stage maker: paint a 20 x 14 map, set the hour, play it, share it as a link ----------
+const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Start', '#f6c85f'], ['G', 'Dial', '#ffd25e'], ['g', 'Shadow dial', '#9d7cff'], ['x', 'Spikes', '#e9806e'], ['v', 'Chime', '#f0a04e'],
+  ['A', 'Gate', '#c98b2b'], ['a', 'Plate', '#c7b4ff'], ['~', 'Water', '#4a90c8'], ['=', 'Sunstone', '#ffd88a'], ['c', 'Crumble', '#a8946c'], ['^', 'Spring', '#7fe0a0'], ['r', 'Crystal', '#9fe8ff'], ['f', 'Flag', '#e8e0ff'],
+  ['o', 'Shard', '#fff0b0'], ['y', 'Hawk', '#5a4552'], ['*', 'Lamp', '#ffd36b'], ['m', 'Morning', '#e8e0c8'], ['e', 'Evening', '#3a3046']];
+const edColor = c => (ED_TILES.find(x => x[0] === c) || ED_TILES[0])[2];
+let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#';
+const edBlank = () => { const m = []; for (let y = 0; y < ROWS; y++) m.push((y === HALF - 1 || y === HALF ? '#' : '.').repeat(20).split('')); m[HALF - 2][1] = 'S'; m[HALF - 2][18] = 'G'; return m; };
+const edEncode = () => { const s = edMap.map(r => r.join('')).join('|'); let o = ''; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i]) j++; o += (j - i > 1 ? (j - i) : '') + s[i]; i = j; } return edOpts.h + '!' + (edOpts.cast ? 1 : 0) + (edOpts.sun ? 1 : 0) + '!' + o; };
+const edDecode = str => { const [h, fl, body] = str.split('!'); let s = ''; for (const m of body.matchAll(/(\d*)(\D)/g)) s += m[2].repeat(m[1] ? +m[1] : 1); const rows = s.split('|'); if (rows.length !== ROWS) throw 0; return { map: rows.map(r => r.split('')), opts: { h: +h, cast: fl[0] === '1', sun: fl[1] === '1' } }; };
+function customDef() { const d = { name: 'Your stage', custom: true, startHour: edOpts.h, cast: edOpts.cast, hint: 'A stage made in the stage maker. Press LEVELS to go back and edit it.', map: edMap.map(r => r.join('')) }; if (edOpts.sun) { d.sunRate = 0.06; d.duskFail = true; d.hourPx = 400; } return d; }
+function playCustom() {
+  const m = edMap.map(r => r.join('')).join('');
+  if ((m.match(/S/g) || []).length !== 1 || (m.match(/G/g) || []).length !== 1) { toast('PUT EXACTLY ONE START AND ONE DIAL'); return; }
+  let ci = LEVELS.findIndex(l => l.custom); const d = customDef(); if (ci < 0) { LEVELS.push(d); ci = LEVELS.length - 1; } else LEVELS[ci] = d;
+  dailyMode = false; hideCard(); load(ci);
+}
+function editor(fromLink) {
+  if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
+  if (!edMap) edMap = edBlank();
+  const cells = edMap.map((r, y) => r.map((c, x) => `<i data-x="${x}" data-y="${y}" style="background:${y >= HALF && c === '.' ? '#241c40' : edColor(c)}">${c === '.' || c === '#' ? '' : c}</i>`).join('')).join('');
+  showCard(`<h2>Stage maker</h2>
+    <p class="sub">Top half is the world of light, bottom half is your shadow's world. Tap or drag to paint.</p>
+    <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(20,1fr)">${cells}</div>
+    <div class="ed-pal">${ED_TILES.map(([c, n, col]) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
+    <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
+    <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
+    <label class="toggle"><input type="checkbox" id="edSun" ${edOpts.sun ? 'checked' : ''}> Sunset run (the sun moves on its own)</label>
+    <div class="row"><button class="btn primary" id="edPlay">Play</button><button class="btn" id="edShare">Share link</button></div>
+    <div class="row"><button class="btn" id="edClear">Clear</button><button class="btn" id="edBack">Back</button></div>`);
+  const grid = $('edGrid'); let painting = false;
+  const paint = e => { const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !el.dataset || el.dataset.x == null) return; const x = +el.dataset.x, y = +el.dataset.y;
+    if (edSel === 'S' || edSel === 'G') for (const r of edMap) for (let k = 0; k < r.length; k++) if (r[k] === edSel) r[k] = '.';
+    edMap[y][x] = edSel; save.edit = edEncode(); persist(); el.style.background = y >= HALF && edSel === '.' ? '#241c40' : edColor(edSel); el.textContent = edSel === '.' || edSel === '#' ? '' : edSel;
+    if (edSel === 'S' || edSel === 'G') editor(); };
+  grid.addEventListener('pointerdown', e => { painting = true; try { grid.setPointerCapture(e.pointerId); } catch (_) {} paint(e); });
+  grid.addEventListener('pointermove', e => { if (painting) paint(e); });
+  grid.addEventListener('pointerup', () => { painting = false; });
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { edSel = b.dataset.t; document.querySelectorAll('[data-t]').forEach(q => q.classList.toggle('sel', q === b)); });
+  $('edH').oninput = e => { edOpts.h = +e.target.value; $('edHv').textContent = edOpts.h; save.edit = edEncode(); persist(); };
+  $('edCast').onchange = e => { edOpts.cast = e.target.checked; save.edit = edEncode(); persist(); };
+  $('edSun').onchange = e => { edOpts.sun = e.target.checked; save.edit = edEncode(); persist(); };
+  $('edPlay').onclick = playCustom;
+  $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage', url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
+  $('edClear').onclick = () => { edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
+  $('edBack').onclick = menu;
+}
 function how() {
   showCard(`<h2>How to play</h2>
     <p>You are a gnomon, the pin of a sundial, trying to get back to your dial. Your shadow lives in the upside-down world below and copies every step. When you jump up, it jumps down.</p>
@@ -536,6 +588,7 @@ function how() {
       <li><span>☀</span><span><b>Time only moves when you move.</b> Hold ⧗ to let it pass. Your shadow is long at dawn and dusk, short at midday, and gone at noon.</span></li>
       <li><span>➶</span><span><b>DASH</b> (X / Shift, or the red button): a quick burst in any of 8 directions (hold ↑ or ↓ to aim; on touch, hold JUMP to dash up). It refills when you land or touch a <b>sun crystal</b>, and <b>each dash burns half an hour</b>, so your shadow swings with it. Your scarf turns blue when it's spent.</span></li>
       <li><span>⇄</span><span><b>Wall jump</b>: jump while touching a wall to kick off it. Climb shafts by bouncing between two walls. Press into a wall while falling to slide. Tricks: <b>jump during an up-dash next to a wall</b> for a super wall jump, and <b>jump during a dash along the ground</b> to keep the speed.</span></li>
+      <li><span>✚</span><span><b>Make a stage</b> (Levels → Make a stage): paint your own, play it, and share it as a link.</span></li>
       <li><span>⚑</span><span><b>Sunset runs</b>: the sun sinks on its own. Reach your dial before night or start over. Flags save your spot.</span></li>
       <li><span>✎</span><span><b>STAFF</b>: tap to plant your gnomon staff in front of you, tap again to pull it back. Its thin shadow falls into the world below and swings with the sun. <b>Shade presses violet plates</b>, so you can set it to press a plate at a chosen hour.</span></li>
       <li><span>▮</span><span>In <b>cast lands</b>, every stone above the ground throws a real shadow into the world below, sliding with the sun like yours. Your shadow can walk on it, and it can press plates.</span></li>
@@ -1072,6 +1125,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200)); $('
 function start(data) {
   const i = data && Number.isInteger(data.li) ? data.li : (save.at || 0);
   load(Math.min(i, LEVELS.length - 1));
+  { const em = location.hash.match(/^#e=(.+)$/); if (em) { try { const d = edDecode(decodeURIComponent(em[1])); edMap = d.map; edOpts = d.opts; save.seen = true; requestAnimationFrame(loop); playCustom(); toast('A FRIEND\'S STAGE'); return; } catch (e) {} } }
   { const m = location.hash.match(/^#g=(\d+)~([\d.]*)~([0-9a-z._]+)$/); if (m && LEVELS[+m[1]]) { const gi = +m[1]; friendGhost = { li: gi, data: unrle(m[3]) }; save.seen = true; requestAnimationFrame(loop); if (m[2] !== '') { dailyMode = true; startOverride = +m[2]; } hideCard(); load(gi); toast('RACE YOUR FRIEND\'S GHOST'); return; } }
   if (/[?&#]daily/.test(location.href)) { save.seen = true; requestAnimationFrame(loop); startDaily(); return; }
   if (data && data.st && data.st.p && data.st.crumble) st = data.st;
