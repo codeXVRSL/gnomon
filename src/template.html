@@ -578,7 +578,7 @@ const ED_TILES = [['.', 'Air', '#7cc4ec'], ['#', 'Stone', '#8a7a5a'], ['S', 'Sta
   ['A', 'Gate', '#c98b2b'], ['a', 'Plate', '#c7b4ff'], ['~', 'Water', '#4a90c8'], ['=', 'Sunstone', '#ffd88a'], ['c', 'Crumble', '#a8946c'], ['^', 'Spring', '#7fe0a0'], ['r', 'Crystal', '#9fe8ff'], ['f', 'Flag', '#e8e0ff'],
   ['o', 'Shard', '#fff0b0'], ['y', 'Hawk', '#5a4552'], ['*', 'Lamp', '#ffd36b'], ['m', 'Morning', '#e8e0c8'], ['e', 'Evening', '#3a3046']];
 const edColor = c => (ED_TILES.find(x => x[0] === c) || ED_TILES[0])[2];
-let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#';
+let edMap = null, edOpts = { h: 1, cast: false, sun: false }, edSel = '#', edZoom = -1; // -1 = whole map, 0 = left half, 1 = right half
 const edBlank = () => { const m = []; for (let y = 0; y < ROWS; y++) m.push((y === HALF - 1 || y === HALF ? '#' : '.').repeat(20).split('')); m[HALF - 2][1] = 'S'; m[HALF - 2][18] = 'G'; return m; };
 const edEncode = () => { const s = edMap.map(r => r.join('')).join('|'); let o = ''; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i]) j++; o += (j - i > 1 ? (j - i) : '') + s[i]; i = j; } return edOpts.h + '!' + (edOpts.cast ? 1 : 0) + (edOpts.sun ? 1 : 0) + '!' + o; };
 const edDecode = str => { const [h, fl, body] = str.split('!'); let s = ''; for (const m of body.matchAll(/(\d*)(\D)/g)) s += m[2].repeat(m[1] ? +m[1] : 1); const rows = s.split('|'); if (rows.length !== ROWS) throw 0; return { map: rows.map(r => r.split('')), opts: { h: +h, cast: fl[0] === '1', sun: fl[1] === '1' } }; };
@@ -592,10 +592,12 @@ function playCustom() {
 function editor(fromLink) {
   if (!edMap) { try { const s = save.edit && edDecode(save.edit); if (s) { edMap = s.map; edOpts = s.opts; } } catch (e) {} }
   if (!edMap) edMap = edBlank();
-  const cells = edMap.map((r, y) => r.map((c, x) => `<i data-x="${x}" data-y="${y}" style="background:${y >= HALF && c === '.' ? '#241c40' : edColor(c)}">${c === '.' || c === '#' ? '' : c}</i>`).join('')).join('');
+  const x0 = edZoom < 0 ? 0 : edZoom * 10, x1 = edZoom < 0 ? 20 : x0 + 10;
+  const cells = edMap.map((r, y) => r.map((c, x) => x < x0 || x >= x1 ? '' : `<i data-x="${x}" data-y="${y}" style="background:${y >= HALF && c === '.' ? '#241c40' : edColor(c)}">${c === '.' || c === '#' ? '' : c}</i>`).join('')).join('');
   showCard(`<h2>Stage maker</h2>
     <p class="sub">Top half is the world of light, bottom half is your shadow's world. Tap or drag to paint.</p>
-    <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(20,1fr)">${cells}</div>
+    <div class="row" style="justify-content:space-between"><button class="btn" id="edZoom">${edZoom < 0 ? 'Zoom in' : 'Whole map'}</button>${edZoom < 0 ? '' : `<button class="btn" id="edSide">${edZoom === 0 ? 'Right half ▶' : '◀ Left half'}</button>`}</div>
+    <div class="ed-grid" id="edGrid" style="grid-template-columns:repeat(${x1 - x0},1fr)">${cells}</div>
     <div class="ed-pal">${ED_TILES.map(([c, n, col]) => `<button data-t="${c}" class="${c === edSel ? 'sel' : ''}"><span style="color:${col}">■</span> ${n}</button>`).join('')}</div>
     <label class="toggle">Start hour <input type="range" id="edH" min="0" max="6.5" step="0.5" value="${edOpts.h}"> <b id="edHv">${edOpts.h}</b></label>
     <label class="toggle"><input type="checkbox" id="edCast" ${edOpts.cast ? 'checked' : ''}> Cast land (stones cast shadows below)</label>
@@ -615,6 +617,8 @@ function editor(fromLink) {
   $('edCast').onchange = e => { edOpts.cast = e.target.checked; save.edit = edEncode(); persist(); };
   $('edSun').onchange = e => { edOpts.sun = e.target.checked; save.edit = edEncode(); persist(); };
   $('edPlay').onclick = playCustom;
+  $('edZoom').onclick = () => { edZoom = edZoom < 0 ? 0 : -1; editor(); };
+  if ($('edSide')) $('edSide').onclick = () => { edZoom = 1 - edZoom; editor(); };
   $('edShare').onclick = async () => { const url = SHARE_URL + '#e=' + encodeURIComponent(edEncode()); try { if (navigator.share) { await navigator.share({ text: 'Try my Gnomon stage', url }); return; } } catch (e) {} try { await navigator.clipboard.writeText(url); $('edShare').textContent = 'Link copied!'; } catch (e) { prompt('Copy this link', url); } };
   $('edClear').onclick = () => { edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
   $('edBack').onclick = menu;
@@ -628,6 +632,9 @@ function stats() {
   const rows = main.filter(i => save.best[i]).map(i => `<tr><td>${LEVELS[i].name}</td><td>${['', '✦', '☾', '☀'][md[i] || 0]}</td><td>${save.best[i].hours.toFixed(1)}h</td><td>${tm[i] ? tm[i].toFixed(1) + 's' : '–'}</td></tr>`).join('');
   showCard(`<h2>Stats</h2>
     <div class="stat"><span><b>${won}/${main.length}</b>DIALS</span><span><b>${count(3)}</b>☀ SUN</span><span><b>${count(2)}</b>☾ MOON</span><span><b>${shards}/${totalSh}</b>SHARDS</span></div>
+    ${(() => { const CH = ['Dawn', 'Morning', 'Noon', 'Afternoon', 'Dusk', 'Night']; const ord = order().filter(k => k !== DEMO && !LEVELS[k].bside); let total = 0, full = true; const fmt = s => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
+      const cells = CH.map((c, k) => { const ids = ord.slice(k * 5, k * 5 + 5); if (!ids.length) return ''; const ok = ids.every(i => tm[i]); const sum = ids.reduce((a, i) => a + (tm[i] || 0), 0); if (ok) total += sum; else full = false; return `<span><b>${ok ? fmt(sum) : '–'}</b>${c.toUpperCase()}</span>`; }).join('');
+      return `<p class="sub" style="margin-bottom:0">Speedrun splits (sum of best times):</p><div class="stat" style="flex-wrap:wrap">${cells}<span><b>${full ? fmt(total) : '–'}</b>TOTAL</span></div>`; })()}
     <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
     ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
     <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
@@ -1167,7 +1174,7 @@ function readPad() {
   padPrev = { j: o.j, dash, flip, start };
   return o;
 }
-window.addEventListener('gamepadconnected', () => toast('CONTROLLER CONNECTED'));
+window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED · A JUMP · X DASH'); const k = document.querySelector('.keys'); if (k) k.textContent = 'Ⓐ jump · Ⓧ/Ⓑ dash · Ⓨ hourglass · LB staff · RB flip · stick to move and aim · Start levels'; });
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) { if (e.key === 'Escape') hideCard(); return; }
   const k = KMAP[e.key];
