@@ -48,6 +48,7 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 #game{image-rendering:pixelated;image-rendering:crisp-edges;display:block;touch-action:none;transition:transform .9s cubic-bezier(.65,-.25,.3,1.25)}
 #stage{perspective:600px}
 #game.eclipse{transform:rotate(180deg)}
+body.calm #game{transition:none}
 #toast{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-family:var(--display);font-size:12px;background:rgba(25,21,41,.9);color:var(--brass);padding:6px 10px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
 #toast.show{opacity:1}
 .meta{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;color:var(--mute)}
@@ -729,6 +730,7 @@ for (const [k, map, pal] of [['p', SPR, P], ['p2', walk2, P], ['p3', SPR_PASS, P
 
 let li = 0, L, st, acc = 0, last = 0, toastT, parts = [], flash = 0, shake = 0, shakeX = 0, shakeY = 0;
 let decor = [], lookX = 0, wipe = 0;
+const calm = () => !!((save.assist && save.assist.calm) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
 // ---- ghost runs: the engine is deterministic, so a run is just its inputs, replayed into a second world ----
 const BITS = ['l', 'r', 'jump', 'jumpHeld', 'wait', 'pin', 'flip', 'dash', 'up', 'down'];
 const packInp = inp => BITS.reduce((m, k, i) => m | (inp[k] ? 1 << i : 0), 0);
@@ -913,6 +915,7 @@ function tick() {
   for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vx *= .94; p.vy *= .94; p.life--; }
   parts = parts.filter(p => p.life > 0);
   squashP += (1 - squashP) * .25; squashS += (1 - squashS) * .25;
+  if (calm()) { shake = 0; flash = 0; speedLines = 0; }
   if (shake > 0) { shake *= .8; if (shake < .2) shake = 0; shakeX = (Math.random() - .5) * shake * 2; shakeY = (Math.random() - .5) * shake * 2; } else shakeX = shakeY = 0;
   if (dawnTimer > 0) dawnTimer--;
 }
@@ -1000,13 +1003,13 @@ function menu() {
     <div class="grid">${b}</div>
     <label class="toggle"><input type="checkbox" id="demoFirst" ${save.demoFirst ? 'checked' : ''}> Put the hard demo first</label>
     <label class="toggle"><input type="checkbox" id="unlockAll" ${save.unlockAll ? 'checked' : ''}> Unlock every stage (for testing)</label>
-    <div class="row"><button class="btn" id="assistBtn">Assist mode</button><button class="btn" id="editBtn">Make a stage</button></div>
+    <div class="row"><button class="btn" id="statsBtn">Stats</button><button class="btn" id="assistBtn">Assist mode</button><button class="btn" id="editBtn">Make a stage</button></div>
     <div class="row"><button class="btn" id="howBtn">How to play</button><button class="btn" id="muteBtn">${muted ? 'Sound off' : 'Sound on'}</button><button class="btn" id="musicBtn">${MUSIC.on ? 'Music on' : 'Music off'}</button><button class="btn primary" id="closeBtn">Close</button></div>`);
   $('demoFirst').onchange = e => { save.demoFirst = e.target.checked; persist(); menu(); };
   $('unlockAll').onchange = e => { save.unlockAll = e.target.checked; persist(); menu(); };
   document.querySelectorAll('.lv-btn').forEach(x => x.onclick = () => { dailyMode = false; hideCard(); load(+x.dataset.i); });
   $('dailyBtn').onclick = startDaily;
-  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('editBtn').onclick = () => editor();
+  $('closeBtn').onclick = hideCard; $('howBtn').onclick = how; $('assistBtn').onclick = assist; $('statsBtn').onclick = stats; $('editBtn').onclick = () => editor();
   $('muteBtn').onclick = e => { muted = !muted; e.target.textContent = muted ? 'Sound off' : 'Sound on'; };
   $('musicBtn').onclick = e => { MUSIC.on = !MUSIC.on; save.music = MUSIC.on; persist(); e.target.textContent = MUSIC.on ? 'Music on' : 'Music off'; };
 }
@@ -1019,9 +1022,11 @@ function assist() {
     <div class="row">${sp.map(v => `<button class="btn ${a.speed === v ? 'primary' : ''}" data-sp="${v}">${Math.round(v * 100)}%</button>`).join('')}</div>
     <label class="toggle"><input type="checkbox" id="aDash" ${a.dash ? 'checked' : ''}> Infinite dashes</label>
     <label class="toggle"><input type="checkbox" id="aInv" ${a.inv ? 'checked' : ''}> Invincible (spikes, lamps and hawks can't hurt you)</label>
+    <label class="toggle"><input type="checkbox" id="aCalm" ${a.calm ? 'checked' : ''}> Reduce motion (no shake, flashes, wipes or spin animation)</label>
     <div class="row"><button class="btn primary" id="aDone">Done</button></div>`);
   document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { a.speed = +b.dataset.sp; persist(); assist(); });
   $('aDash').onchange = e => { a.dash = e.target.checked; persist(); };
+  $('aCalm').onchange = e => { a.calm = e.target.checked; persist(); };
   $('aInv').onchange = e => { a.inv = e.target.checked; L.invincible = a.inv; persist(); };
   $('aDone').onclick = menu;
 }
@@ -1071,6 +1076,20 @@ function editor(fromLink) {
   $('edClear').onclick = () => { edMap = edBlank(); save.edit = edEncode(); persist(); editor(); };
   $('edBack').onclick = menu;
 }
+function stats() {
+  const main = LEVELS.map((_, i) => i).filter(i => !LEVELS[i].custom);
+  const won = main.filter(i => save.best[i]).length, md = save.medal || {}, tm = save.times || {};
+  const count = m => main.filter(i => md[i] === m).length;
+  const deaths = main.reduce((a, i) => a + (save.best[i] ? save.best[i].deaths : 0), 0);
+  const shards = main.reduce((a, i) => a + (save.shards[i] || 0), 0), totalSh = LEVELS.reduce((a, l) => a + (l.custom ? 0 : (l.map.join('').match(/o/g) || []).length), 0);
+  const rows = main.filter(i => save.best[i]).map(i => `<tr><td>${LEVELS[i].name}</td><td>${['', '✦', '☾', '☀'][md[i] || 0]}</td><td>${save.best[i].hours.toFixed(1)}h</td><td>${tm[i] ? tm[i].toFixed(1) + 's' : '–'}</td></tr>`).join('');
+  showCard(`<h2>Stats</h2>
+    <div class="stat"><span><b>${won}/${main.length}</b>DIALS</span><span><b>${count(3)}</b>☀ SUN</span><span><b>${count(2)}</b>☾ MOON</span><span><b>${shards}/${totalSh}</b>SHARDS</span></div>
+    <p class="sub">Falls on your best runs: ${deaths}. Daily streak: ${(() => { const d = dailyInfo(); let n = 0; for (let k = d.n; k > 0 && save.daily && save.daily['d' + k]; k--) n++; return n; })()} day(s).</p>
+    ${rows ? `<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:var(--mute)"><td>Stage</td><td>Medal</td><td>Hours</td><td>Time</td></tr>${rows}</table>` : '<p class="sub">Beat a stage to start your record.</p>'}
+    <div class="row"><button class="btn primary" id="stDone">Back</button></div>`);
+  $('stDone').onclick = menu;
+}
 function how() {
   showCard(`<h2>How to play</h2>
     <p>You are a gnomon, the pin of a sundial, trying to get back to your dial. Your shadow lives in the upside-down world below and copies every step. When you jump up, it jumps down.</p>
@@ -1115,6 +1134,7 @@ function drawBody(img, x, y, w, h, sq, anchorBottom) {
 
 function render(now) {
   const t = st.t, night = st.sleeping, flipped = st.grav < 0, v25 = save.view25;
+  document.body.classList.toggle('calm', calm());
   const ecl = !night && !!LEVELS[li].eclipse && eclipsed(t);
   if (ecl !== cv.classList.contains('eclipse')) cv.classList.toggle('eclipse', ecl);
   g.setTransform(1, 0, 0, 1, Math.round(shakeX), Math.round(shakeY));
@@ -1223,7 +1243,9 @@ function render(now) {
       const hgt = Math.round(7 * rise) + 1;
       g.fillStyle = col;
       for (let i = 0; i < 3; i++) { const bx = px + 1 + i * 4; if (topW) { g.fillRect(bx, py + TS - hgt, 2, hgt); if (hgt > 3) g.fillRect(bx + 1, py + TS - hgt - 2, 1, 2); } else { g.fillRect(bx, py, 2, hgt); if (hgt > 3) g.fillRect(bx + 1, py + hgt, 1, 2); } }
-      if (c === 'v') { g.fillStyle = '#2a2240'; g.fillRect(px, topW ? py + TS - 2 : py, TS, 2); }
+      if (c === 'v') { g.fillStyle = '#2a2240'; g.fillRect(px, topW ? py + TS - 2 : py, TS, 2);
+        if (ch === 1) { g.fillStyle = '#ffffff'; for (let i = 0; i < 6; i += 2) g.fillRect(px + i * 2, topW ? py + TS - 2 : py + 1, 2, 1); }
+        if (ch === 2) { g.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) g.fillRect(px + 2 + i * 4, topW ? py + TS - hgt - 2 : py + hgt + 1, 1, 1); } }
     } else if (c >= 'A' && c <= 'D') {
       const open = pr.has(c) || (topW ? overlapsPlayerTile(st, x, y) : overlapsShadowTile(st, x, y));
       g.fillStyle = '#3a3346'; g.fillRect(px, py, 2, TS); g.fillRect(px + 10, py, 2, TS);
@@ -1412,6 +1434,7 @@ function render(now) {
   if (flipped && !night) { g.fillStyle = 'rgba(240,184,78,.07)'; g.fillRect(camX, 0, W, H); g.fillStyle = 'rgba(255,240,200,.35)'; for (let i = 0; i < 6; i++) { const yy = 6 + i * 13, xx = camX + W - ((now / 6 + i * 47) % (W + 30)); g.fillRect(xx, yy, 10, 1); } }
   if (speedLines > 0) { speedLines--; const [vx, vy] = st.dashV || [1, 0]; const n = Math.hypot(vx, vy) || 1, ux = vx / n, uy = vy / n; g.fillStyle = `rgba(255,240,220,${speedLines / 20})`; for (let i = 0; i < 9; i++) { const ox = camX + hash(i, Math.floor(now / 50)) * W, oy = hash(i + 7, Math.floor(now / 50)) * H; for (let k = 0; k < 10; k++) g.fillRect(Math.round(ox - ux * k * 2), Math.round(oy - uy * k * 2), 1, 1); } }
   // circle wipe in on a new stage or a respawn, centred on you
+  if (wipe > 0 && calm()) wipe = 0;
   if (wipe > 0) { const k = 1 - wipe / 26, r = Math.max(0, k * k * 260); g.fillStyle = '#100c1e'; g.beginPath(); g.rect(camX - 8, -8, W + 16, H + 16); { const cx = Math.round(st.p.x) + 4, cy = Math.round(st.p.y) + 6; g.moveTo(cx + r, cy); g.arc(cx, cy, r, 0, 6.29, true); g.closePath(); } g.fill('evenodd'); wipe--; }
   if (flash > 0) { g.fillStyle = `rgba(255,236,190,${flash * .6})`; g.fillRect(-4, -4, W + 8, H + 8); flash = Math.max(0, flash - .03); }
   g.setTransform(1, 0, 0, 1, 0, 0);
