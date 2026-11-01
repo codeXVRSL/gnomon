@@ -209,7 +209,7 @@ body.bigtext .card .sub,body.bigtext .toggle{font-size:16px;line-height:1.45}bod
   <div id="bar">
   <div class="clock">
     <canvas id="dial" width="200" height="14" aria-label="Sun clock"></canvas>
-    <div class="clock-txt"><b id="phase">Dawn</b><br>DAY <span id="day">1</span></div>
+    <div class="clock-txt"><b id="phase">Dawn</b> <span id="hourTxt" style="color:var(--mute)"></span><br>DAY <span id="day">1</span></div>
   </div>
   <div class="meta">
     <div class="pinbar" style="display:none"><i><b id="pinfill"></b></i></div>
@@ -1953,6 +1953,8 @@ function drawDial() {
   if (t < DUSK) { const k = t / DUSK, sx = Math.round(4 + k * (dayW - 8)), sy = Math.round(h - 4 - Math.sin(k * Math.PI) * (h - 7)); dg.fillStyle = '#fff2b0'; dg.fillRect(sx - 1, sy - 1, 3, 3); dg.fillStyle = '#ffd25e'; dg.fillRect(sx, sy, 1, 1); }
   else { const k = (t - DUSK) / (DAY_TOTAL - DUSK), sx = Math.round(dayW + 4 + k * (w - dayW - 8)), sy = Math.round(h - 4 - Math.sin(k * Math.PI) * (h - 7)); dg.fillStyle = '#efe7ff'; dg.fillRect(sx - 1, sy - 1, 3, 3); dg.fillStyle = '#26214a'; dg.fillRect(sx, sy - 1, 2, 2); }
   $('phase').textContent = (st.grav < 0 && !st.sleeping ? '◀ ' : '') + PHASE(t);
+  // the dial's own clock, the same o'clock the hints talk about (night shows no hour)
+  { const ht = st.sleeping ? '' : Math.floor(t) + ':' + String(Math.floor((t % 1) * 60 / 15) * 15).padStart(2, '0'); const el = $('hourTxt'); if (el.textContent !== ht) el.textContent = ht; }
   $('day').textContent = st.day;
 }
 
@@ -2116,9 +2118,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 170, t: 'the stage list now shows each beaten dial\'s medal under its number, ☀ sun or ☾ moon, next to the shards you found.' };
+const WHATS_NEW = { v: 171, t: 'the sun clock now shows the dial\'s hour next to the time of day (Dawn 0:15), the same o\'clock the hints talk about.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'The HUD shows the dial\'s hour, as used in hints.',
   'Stage list shows each dial\'s medal.',
   'Tap an open hint again for the step-by-step version.',
   'Every dial now has a step-by-step hint after six falls.',
@@ -2127,8 +2130,7 @@ const NEWS = [
   'Stage maker: add a passing cloud.',
   'Assist options grouped into three sections.',
   'Run splits show + or − against your best.',
-  'Rewinds count up, and Stats totals the seconds rewound.',
-  'Photos keep your Screen look.',];
+  'Rewinds count up, and Stats totals the seconds rewound.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
