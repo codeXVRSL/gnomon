@@ -1080,7 +1080,7 @@ function realSun(li) {
   return { h, par: LEVELS[li].real[h] };
 }
 function startDaily() { const d = dailyInfo(); dailyMode = true; hideCard(); const rs = realSun(d.li); startOverride = rs ? rs.h : null; realPar = rs ? rs.par : null; load(d.li); toast('DAILY SUNDIAL #' + d.n + ' · REAL SUN ' + realLabel); }
-function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
+function showCard(html) { $('card').innerHTML = html; $('overlay').hidden = false; { const h = $('card').querySelector('h2'); if (h) $('card').setAttribute('aria-label', h.textContent); } if (!matchMedia('(pointer: coarse)').matches) setTimeout(() => { const f = $('card').querySelector('.lv-btn.cur:not([disabled])') || $('card').querySelector('.btn.primary:not([disabled])') || $('card').querySelector('button:not([disabled]), input, select'); if (f && !$('overlay').hidden) f.focus({ preventScroll: true }); }, 30); for (const k in keys) keys[k] = 0; document.querySelectorAll('.ctl.on').forEach(b => b.classList.remove('on')); }
 function hideCard() { $('overlay').hidden = true; }
 const unlocked = i => { if (LEVELS[i].demo || save.unlockAll) return true; if (LEVELS[i].bside) return !!save.best[LEVELS.findIndex(l => l.name === LEVELS[i].bside)]; const ord = order().filter(k => k !== DEMO), p = ord.indexOf(i); return p === 0 || save.best[ord[p - 1]] || save.best[i]; };
 function menu() {
@@ -1779,6 +1779,15 @@ window.addEventListener('gamepadconnected', () => { toast('CONTROLLER CONNECTED 
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) {
     if (e.key === 'Escape') hideCard();
+    else if (e.key.startsWith('Arrow') && document.activeElement && document.activeElement.classList.contains('lv-btn')) { // move around the stage grid
+      const all = [...$('card').querySelectorAll('.lv-btn')], i = all.indexOf(document.activeElement), r0 = document.activeElement.getBoundingClientRect();
+      const cands = all.filter(b => !b.disabled && b !== document.activeElement).map(b => ({ b, r: b.getBoundingClientRect() }));
+      const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+      let best = null, bd = 1e9;
+      for (const { b, r } of cands) { const dx = (r.left + r.width / 2) - (r0.left + r0.width / 2), dy = (r.top + r.height / 2) - (r0.top + r0.height / 2); if ((dir[0] && Math.sign(dx) !== dir[0]) || (dir[1] && Math.sign(dy) !== dir[1]) || (dir[0] && Math.abs(dy) > r0.height / 2) ) continue; const d = dir[0] ? Math.abs(dx) : Math.abs(dy) * 4 + Math.abs(dx); if (d < bd) { bd = d; best = b; } }
+      if (!best && dir[0]) { const pool = (dir[0] > 0 ? all.slice(i + 1) : all.slice(0, i).reverse()).filter(b => !b.disabled); best = pool[0] || null; } // wrap to the next/previous row
+      if (best) { e.preventDefault(); best.focus(); best.scrollIntoView({ block: 'nearest' }); }
+    }
     else if (e.key === 'Tab') { // keep keyboard focus inside the open card
       const f = [...$('card').querySelectorAll('button:not([disabled]), input, select, a[href], textarea')].filter(x => x.offsetParent !== null);
       if (f.length) { const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); } }
@@ -1848,7 +1857,7 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 53, t: 'menus and win cards now work fully from the keyboard: Tab, Enter and Esc.' };
+const WHATS_NEW = { v: 54, t: 'use the arrow keys to pick a stage in the Dials list.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
