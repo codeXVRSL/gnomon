@@ -914,6 +914,7 @@ function how() {
       ['▲', '<b>Jump</b> up and your shadow jumps down. Shade presses <b>violet plates</b>, your feet press brass ones.'],
       ['➶', '<b>DASH</b> in 8 directions (X / Shift / red button; on phones aim with the <b>d-pad</b>, or just <b>swipe the game screen</b> in any direction). It refills when you land or touch a <b>crystal</b>. Each dash <b>burns half an hour</b>.'],
       ['⇄', '<b>Wall jump</b> off walls; climb by bouncing between two.'],
+      ['⟲', '<b>⟲ BACK</b> steps time back one second, up to five seconds back (T or Backspace; View/Back or LT on a controller). Stuck? Tap the hint under the game, then tap it again for a step-by-step way through.'],
       ['🎮', '<b>Controller:</b> stick to move and aim, A jump, B/X dash, Y hourglass, LB staff, RB flip, Start for levels.']])}
     ${sec('Keyboard shortcuts', false, [
       ['⌨', '<b>Play:</b> ←→ move · Space/↑ jump · X/Shift dash (hold arrows to aim) · ↓ hold to pass time · F flip · E staff · T or Backspace go back one second · R restart · V 2.5D view.'],
@@ -1646,9 +1647,10 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 184, t: 'finishing a sunset run now tells you how much daylight you had to spare.' };
+const WHATS_NEW = { v: 185, t: 'How to play now explains ⟲ BACK and the two-tap step-by-step hints.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 const NEWS = [
+  'How to play covers ⟲ BACK and step-by-step hints.',
   'Sunset runs show the daylight you had left.',
   'Assist: Reset to defaults.',
   'New B-side: Quick Chimes (B-side of Chime Run).',
@@ -1657,8 +1659,7 @@ const NEWS = [
   'Nights count down to dawn.',
   'New B-side: Three Nights (B-side of Two Nights).',
   'Bushes and pebbles on the grass.',
-  'All 31 sun medals earns a gold sun on the title.',
-  'The gnome blinks when idle.',];
+  'All 31 sun medals earns a gold sun on the title.',];
 function news() {
   showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
   $('nwBack').onclick = about;
