@@ -4,6 +4,7 @@ const E_ = require('./engine.js');
 const hawkNear = s => { const b = s.enemies[0]; return !s.s.gone && s.s.ground && Math.abs(b.x + E_.castDx(s.t) - s.s.x) < 14; };
 const fr_ = s => s.t - Math.floor(s.t);
 const S = {
+ 'In the Shade': [['R',s=>s.p.x>=80],['W',s=>s.t>=1.7],['R',s=>s.p.x>=96],['RJ',30],['R',600]],
  'Last Light': [['R',s=>s.p.x>=46],['RJ',30],['R',s=>s.p.x>=164],['RJ',12],['RUX',1],['R',20],['R',s=>s.p.x>=230],['RJ',14],['RX',1],['R',s=>s.p.x>=380],['RJ',12],['RUX',1],['R',20],['R',s=>s.p.x>=488],['RJ',25],['R',s=>s.p.x>=548],['RJ',25],['R',600]],
  'Chime Run': [['R',s=>s.p.x>=56],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=246],['RJ',8],['R',6],['LJ',1],['L',6],['LJ',1],['R',1],['RJ',40],['R',s=>s.p.x>=380],['',s=>fr_(s)<0.25&&fr_(s)>0.02],['R',s=>s.p.x>=500],['RJ',30],['R',600]],
  'Eclipse B': [['R',s=>s.p.x>=72],['W',s=>s.t>=2.05],['R',s=>s.p.x>=124],['RJ',30],['R',s=>s.p.x>=172],['RJ',12],['RUX',1],['R',8],['RX',1],['R',s=>s.p.x>=276||s.won],['RJ',16],['R',600]],

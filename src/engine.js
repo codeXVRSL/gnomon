@@ -401,7 +401,7 @@ function update(L, st, inp) {
     if (s.y + s.h < HZ - 2 || s.y > ROWS * TS + 2) die = 'shadow fell';
     else if (hurt('bot', s.x, s.y, SW, s.h)) die = 'shadow spikes';
     else if (squeezed(L, st, 'bot', s, SW, s.h, pr)) die = 'shadow crushed';
-    else if (!inWater(L, 'bot', s, SW, s.h)) for (const [lx, ly] of L.lamps) {
+    else if (!inWater(L, 'bot', s, SW, s.h) && !inShade(L, st)) for (const [lx, ly] of L.lamps) {
       const cx = Math.max(s.x, Math.min(lx, s.x + SW)), cy = Math.max(s.y, Math.min(ly, s.y + s.h));
       if ((cx - lx) ** 2 + (cy - ly) ** 2 < L.lampR ** 2) { die = 'lamplight'; break; }
     }
@@ -430,6 +430,8 @@ function update(L, st, inp) {
   else if (onG && L.shadowGoal && !st.waitedG) { st.waitedG = true; st.events.push('needshadow'); }
   else if (!onG) st.waitedG = false;
 }
+// standing in cast shade (a stone's shadow or your staff's) hides your shadow from lamplight
+function inShade(L, st) { const s = st.s, c = s.x + SW / 2; return slabs(L, st).some(r => c >= r.x - 1 && c <= r.x + r.w + 1); }
 function spikeHangs(L, world, tx, ty) {
   // 'hang' = spikes attached to the tile above (pointing down the screen)
   if (world === 'top') { if (ty === 0) return true; const up = tileAt(L, tx, ty - 1), dn = tileAt(L, tx, ty + 1); return (up === '#' && dn !== '#') || (ty + 1 === HALF && up === '#'); }
@@ -473,4 +475,4 @@ function fitShadow(L, st, want) {
 }
 const PHASE = t => t >= DUSK ? 'Night' : t < 0.75 ? 'Dawn' : t < 2.25 ? 'Morning' : t < NOON - NOON_GAP ? 'Forenoon' : t < NOON + NOON_GAP ? 'Noon' : t < 4.75 ? 'Afternoon' : t < 6.25 ? 'Evening' : 'Dusk';
 
-if (typeof module !== 'undefined') module.exports = { DASH, WALL, PHYS, markRects, echoOf, crescent, STAFF_W, STAFF_H, MARK_K, eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
+if (typeof module !== 'undefined') module.exports = { inShade, DASH, WALL, PHYS, markRects, echoOf, crescent, STAFF_W, STAFF_H, MARK_K, eclipsed, overcast, setClouds: c => { CLOUDS = c || []; }, SH, EW, EH, LANTERN_R, slabs, castDx, spikeHangs, inWater, overlapsShadowTile, TS, ROWS, HALF, HZ, PW, PH, SW, PIN_MAX, parse, init, update, pressedSet, shadowHeight, isGone, tileAt, PHASE, DUSK, NOON, DAY_TOTAL, overlapsPlayerTile, solid, chimeState, morningSolid, eveningSolid, crumbleGone };
