@@ -1969,17 +1969,34 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 101, t: 'the far horizon shimmers with heat around noon.' };
+const WHATS_NEW = { v: 102, t: 'see the full list of recent changes under About › What\'s new.' };
 const sumCode = b => { let h = 2166136261; for (let i = 0; i < b.length; i++) { h ^= b.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
+const NEWS = [
+  'Heat shimmer on the horizon at noon; trees sway as a cloud passes.',
+  'Fireflies at dusk, a flock at dawn, stars, a crescent moon and shooting stars at night.',
+  'Fixed a randomness bug: flowers, mortar and water sparkles now appear.',
+  'Beat a friend\'s stage and send it back with your time; verified stages.',
+  'Save codes to move progress between devices; reset progress (keeps settings).',
+  'Stage maker: undo, safe test run, shadow-start preview, number keys.',
+  'Stuck after 10 falls? Open the next dial and come back later.',
+  'Chapter runs: a whole chapter on one clock, with a best time.',
+  'Postcards for finishing chapters; journey summary at the end.',
+  'Danger warnings for hawks, lamps, lanterns and spikes; volume sliders.'];
+function news() {
+  showCard(`<h2>What's new</h2><ul style="margin:0 0 10px;padding-left:18px;line-height:1.5">${NEWS.map(n => `<li class="sub" style="margin:0 0 4px">${n}</li>`).join('')}</ul><div class="row"><button class="btn primary" id="nwBack">Back</button></div>`);
+  $('nwBack').onclick = about;
+}
 function about() {
   showCard(`<h2>About</h2>
     <p>Gnomon is a puzzle-platformer about a shadow that tells the time. The sun only moves when you do.</p>
     <p class="sub">Version ${WHATS_NEW.v}. ${LEVELS.filter(l => !l.custom).length} stages, a daily puzzle, and a stage maker.</p>
     <p class="sub">Made by Save, with Claude. Pixel fonts: Silkscreen and Pixelify Sans (Google Fonts). Everything else (art, music, sound) is drawn and played in code.</p>
     <p class="sub">Source: <a href="https://github.com/codeXVRSL/gnomon" target="_blank" rel="noopener" style="color:var(--brass)">github.com/codeXVRSL/gnomon</a></p>
+    <div class="row"><button class="btn" id="abNews">What's new</button></div>
     <div class="row"><button class="btn" id="abExp">Copy save code</button><button class="btn" id="abImp">Paste save code</button></div>
     <div class="row"><button class="btn" id="abReset">Reset progress…</button><button class="btn primary" id="abBack">Back</button></div>`);
   $('abBack').onclick = title;
+  $('abNews').onclick = news;
   $('abExp').onclick = async () => { let code = ''; try { { const b = btoa(unescape(encodeURIComponent(localStorage.getItem('gnomon-v5') || '{}'))); code = 'GN2.' + b + '.' + sumCode(b); } } catch (e) {} try { await navigator.clipboard.writeText(code); toast('SAVE CODE COPIED · PASTE IT ON YOUR OTHER DEVICE'); } catch (e) { showCard(`<h2>Your save code</h2><p class="sub">Copy all of this text and paste it on your other device.</p><textarea readonly style="width:100%;height:120px;font-size:10px">${code}</textarea><div class="row"><button class="btn primary" id="cdBack">Back</button></div>`); $('cdBack').onclick = about; } };
   $('abImp').onclick = () => {
     showCard(`<h2>Paste save code</h2><p class="sub">This replaces the progress on this device with the progress in the code.</p><textarea id="cdIn" style="width:100%;height:120px;font-size:10px" placeholder="GN2.…"></textarea><div class="row"><button class="btn" id="cdBack">Back</button><button class="btn primary" id="cdGo">Load it</button></div>`);
