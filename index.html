@@ -1873,14 +1873,14 @@ function start(data) {
   if (!(data && data.st)) { if (!save.seen) { save.seen = true; persist(); hideCard(); load(order().filter(k => k !== DEMO)[0]); toast('HOLD ⧗ · WATCH YOUR SHADOW SWING'); } else title(); } // first visit: straight into play
 }
 window.CHC = ['#f4a98a', '#9fd0e8', '#ffd36b', '#f6e2b8', '#e8835f', '#9a8be0'];
-const WHATS_NEW = { v: 56, t: 'when you replay a stage, any sun shard you missed pings so you can spot it.' };
+const WHATS_NEW = { v: 57, t: 'the title screen now shows which stage Continue takes you to, and your progress.' };
 function title() {
   const cont = save.at && save.best && Object.keys(save.best).length;
   showCard(`<div class="logo"><span>GNOMON</span><i></i></div>
     <canvas id="tDial" width="200" height="96" style="width:100%;image-rendering:pixelated;border-radius:4px;background:#1c1636"></canvas>
     ${save.seenVer !== WHATS_NEW.v && save.seen ? `<p class="sub" style="color:var(--brass)">New: ${WHATS_NEW.t}</p>` : ''}
     <p>Your shadow is the hand of a sundial. It lives upside-down below you, copies every move, and swings with a sun that only moves when you do.</p>
-    <div class="row"><button class="btn primary" id="tPlay">${cont ? 'Continue' : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
+    <div class="row"><button class="btn primary" id="tPlay">${cont ? `Continue<small style="display:block;font-size:10px;opacity:.75;margin-top:2px">${LEVELS[li].name} · ${LEVELS.filter((l, i) => !l.custom && save.best[i]).length}/${LEVELS.filter(l => !l.custom).length} dials</small>` : 'Play'}</button><button class="btn daily" id="tDaily">☀ Daily Sundial</button></div>
     <div class="row"><button class="btn" id="tMake">Make a stage</button><button class="btn" id="tDemo">Hard demo</button><button class="btn" id="tHow">How to play</button></div>`);
   const c = $('tDial'), x = c.getContext('2d'); let on = true;
   const draw = () => { if (!on || $('overlay').hidden) return; const now = new Date(), hr = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
